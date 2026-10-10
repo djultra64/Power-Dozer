@@ -26,7 +26,7 @@ progreso, Pak, capturas, evidencia binaria, bibliotecas precompiladas, ejecutabl
 de herramientas, referencia de emulador y variantes de QA. El archivo no depende
 del acceso posterior al checkout de Tetrisphere que se usó al producirlo.
 
-Los scripts de adaptación de events/timer/threadqueue/lifecycle del runtime y del
+Los scripts de adaptación de events/timer/threadqueue/lifecycle/mesgqueue del runtime y del
 observador RT64 quedan en el host. Regeneran copias locales de compilación
 desde las fuentes fijadas, con sus validaciones de huella; no requieren modificar
 el SDK original. Su procedencia, los flags y la receta permanecen revisables.
@@ -109,7 +109,8 @@ del árbol de fuente del destinatario; no se incorporan al archivo de fuente.
 
 ## Evidencia y límites de aceptación
 
-El snapshot post-lifecycle de 10.306 archivos se extrajo en `/tmp` con espacios
+El snapshot posterior a lifecycle y mesgqueue de 10.309 archivos
+se extrajo en `/tmp` con espacios
 y todos sus hashes pasaron. N64Recomp y RSPRecomp compilaron desde las fuentes
 exportadas (salida 0). RT64 estático y sus cuatro bibliotecas dependientes
 (re-spirv, nfd, zstd, plume) también compilaron (salida 0), con SDL/DBus/X11
@@ -120,11 +121,19 @@ por etapas no es todavía una ejecución end-to-end del comando bootstrap nuevo.
 La reconstrucción completa del host exportado terminó 0: generación CPU/RSP,
 configuración, los 224 targets y enlace. Se usó la ROM local como input de sólo
 lectura y todas las escrituras ocurrieron en el host temporal. CTest CPU pasó
-39/39 con SDL dummy; Python pasó 107/107 con la ROM propia presente, sin
-skips. Las fuentes C/C++/headers/CMake del snapshot final coinciden por hash
-con las que produjeron el ELF privado SHA-256
-`537380aa960c9b52357542726d348ee5b070be06c468b085f486340413f12512`. La prueba
-ROM permite `BC_TEST_ROM`, luego `.local/rom.z64`, luego un ZIP local; si no hay
+41/41 y Python 110/110 con ROM propia, sin skips, tras integrar el transform
+mesgqueue que valida el source SDK original y genera una copia local. Los
+fixtures normal/timed prueban que retries críticos retenidos no ocultan VI
+ni sobrescriben colas llenas, y conservan las reglas jam/nonretry. Configure y
+build del export terminaron 0; SDK, herramientas y ROM original no se modificaron.
+ELF privado de este checkpoint SHA-256
+`27d46626bbd6b3e48a0317b4e20191bcb2a68d9c949862289470d1bdfe1c23ad`.
+La reconstrucción previa lifecycle había pasado 39/107; el binario previo
+`537380aa960c9b52357542726d348ee5b070be06c468b085f486340413f12512`
+corresponde a ese estado anterior. Los resultados/checksums están en
+`.local/qa/source-host-build.json`.
+
+La prueba ROM permite `BC_TEST_ROM`, luego `.local/rom.z64`, luego un ZIP local; si no hay
 ninguno, sólo esa comprobación privada se omite. La prueba de ROM corrupta
 sigue ejecutándose sin datos privados. El fixture `legacy-completed.hex` es
 sintético y se incluye por su ruta exacta, sin permitir otros hex de progreso.
@@ -132,8 +141,8 @@ sintético y se incluye por su ruta exacta, sin permitir otros hex de progreso.
 Los primeros intentos expusieron Rabbitizer ausente, headers Python ausentes,
 compiler sysconfig gcc-13 inexistente y un fixture sintético omitido. La receta
 resuelve esos requisitos y conserva los resultados finales en `.local/qa`.
-El binario independiente todavía no se ejecutó en GPU ni se comparó con el
-objeto del paquete final. Reconstrucción CPU no equivale a equivalencia binaria,
+El checkpoint CPU aquí registrado no certifica su ejecución GPU ni
+correspondencia con el objeto del paquete final. Reconstrucción CPU no equivale a equivalencia binaria,
 instalación/runtime ni certificación de fuente correspondiente.
 
 No se modificó el binario de producción ni se ejecutó el juego en este trabajo
@@ -175,3 +184,13 @@ pausa/Continue y Restart. Cargó ALF y el progreso completado desde copias
 privadas; los seeds quedaron intactos. La salida virtual usó radv,
 1080p, 16:9 y objetivo configurado 120, sin exigir el umbral de fps.
 No es aceptación de salida física/audio audible ni del defecto gráfico pendiente.
+
+The updated mesgqueue-fairness host passed a separate native regression in
+`gameplay-3ar19xmo`, using ELF
+`27d46626bbd6b3e48a0317b4e20191bcb2a68d9c949862289470d1bdfe1c23ad`
+and cwd outside the checkout. It completed 180 seconds at VI 10801, graphics
+10951 and audio 5399, with movement, pause/Continue, Restart and existing
+completed-level replay verified. EEPROM/Pak seed sources stayed unchanged.
+This is runtime acceptance of the rebuilt host in the checked flow; no binary
+reproducibility, comprehensive platform coverage or source-license certification
+is inferred. The final packaged object still needs its own acceptance.

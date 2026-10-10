@@ -195,3 +195,100 @@ Private evidence: `lifecycle-tsan.log`, `original-started-tsan.log`,
 the actual compile invocation and runtime outcomes. The private TSAN runtime
 is the previously verified Fedora GCC 15.2.1-7.fc43 extraction retained in
 `timer-race`; it is not installed or packaged with the game.
+
+## Proven starvation of external producers by completion retries
+
+New startup freeze `.local/qa/gameplay-zpzpxc35/native-hang.txt` includes two
+read-only snapshots, separated by normal execution. All guest workers remain
+asleep, the running queue is empty, and the idle thread is active in the SDK
+external-message dequeue path. Its newest producer advances head/tail from
+521,659,458/521,659,460 to 537,993,697/537,993,698. An older event producer's
+head remains 1008 while its tail advances 1515→1532. External semaphore count
+increases 512→529. These are successful repeated dequeues/re-enqueues with
+other real messages still pending, not evidence of a lost semaphore token.
+
+Pinned `mesgqueue.cpp` SHA-256:
+`b504bd7e4290189e0e7e7b522486cc4b9ec22ae54f73297d4fa2c0e3f1575045`.
+Its untimed/timed waits immediately re-enqueued each rejected critical event.
+The pinned ConcurrentQueue tokenless dequeue (header 1125–1146) compares only
+the first three non-empty producer streams. A retry stream plus two other
+blocked streams can therefore hide the older event producer indefinitely.
+The new snapshots show exactly that topology and rapidly advancing retry
+indices; they identify a causal starvation mechanism beyond the previous
+single-stack samples. Exact native retry payloads were not captured.
+
+A CPU fixture compiling this actual SDK implementation and its pinned queue
+headers keeps four real host producers alive: an older VI message to an
+available guest queue, followed by three critical streams to a saturated
+queue. The original implementation returns from 1,000,000 waits without
+delivering VI (exit 1, ready queue 0), while retaining the blocked messages.
+The prepared implementation delivers VI in its first wait (exit 0) and retains
+all blocked completions. Scheduler callbacks are traps in this isolated
+fixture because no guest thread waits on its queues; scheduling priority is
+not simulated or claimed as exercised by it.
+
+The fingerprinted `tools/prepare_mesgqueue_runtime.py` transform shares one
+deferred-retry vector between the first rejected message and the existing
+batch drain. It drains currently available streams before re-enqueuing any
+rejected message. The first message stays ahead of later retries from its
+producer; no replacement concurrent queue, discarded critical completion,
+fake acknowledgement, sleep, timer patch or inferior state write is used.
+Untimed and timed paths use the same helper. `do_send(...,block=false)` only
+schedules a receiver; the existing idle/yield caller checks thread priority
+after the wait returns. The batch does not invoke that check or recurse.
+Its drain-until-empty behavior already existed in the SDK batch function;
+continuous producers can still prolong a batch and are not given a new cap.
+
+`tests/mesgqueue_runtime.cpp` compiles the actual prepared SDK source. Both
+wait modes pass: every SP/DP/Timer/SI payload is recovered exactly once after
+space becomes available; the older full queue's eight messages remain
+unchanged; two messages from one producer preserve order; saturated VI/AI/PI
+ticks keep their SDK discard policy; deferred jam insertion remains at the
+head ahead of an existing tail. Mechanical transform tests validate stable
+output, untouched reference source and rejection of unknown fingerprints
+or changed sites. Full Python suite 110/110 passed after integration.
+
+Private evidence includes `sdk-external-starvation.cpp`,
+`mesgqueue-{red,green,normal,timed}.log` and `mesgqueue-results.json` under
+`.local/qa/stability-launch/`. Production RelWithDebInfo configure/build both exited 0. CTest passed 41/41
+(including the two new actual-source modes), and Python passed 110/110.
+The unstripped ELF SHA-256 is
+`b44d72c32cddf274b650b2dedea1fa84496cda540d7391121031d7afd8a9747e`,
+GNU Build ID `99d965828e9c3f2b349f07e4e3902c8c2d2e0a6b`, from HEAD
+`f3e927a25164b35546eb3ed0b99d9cb7f4235c56` plus these working-tree changes.
+Generated message source SHA-256 is
+`e2bf8af2828eb36fa8b239a39347d96d5e56fdfb4e9058e0d54d8e6c3db01715`;
+original SDK fingerprint remains unchanged. Independent review found no
+material issue in the transformation, formal fixtures or source substitution.
+`mesgqueue-native-checkpoint.json` records the identity and results. Native
+post-fix gameplay verification will be tracked separately. The starvation mechanism is
+proven; post-fix gameplay and repeated cold startup are still needed before
+claiming the intermittent native freeze is closed.
+
+
+### First native regression after retry fairness correction
+
+The production executable `b44d72c32cddf274b650b2dedea1fa84496cda540d7391121031d7afd8a9747e`
+completed private `gameplay-7dgvn2n3` with exit 0, 180 seconds, VI 10801,
+10956 graphics tasks and 5399 audio tasks. Existing ALF progress loaded and
+replayed a completed Simian Acres; movement, pause/Continue and Restart were
+verified by guest state. Seed EEPROM and Pak remained unchanged. This tests the
+normal scheduler and audio/render paths beyond the isolated fairness fixtures.
+Repeated cold launches and the updated independent-source executable remain
+separate acceptance steps. It does not certify all missions or sustained 120 fps.
+
+Four additional cold launches in private `coldboots-26vhqm_p` each completed
+30 seconds and exited 0 at VI 1801, graphics 1784 and audio 898–899. The health
+checker observed advancing graphics/audio beyond the previous startup stall,
+and the PCM checker observed non-silent audio. All four used the same corrected
+production SHA and fresh private copies of the same seeds; source hashes stayed
+unchanged. This closes the demonstrated producer-starvation regression in the
+checked startup/session paths, without claiming exhaustive stability coverage.
+
+The independently reconstructed host with the same correction, ELF
+`27d46626bbd6b3e48a0317b4e20191bcb2a68d9c949862289470d1bdfe1c23ad`,
+also completed `gameplay-3ar19xmo`: 180 seconds, exit 0, VI 10801, 10951 graphics
+and 5399 audio tasks. Its cwd and executable were outside this checkout in a
+path with spaces. Movement, pause/Continue, Restart and completed-level replay
+were verified; source EEPROM/Pak hashes stayed unchanged. Its SDK/RT64/tools
+were built independently from exported sources; full CPU suites passed 41/110.

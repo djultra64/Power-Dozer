@@ -42,6 +42,8 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
  "${RUNTIME}/ultramodern/src/timer.cpp"
  "${CMAKE_SOURCE_DIR}/tools/prepare_threadqueue_runtime.py"
  "${RUNTIME}/ultramodern/src/threadqueue.cpp"
+ "${CMAKE_SOURCE_DIR}/tools/prepare_mesgqueue_runtime.py"
+ "${RUNTIME}/ultramodern/src/mesgqueue.cpp"
  "${CMAKE_SOURCE_DIR}/tools/prepare_thread_lifecycle_runtime.py"
  "${RUNTIME}/ultramodern/src/threads.cpp")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/prepare_timer_runtime.py" "${RUNTIME}" "${CMAKE_BINARY_DIR}" RESULT_VARIABLE BC_TIMER_RESULT)
@@ -56,6 +58,12 @@ if(NOT BC_THREADQUEUE_RESULT EQUAL 0)
 endif()
 list(REMOVE_ITEM BC_UM_SOURCES "${RUNTIME}/ultramodern/src/threadqueue.cpp")
 list(APPEND BC_UM_SOURCES "${CMAKE_BINARY_DIR}/blastcorps-threadqueue.cpp")
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/prepare_mesgqueue_runtime.py" "${RUNTIME}" "${CMAKE_BINARY_DIR}" RESULT_VARIABLE BC_MESGQUEUE_RESULT)
+if(NOT BC_MESGQUEUE_RESULT EQUAL 0)
+ message(FATAL_ERROR "Cannot prepare validated SDK message retry fairness")
+endif()
+list(REMOVE_ITEM BC_UM_SOURCES "${RUNTIME}/ultramodern/src/mesgqueue.cpp")
+list(APPEND BC_UM_SOURCES "${CMAKE_BINARY_DIR}/blastcorps-mesgqueue.cpp")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/prepare_thread_lifecycle_runtime.py" "${RUNTIME}" "${CMAKE_BINARY_DIR}" RESULT_VARIABLE BC_LIFECYCLE_RESULT)
 if(NOT BC_LIFECYCLE_RESULT EQUAL 0)
  message(FATAL_ERROR "Cannot prepare validated synchronous SDK thread destruction")
@@ -142,7 +150,7 @@ add_test(NAME audio_fifo COMMAND audio_fifo_test)
 add_executable(rsp_scheduler_test tests/rsp_scheduler.cpp)
 target_include_directories(rsp_scheduler_test PRIVATE include)
 add_test(NAME rsp_audio_preemption COMMAND rsp_scheduler_test)
-add_executable(event_delivery_test tests/event_delivery.cpp src/event_delivery.cpp "${RUNTIME}/ultramodern/src/mesgqueue.cpp")
+add_executable(event_delivery_test tests/event_delivery.cpp src/event_delivery.cpp "${CMAKE_BINARY_DIR}/blastcorps-mesgqueue.cpp")
 target_include_directories(event_delivery_test PRIVATE include "${RUNTIME}/ultramodern/include" "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/concurrentqueue")
 target_compile_options(event_delivery_test PRIVATE -ffunction-sections -fdata-sections)
 target_link_options(event_delivery_test PRIVATE -Wl,--gc-sections)
@@ -261,11 +269,23 @@ add_executable(thread_lifecycle_runtime_test tests/thread_lifecycle_runtime.cpp
  "${CMAKE_BINARY_DIR}/blastcorps-threads.cpp"
  "${CMAKE_BINARY_DIR}/blastcorps-threadqueue.cpp"
  "${RUNTIME}/ultramodern/src/scheduling.cpp"
- "${RUNTIME}/ultramodern/src/mesgqueue.cpp")
+ "${CMAKE_BINARY_DIR}/blastcorps-mesgqueue.cpp")
 target_include_directories(thread_lifecycle_runtime_test PRIVATE "${RUNTIME}/ultramodern/include"
  "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/concurrentqueue")
 target_link_libraries(thread_lifecycle_runtime_test PRIVATE Threads::Threads)
 foreach(BC_LIFECYCLE_CASE unstarted blocked self return)
  add_test(NAME sdk_thread_lifecycle_${BC_LIFECYCLE_CASE} COMMAND thread_lifecycle_runtime_test ${BC_LIFECYCLE_CASE})
  set_tests_properties(sdk_thread_lifecycle_${BC_LIFECYCLE_CASE} PROPERTIES TIMEOUT 15)
+endforeach()
+
+add_executable(mesgqueue_runtime_test tests/mesgqueue_runtime.cpp src/event_delivery.cpp
+ "${CMAKE_BINARY_DIR}/blastcorps-mesgqueue.cpp")
+target_include_directories(mesgqueue_runtime_test PRIVATE include "${RUNTIME}/ultramodern/include"
+ "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/concurrentqueue")
+target_compile_options(mesgqueue_runtime_test PRIVATE -ffunction-sections -fdata-sections)
+target_link_options(mesgqueue_runtime_test PRIVATE -Wl,--gc-sections)
+target_link_libraries(mesgqueue_runtime_test PRIVATE Threads::Threads)
+foreach(BC_MESGQUEUE_CASE normal timed)
+ add_test(NAME sdk_external_retry_fairness_${BC_MESGQUEUE_CASE} COMMAND mesgqueue_runtime_test ${BC_MESGQUEUE_CASE})
+ set_tests_properties(sdk_external_retry_fairness_${BC_MESGQUEUE_CASE} PROPERTIES TIMEOUT 10)
 endforeach()

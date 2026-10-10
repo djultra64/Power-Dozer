@@ -7,21 +7,22 @@ la cobertura amplia de misiones se registran en [manual-testing.md](manual-testi
 
 ## Artefacto comprobado y actualización pendiente
 
-El archivo anterior, `.local/packages/blastcorps-private-linux-x86_64.tar.gz`,
-corresponde al commit `d47cbd07365a78bc4d1e7b119da9b797101aa55f`:
+El checkpoint del archivo `.local/packages/blastcorps-private-linux-x86_64.tar.gz`
+corresponde al commit limpio `f3e927a25164b35546eb3ed0b99d9cb7f4235c56`:
 
 ```text
-SHA-256 7398a4ef2bf6ba333b5405f654f49534912dbe0b2752c45a21a8e3de2519dfcd
-75 miembros; 74 archivos en el inventario; 63 textos de licencia
-ready_for_release=false; license_review_complete=false
+SHA-256 b8696f3e6dc8d02a10b4484c48a82e7171d51e1b2c61761d419182f486897aa9
+91 miembros; 90 archivos en el inventario; 77 textos de licencia
+ready_for_release=false; revisión completa de licencias pendiente
 ```
 
-Sus 74 hashes se comprobaron después de extraerlo en una ruta con espacios,
-fuera del checkout. Eso verifica el contenido del archivo anterior; falta
-aceptar el runtime de un paquete actualizado con las correcciones finales.
-Los cambios de avisos descritos abajo todavía no están dentro de ese archivo.
-El manifiesto, checksum y prueba de runtime deben referirse al mismo paquete
-final; una prueba de desarrollo no sustituye esta comprobación.
+Sus 90 hashes se comprobaron después de extraerlo en una ruta con espacios,
+fuera del checkout; la evidencia está en `.local/qa/package-checkpoint-oct10.json`.
+Este checkpoint incluye los avisos nuevos, pero **está pendiente de reemplazo**:
+es anterior a la corrección de fairness del productor externo de mesgqueue.
+También está pendiente la prueba nativa del paquete actualizado. El manifiesto,
+checksum y prueba de runtime deben referirse al mismo paquete final; una prueba
+del ejecutable de desarrollo no sustituye esta comprobación.
 
 ## Requisitos comprobables de este binario
 
@@ -69,7 +70,8 @@ El objetivo de interpolación a 120 se midió en 720p/1080p sobre una salida
 virtual de 120 Hz. La medición sostenida de 4K quedó alrededor de 116,5 fps.
 La pantalla física, continuidad audible, cobertura amplia y rendimiento
 sostenido quedan pendientes de la lista manual. Los defectos gráficos conocidos
-y los bloqueos reproducibles siguen impidiendo declarar una candidata;
+y la aceptación del paquete final siguen impidiendo declarar una candidata;
+el bloqueo demostrado del productor externo ya tiene corrección y regresiones nativas;
 su diagnóstico y aceptación final se registran en [readiness.md](readiness.md).
 
 ## Inventario de avisos y procedencia
@@ -122,17 +124,23 @@ re-spirv/nfd ya compilaron desde ese export en rutas con espacios. Las
 verificaciones incluyen spimdisasm, DXC y la base de mandos, además de validar
 la copia de RT64 preparada y limpiar la selección de bibliotecas al cambiar SDK.
 El host aislado ya completó generación, compilación y enlace (224 targets),
-con CTest CPU 39/39 y Python 107/107. La evidencia se registra por separado; esto no certifica
+con CTest CPU 41/41 y Python 110/110 tras añadir el transform mesgqueue
+y sus fixtures normal/timed. Configure/build del SDK/export terminaron 0; el
+checkpoint está registrado en source-host-build.json. La evidencia se registra por separado; esto no certifica
 por sí solo fuente correspondiente ni licencias, equivalencia con el objeto
 entregado o runtime GPU. Aún deben fijarse
 las herramientas Python de build transitivas, bottles/runtime C/C++ y el
 mecanismo de acceso a fuentes que corresponda al binario final.
 
-La nueva reconstrucción independiente del SDK y del host ya compila y pasa sus
-pruebas CPU; también pasó 180 segundos nativos con movimiento, pausa y Restart
-fuera del checkout. La receta e inputs están en [source-rebuild.md](source-rebuild.md).
-Esta aceptación técnica no certifica la revisión de licencias ni la fuente
-correspondiente del paquete final.
+La reconstrucción anterior, con ELF
+`537380aa960c9b52357542726d348ee5b070be06c468b085f486340413f12512`,
+pasó 180 segundos nativos con movimiento, pausa y Restart fuera del checkout.
+El checkpoint actual añade la corrección mesgqueue y tiene ELF
+`27d46626bbd6b3e48a0317b4e20191bcb2a68d9c949862289470d1bdfe1c23ad`;
+sus suites CPU pasaron, pero su aceptación GPU se registra por separado y
+seguía pendiente al preparar este documento. La receta e inputs están en
+[source-rebuild.md](source-rebuild.md). Estos resultados técnicos no certifican
+la revisión de licencias ni la fuente correspondiente del paquete final.
 
 Antes de distribuir:
 

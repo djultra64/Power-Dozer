@@ -1202,3 +1202,72 @@ Continue/Restart requested. Last observation reached Simian Acres. Evidence
 continuations; poll for terminal result rather than restarting on observation
 timeout. Do not rebuild/replace the native executable while a gdb-capable
 native trial is alive, to preserve matching symbols for a possible capture.
+
+Cold live-monitor regression reached terminal exit0 (handle85401):
+.local/qa/gameplay-8mx1fjat360seconds21601VI/21294gfx/10799audio,4K120/
+three_point with shader cache disabled. Movement/pause/Continue/Restart and
+source EEPROM preservation passed, no live-stall diagnostic. Intermittent
+freeze remains unresolved, not disproved by a passing session. No native
+process from this trial remains live; rebuilding is now safe.
+
+Private waypoint probe under development: camera-relative virtual LS and South
+inputs target CLI-supplied world coordinates, without guest position/stat writes.
+Math helper RED neutral-stub failed cardinal/rotation/finite cases; GREEN4
+tests cover those plus opposite/normalization.78 Python tests passed. Steering
+formula inverts original46F60.c bearing-minus-camera operation; native world
+axis/sign/routing validation is still pending. Read-only trace now adds original
+camera yaw80364414, vehicle heading80370C70, vehicle/control type80364456.
+Target reach alone never proves building destruction: optional existing
+--verify-demolition requires original damage and buildingsDestroyed increases.
+
+First waypoint exploration .local/qa/gameplay-yco9wa01 ended terminal exit1
+(handle94905) during later controller-pause assertion. Route itself ended
+without reaching target or new building; max damage45, buildings0, RDUs12.
+Trace/source establish entry from driver type0 into Ramdozer type4; type4
+requires relative/digital steering, unlike the camera-relative helper used
+for all types in this exploratory attempt. Actual positive LS X decreases
+4096-unit heading; x/z displacement agrees with sin/cos of that heading.
+New relative-turn helper for Ramdozer has RED/GREEN cardinal/wrap/finite tests.
+Later mission failure state512/failed1 precedes Start switching to restart
+state64/failed0, explaining the false controller-pause assertion. Waypoint
+trials now omit the separate full controller-help/reconnect/pause acceptance
+flow and do not mark that broad virtual_controller_verified field as passed;
+those controller flows retain their separate native evidence. Basic keyboard
+movement/pause/Continue and original destruction gates remain required.
+
+Relative-turn waypoint .local/qa/gameplay-ybytd_27 ended terminal exit1
+(handle33991): original mission failed while routing, state512/failed1/paused1,
+then normal movement assertion could not pass. No actual native freeze
+detected. Damage60/RDUs13 but buildingsDestroyed0; NOT demolition acceptance.
+The relative direction agrees with native heading/displacement and approaches
+the target area, but overshoots. Private controller commands now omit the
+normal UI-oriented150ms settle delay only during waypoint routing; ack remains
+required, and standard controller acceptance keeps its timing. Next private
+route targets a different placed structure and caps navigation25seconds before
+the original missile-failure deadline. This is still an exploratory route,
+not a relaxation of destruction or objective completion acceptance.
+
+Faster relative-house trial .local/qa/gameplay-u6b7a5pb reached terminal exit0
+(handle88114):150seconds9001VI/8703gfx/4499audio,1080p120/three_point.
+Target CLI64544/103488,25second route, private Xbox virtual controller.
+Driver0 enters Ramdozer4; original stats first show buildingsDestroyed1 and
+money465 atVI4854, active mission state4/unpaused/window-1. Standalone original
+destruction checker passes: baselineVI4566 toVI5158, +1building/+465money.
+Basic keyboard movement/pause/Continue and source EEPROM preservation passed.
+This is actual new destruction through input, not objective completion or
+save-reload acceptance. Normal full controller-help/reconnect acceptance is
+not claimed by this route; result virtual_controller_verified is null.
+28 native and79 Python tests passed after the camera/type trace and helper
+changes. No native handle remains from these trials.
+
+Reviewed waypoint-drive capture shows Ramdozer/red truck, nearby intact roof
+and original tutorial; it is not a capture of the collapse animation itself.
+Potential prompt-handover gap needs targeted reproduction: PRESSING START WILL
+was adapted to PRESSING ENTER WILL atVI3350 (keyboard), active device became
+Xbox atVI3686, and keyboard again atVI4950. No intermediate updated text event
+was logged; captured tutorial still shows Enter. Existing original prompt hook
+only recognizes original string addresses, not its reserved adapted-slot
+addresses. Cached drawing/pointer reuse or capture timing must be distinguished
+before changing the bridge. Keep last-active-device requirement open for this
+specific original-window handover case; do not infer correctness from help UI
+or previously tested future prompts.

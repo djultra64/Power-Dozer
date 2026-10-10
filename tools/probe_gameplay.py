@@ -19,6 +19,7 @@ from check_instruction_probe import check as check_instruction_probe
 from check_render_probe import check as check_render_probe
 from check_demolition_probe import check as check_demolition_probe
 from probe_health import stalled_progress
+from waypoint_input import axes as waypoint_axes, relative_axes
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -128,13 +129,13 @@ def run(args):
             command('keydown',name);time.sleep(hold);command('keyup',name);time.sleep(.3)
         def screenshot(name):subprocess.run(['import','-window',window,str(directory/f'{name}.png')],env=env,check=True)
         controller_serial=0
-        def pad(kind,name='unused',value=0):
+        def pad(kind,name='unused',value=0,settle=.15):
             nonlocal controller_serial
             controller_serial+=1
             request=directory/'controller-input';temporary=directory/'controller-input.tmp'
             temporary.write_text(f'{controller_serial} {kind} {name} {value}\n');temporary.replace(request)
             wait(lambda content:f'"serial":{controller_serial},"ok":true' in content)
-            time.sleep(.15)
+            time.sleep(settle)
         def button(name,hold=.4):
             pad('button',name,1);time.sleep(hold);pad('button',name,0);time.sleep(.3)
         try:
@@ -171,6 +172,46 @@ def run(args):
             time.sleep(2);screenshot('mission-start')
             if args.exercise:
                 key(confirm);time.sleep(1);screenshot('briefing-dismissed')
+                if args.waypoint:
+                    target_x,target_z=args.waypoint
+                    initial=states()[-1]
+                    deadline=time.monotonic()+args.waypoint_seconds
+                    def route_pad(kind,name,value):pad(kind,name,value,settle=0)
+                    reached=False
+                    route_finished=False
+                    try:
+                        route_pad('button','a',1)
+                        while time.monotonic()<deadline:
+                            check_health(text())
+                            if process.poll() is not None:raise ValueError('Native process exited during waypoint routing')
+                            current=states()[-1]
+                            if current['failed'] or current['complete']:break
+                            if current['paused']:
+                                route_pad('axis','leftx',0);route_pad('axis','lefty',0);route_pad('button','a',0)
+                                if current['window']<70:raise ValueError('Unexpected menu during waypoint routing')
+                                button('a');route_pad('button','a',1)
+                                continue
+                            dx,dz=target_x-current['x'],target_z-current['z']
+                            if dx*dx+dz*dz<=256*256 or current['buildings_destroyed']>initial['buildings_destroyed']:
+                                reached=True;break
+                            if current['vehicle_type']==4:
+                                x,y=relative_axes(dx,dz,current['vehicle_heading'])
+                            else:x,y=waypoint_axes(dx,dz,current['camera_yaw'])
+                            route_pad('axis','leftx',x);route_pad('axis','lefty',y)
+                        route_finished=True
+                    finally:
+                        # Failed probes terminate the whole private process; do
+                        # not trigger repeated debugger captures during cleanup.
+                        if route_finished and process.poll() is None:
+                            route_pad('button','a',0);route_pad('axis','leftx',0);route_pad('axis','lefty',0)
+                    screenshot('waypoint-drive')
+                    print('Private waypoint route ended; target/new-building observed: '+str(reached),flush=True)
+                    # Subsequent control checks start outside roadside tutorials.
+                    deadline=time.monotonic()+8
+                    time.sleep(.3)
+                    while states()[-1]['paused'] and states()[-1]['window']>=70:
+                        if time.monotonic()>=deadline:raise ValueError('Waypoint tutorial did not close')
+                        button('a');time.sleep(.5)
                 if args.drive_seconds:
                     # Private exploration through physical keys only. Trace reads
                     # original damage counters; no guest position/stat writes.
@@ -271,7 +312,7 @@ def run(args):
                             wait(lambda value:control_view(value,f'PAD {part+2}/5'))
                     for _ in range(4):key('x');time.sleep(1)
                     print('Manual-family controller editor pages captured: '+args.glyphs,flush=True)
-                if args.controller:
+                if args.controller and not args.waypoint:
                     family,caption,south,trigger={'xbox360':('xbox','XBOX HELP','A','LT'),'ps5':('playstation','PLAYSTATION HELP','CROSS','L2'),'switch':('switch','SWITCH HELP','B','ZL')}[args.controller]
                     key(confirm);time.sleep(1);key('Down');key('Down');key(confirm);time.sleep(1)
                     key('Down');key('Down');key(confirm)
@@ -299,7 +340,7 @@ def run(args):
                 key('Return');time.sleep(1);key('Right',1);key(confirm,2);screenshot('resume')
                 if states()[-1]['paused']:raise ValueError('Start did not resume the guest')
                 print('Guest position changed; pause and resume confirmed by guest state',flush=True)
-                if args.controller:
+                if args.controller and not args.waypoint:
                     before=states()[-1];pad('axis','leftx',24000);button('a',2);pad('axis','leftx',0)
                     after=states()[-1]
                     if (before['x'],before['z'])==(after['x'],after['z']):raise ValueError('Virtual controller did not move the vehicle')
@@ -350,20 +391,22 @@ def run(args):
             if args.verify_demolition:result['demolition_acceptance']=check_demolition_probe(log)
             if args.verify_render:result['render_submission_acceptance']=check_render_probe(log,args.refresh)
             if args.audio_loss:result['audio_recovery']=check_audio_recovery(log)
-            if args.controller:result['controller_actions']=check_controller_probe(log,args.controller)
+            if args.controller and not args.waypoint:result['controller_actions']=check_controller_probe(log,args.controller)
             if args.instruction_glyphs:result['instruction_glyphs']=check_instruction_probe(log,args.controller)
             result['seconds_requested']=args.seconds
             result['native_executable']=str(args.executable.resolve())
             result['native_launch_directory']=str(args.launch_dir.resolve())
             result['graphics_requested']={'gpu_driver':args.gpu,'scale':args.scale,'wide':not args.original_aspect,'refresh':args.refresh,'texture':args.texture}
             result['motion_capture']=str(directory/'mission-motion.mp4') if args.capture_motion else None
+            result['waypoint_requested']={'target':args.waypoint,'seconds':args.waypoint_seconds}
             result['exploratory_drive_requested']={'seconds':args.drive_seconds,'left_steer_seconds':args.steer_seconds,'held_direction':args.drive_direction}
             result['exercise_verified']=args.exercise
             result['options_verified']=args.options
             result['controls_verified']=args.controls
             result['prompt_captured']=prompt_captured
             result['manual_family_glyphs_captured']=args.glyphs
-            result['virtual_controller_verified']=args.controller
+            result['virtual_controller_verified']=args.controller if not args.waypoint else None
+            result['waypoint_controller']=args.controller if args.waypoint else None
             if args.prompts and not prompt_captured:raise ValueError('Original mission prompt was not adapted and captured')
             result['restart_verified']=args.retry
             result['failure_verified']=args.wait_failure
@@ -399,6 +442,8 @@ if __name__=='__main__':
     parser.add_argument('--exercise',action='store_true')
     parser.add_argument('--capture-hang',action='store_true',help='On a failed transition, capture private native thread backtraces with gdb before terminating; never turns failure into acceptance')
     parser.add_argument('--verify-demolition',action='store_true',help='Require new original damage and building destruction counters during active gameplay; does not certify objective completion')
+    parser.add_argument('--waypoint',type=int,nargs=2,metavar=('X','Z'),help='Experimental private virtual-controller route toward an original world coordinate; does not certify destruction')
+    parser.add_argument('--waypoint-seconds',type=float,default=45,help='Private waypoint observation limit, 1..120 seconds')
     parser.add_argument('--drive-seconds',type=float,default=0,help='Private exploratory acceleration before the normal exercise; does not certify mission completion')
     parser.add_argument('--drive-direction',choices=('Up','Down','Left','Right'),help='Hold a physical direction during private exploratory acceleration')
     parser.add_argument('--steer-seconds',type=float,default=0,help='Private left steering before exploratory driving')
@@ -417,7 +462,11 @@ if __name__=='__main__':
     if args.verify_render and args.refresh not in (60,120):parser.error('Render interpolation acceptance requires --refresh 60 or 120')
     if not 0<=args.drive_seconds<=120 or not 0<=args.steer_seconds<=3:parser.error('Exploratory driving requires 0..120 seconds and steering 0..3 seconds')
     if args.drive_seconds and not args.exercise:parser.error('Driving requires --exercise')
-    if args.verify_demolition and not args.drive_seconds:parser.error('Demolition acceptance requires exploratory driving')
+    if args.verify_demolition and not (args.drive_seconds or args.waypoint):parser.error('Demolition acceptance requires exploratory driving or a waypoint')
+    if args.waypoint and (args.options or args.controls or args.glyphs or args.instruction_glyphs):parser.error('Waypoint and UI/glyph acceptance require separate mission runs')
+    if args.waypoint and not args.controller:parser.error('Waypoint routing requires a private virtual controller')
+    if not 1<=args.waypoint_seconds<=120:parser.error('Waypoint observation requires 1..120 seconds')
+    if args.waypoint and any(abs(value)>0x800000 for value in args.waypoint):parser.error('Waypoint coordinates exceed the bounded game world')
     if args.drive_direction and not args.drive_seconds:parser.error('Driving direction requires --drive-seconds')
     if args.steer_seconds and not args.drive_seconds:parser.error('Steering requires --drive-seconds')
     if args.capture_motion and not args.exercise:parser.error('Motion capture requires --exercise')

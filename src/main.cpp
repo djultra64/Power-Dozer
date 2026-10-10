@@ -16,12 +16,14 @@
 #include "audio_pcm.h"
 #include "wav_capture.h"
 #include "settings.h"
+#include "pc_options.h"
 
 double bc_scale=3;
 bool bc_wide=false;
 int bc_refresh=0;
 void bc_load_save();
 void bc_input_init(const std::string&);
+void bc_input_set_family(const std::string&);
 void bc_input_update(SDL_Window*);
 bool bc_input_event(const SDL_Event&);
 void bc_poll_input();
@@ -85,7 +87,8 @@ int main(int argc,char** argv){
  for(int i=1;i<argc;i++)if(std::string(argv[i])=="--data-dir"){
   if(i+1>=argc)throw std::invalid_argument("--data-dir requires a path");bc_data_directory=argv[++i];
  }
- bc::settings=bc::SettingsStore(bc_data_directory/"settings.json").load();
+ const auto persisted=bc::SettingsStore(bc_data_directory/"settings.json").load();
+ bc::settings=persisted;
  auto number=[](const char* value){std::string text=value;size_t end=0;double result=std::stod(text,&end);if(end!=text.size())throw std::invalid_argument("Invalid numeric option");return result;};
  auto integer=[](const char* value){std::string text=value;size_t end=0;int result=std::stoi(text,&end);if(end!=text.size())throw std::invalid_argument("Invalid integer option");return result;};
  for(int i=1;i<argc;i++) {
@@ -112,6 +115,7 @@ int main(int argc,char** argv){
  if(!std::isfinite(seconds)||seconds<0)throw std::invalid_argument("Seconds must be finite and nonnegative");
  bc::validate(bc::settings);
  if(save_settings)bc::SettingsStore(bc_data_directory/"settings.json").save(bc::settings);
+ bc::initialize_pc_options(save_settings?bc::settings:persisted);
  }catch(const std::exception& error){fprintf(stderr,"Options: %s\n",error.what());return 64;}
  bc_scale=bc::settings.scale;bc_wide=bc::settings.wide;bc_refresh=bc::settings.refresh;family=bc::settings.family;
  bc_set_audio_output(bc::settings.volume,bc::settings.mute);
@@ -145,11 +149,24 @@ int main(int argc,char** argv){
     if(SDL_SetWindowFullscreen(window,fullscreen?0:SDL_WINDOW_FULLSCREEN_DESKTOP)!=0)fprintf(stderr,"Fullscreen: %s\n",SDL_GetError());
     else {
      fprintf(stderr,"{\"event\":\"fullscreen\",\"enabled\":%s}\n",fullscreen?"false":"true");
-     try{auto store=bc::SettingsStore(bc_data_directory/"settings.json");auto saved=store.load();saved.fullscreen=!fullscreen;store.save(saved);}
+     try{auto store=bc::SettingsStore(bc_data_directory/"settings.json");auto saved=store.load();saved.fullscreen=!fullscreen;store.save(saved);bc::settings.fullscreen=saved.fullscreen;bc::refresh_pc_settings(saved);}
      catch(const std::exception& error){fprintf(stderr,"Fullscreen preference: %s\n",error.what());}
     }
    }
    if(event.type==SDL_QUIT)exited=true;
+  }
+  if(auto change=bc::take_pc_change()){
+   try{
+    auto store=bc::SettingsStore(bc_data_directory/"settings.json");auto updated=bc::merge_setting(store.load(),*change);
+    const bool was_fullscreen=(SDL_GetWindowFlags(window)&SDL_WINDOW_FULLSCREEN)!=0;
+    if(change->field==bc::SettingsField::Fullscreen&&SDL_SetWindowFullscreen(window,updated.fullscreen?SDL_WINDOW_FULLSCREEN_DESKTOP:0)!=0)throw std::runtime_error(SDL_GetError());
+    try{store.save(updated);}catch(...){if(change->field==bc::SettingsField::Fullscreen)SDL_SetWindowFullscreen(window,was_fullscreen?SDL_WINDOW_FULLSCREEN_DESKTOP:0);throw;}
+    if(change->field==bc::SettingsField::Volume||change->field==bc::SettingsField::Mute){bc::settings=bc::merge_setting(bc::settings,*change);bc_set_audio_output(bc::settings.volume,bc::settings.mute);}
+    if(change->field==bc::SettingsField::Fullscreen)bc::settings.fullscreen=updated.fullscreen;
+    if(change->field==bc::SettingsField::Presentation||change->field==bc::SettingsField::Texture){bc::settings=bc::merge_setting(bc::settings,*change);bc::queue_pc_filter_change(bc::settings);}
+    if(change->field==bc::SettingsField::Family){bc::settings.family=updated.family;bc_input_set_family(updated.family);}
+    bc::acknowledge_pc_change(updated,true);
+   }catch(const std::exception& error){fprintf(stderr,"PC options: %s\n",error.what());bc::acknowledge_pc_change({},false);}
   }
   bc_input_update(window);
   auto now=std::chrono::steady_clock::now();

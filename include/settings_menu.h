@@ -19,6 +19,7 @@ public:
  void select(int);
  void back();
  void acknowledge(const Settings&,bool success);
+ void refresh(const Settings& settings){if(!saving_)settings_=settings;}
  std::optional<SettingsChange> take_change(){auto value=change_;change_.reset();return value;}
  bool take_controls_request(){bool value=controls_;controls_=false;return value;}
  bool take_help_request(){bool value=help_;help_=false;return value;}

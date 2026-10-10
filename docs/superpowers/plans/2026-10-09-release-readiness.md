@@ -68,11 +68,11 @@ events, progress counters, guest mode/mission telemetry and screenshots.
 **Interfaces:** validated Settings values, durable store, saved→CLI precedence,
 host event queue for changes made in guest menu hooks.
 
-- [ ] Test invalid/nonfinite values, missing/old config, preservation of unrelated
+- [x] Test invalid/nonfinite values, missing/old config, preservation of unrelated
   values, cancel/back and all supported graphics choices before implementation.
 - [ ] Implement saved scale/aspect/refresh/fullscreen/MSAA/presentation/texture
   filters and settings menu in the original visual language.
-- [ ] Identify and mark which choices apply live and which need restart.
+- [x] Identify and mark which choices apply live and which need restart.
 - [ ] Exercise 4:3/16:9 and 720p/1080p/4K; compare native captures of menus/HUD.
 
 ### Task 4: Complete controls and prompts

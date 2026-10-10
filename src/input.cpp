@@ -39,6 +39,10 @@ static const char* face_label(SDL_GameControllerButton button) {
  static const char* xbox[]={"A","B","X","Y"},*sw[]={"B","A","Y","X"},*ps[]={"Cross","Circle","Square","Triangle"},*unknown[]={"South","East","West","North"};
  return family=="switch"?sw[button]:family=="playstation"?ps[button]:family=="xbox"?xbox[button]:unknown[button];
 }
+void bc_input_set_family(const std::string& override_family){
+ manual_family=override_family;
+ if(family!="keyboard")family=detected_family();
+}
 void bc_input_init(const std::string& override_family){
  manual_family=override_family;
  auto mappings=bc_data_directory/"controls.json";

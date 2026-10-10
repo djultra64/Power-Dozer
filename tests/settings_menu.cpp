@@ -23,4 +23,8 @@ int main(){
  auto wanted=initial;wanted.scale=9;wanted.volume=30;
  auto merged=bc::merge_setting(initial,{wanted,bc::SettingsField::Scale});check(merged.scale==9&&merged.volume==75);
  bc::SettingsMenu game_options(initial);game_options.select(2);game_options.select(3);check(game_options.take_game_options_request()&&game_options.closed());
+ bc::SettingsMenu shortcut(initial);auto fullscreen=initial;fullscreen.fullscreen=true;
+ shortcut.refresh(fullscreen);check(shortcut.value(bc::SettingsField::Fullscreen)=="FULL");
+ shortcut.select(0);shortcut.select(0);shortcut.refresh(initial);
+ check(shortcut.value(bc::SettingsField::Scale)=="1080P"&&shortcut.saving());
 }

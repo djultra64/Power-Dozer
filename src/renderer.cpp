@@ -2,6 +2,7 @@
 #include "prototype.h"
 #include "l3d.h"
 #include "settings.h"
+#include "pc_options.h"
 #include "hle/rt64_application.h"
 #include "ultramodern/ultramodern.hpp"
 #include <array>
@@ -80,6 +81,13 @@ Context(uint8_t* rdram,ultramodern::renderer::WindowHandle window) {
     bool update_config(const ultramodern::renderer::GraphicsConfig&,const ultramodern::renderer::GraphicsConfig&) override { return true; }
     void enable_instant_present() override {}
     void send_dl(const OSTask* task) override {
+        if(auto filters=bc::take_pc_filter_change()){
+            using UC=RT64::UserConfiguration;
+            app_->userConfig.filtering=filters->presentation=="nearest"?UC::Filtering::Nearest:filters->presentation=="pixel"?UC::Filtering::AntiAliasedPixelScaling:UC::Filtering::Linear;
+            app_->userConfig.threePointFiltering=filters->texture=="three_point";
+            app_->updateUserConfig(false);
+            fprintf(stderr,"{\"event\":\"pc_filters_applied\",\"presentation\":\"%s\",\"texture\":\"%s\"}\n",filters->presentation.c_str(),filters->texture.c_str());
+        }
         task_swap=bc_take_task_swap(task->t.data_ptr);bc_dp_sync=false;
         auto count=++bc_gfx;
         if(count<=12){fprintf(stderr,"gfx begin seq=%llu ucode=%08X list=%08X\n",(unsigned long long)count,uint32_t(task->t.ucode),uint32_t(task->t.data_ptr));fflush(stderr);}

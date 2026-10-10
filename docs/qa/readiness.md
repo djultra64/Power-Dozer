@@ -20,7 +20,7 @@ change the user's progress — incorrect migration could otherwise lose saves.
 
 - Complete: durable EEPROM storage and isolated data paths, including native reload.
 - In progress: gameplay/failure/pause/progress harness and assertion detection.
-- Pending: persistent graphics options and original-style settings menu.
+- In progress: persistent graphics options and original-style settings menu.
 - Pending: complete controls, in-game family-correct glyphs and remapping.
 - Pending: aspect/interpolation/L3D/audio acceptance across representative missions.
 - Pending: portable ROM bootstrap, clean package and platform verification.
@@ -134,3 +134,30 @@ Ruling: use branch `codex/release-readiness` in the existing unborn repository
 instead of duplicating ROM/private build state in a worktree — this workspace
 contains only the prototype, and no prior branch commit exists — reproducible
 commits must now preserve checkpoints; native test data remains isolated.
+
+PC Options runtime: the original pause font, four-row layout and animations
+now display graphics/audio/controls pages. Resolution/aspect/rate/MSAA are
+persisted with explicit restart status; volume/mute/window/family and
+presentation/texture changes reach their host subsystems. Controller help and
+remapping requests remain pending Task 4; these rows are not finished features.
+The hooks validate the ROM pause layout and function entries before generation.
+Normalization was rerun twice without changing generated code.
+
+Native menu regression: `.local/qa/gameplay-4m4dczgz`, 150 seconds, exit 0,
+9,001 VI / 8,703 graphics / 4,499 audio tasks. The test navigated graphics and
+audio, saved scale 4.5 and volume 0, returned to the original pause and resumed
+with changed vehicle position. Captures reviewed. Source save unchanged.
+The first run exposed Start reopening PC Options instead of resuming. A guest
+bridge test reproduced this failure; the hook now preserves the original Start
+path, and the corrected native run passes. Nine native and 19 Python tests pass.
+Guest bridge coverage includes the host save queue, original window restoration,
+Back retaining pause, and transitions out of the pause state. Shortcut updates
+refresh the displayed saved settings without replacing an outstanding edit.
+Native live-filter acceptance is running and has not yet passed.
+
+Live-filter probe follow-up: both `pixel` presentation and `linear` texture
+were persisted and acknowledged by the renderer in a native mission. The
+expanded harness sent consecutive Back edges during the original animation,
+so it remained on Graphics and then failed its Audio assertion. Its log has
+no guest fault, but this is not an accepted complete menu regression. The
+harness now waits for each page animation; a full rerun is required.

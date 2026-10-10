@@ -79,6 +79,28 @@ def run(args):
                 if (before['x'],before['z'])==(after['x'],after['z']):raise ValueError('Vehicle position did not change during acceleration')
                 key('Return');time.sleep(1);screenshot('pause')
                 if not states()[-1]['paused']:raise ValueError('Start did not pause the guest')
+                if args.options:
+                    key('z');wait(lambda value:'"event":"pc_options_selection"' in value);time.sleep(2);screenshot('pc-options-root')
+                    key('z');time.sleep(2);screenshot('pc-options-graphics')
+                    key('z');time.sleep(2);screenshot('pc-options-saved')
+                    settings=json.loads((data/'settings.json').read_text())
+                    if settings.get('scale')!=4.5:raise ValueError('PC resolution selection was not saved')
+                    key('Down');key('Down');key('Down');key('z');time.sleep(1)
+                    key('Down');key('Down');key('z');time.sleep(2);screenshot('pc-options-filter')
+                    wait(lambda value:'"event":"pc_filters_applied","presentation":"pixel"' in value)
+                    key('Down');key('Down');key('Down');key('z');time.sleep(1)
+                    key('z');time.sleep(2);screenshot('pc-options-texture')
+                    wait(lambda value:'"event":"pc_filters_applied","presentation":"pixel","texture":"linear"' in value)
+                    settings=json.loads((data/'settings.json').read_text())
+                    if settings.get('presentation')!='pixel' or settings.get('texture')!='linear':raise ValueError('PC filters were not saved')
+                    # Each page reuses the original closing/opening animation;
+                    # wait for it before sending the next Back edge.
+                    key('x');time.sleep(1);key('x');time.sleep(1)
+                    key('x');time.sleep(1);key('Down');key('z');time.sleep(1);screenshot('pc-options-audio')
+                    key('z');time.sleep(2)
+                    settings=json.loads((data/'settings.json').read_text())
+                    if settings.get('volume')!=0:raise ValueError('PC volume selection was not saved')
+                    key('x');time.sleep(1);key('x');time.sleep(2);screenshot('pc-options-return')
                 key('Return');time.sleep(1);key('Right',1);key('z',2);screenshot('resume')
                 if states()[-1]['paused']:raise ValueError('Start did not resume the guest')
                 print('Guest position changed; pause and resume confirmed by guest state',flush=True)
@@ -105,6 +127,7 @@ def run(args):
             result=check(log,required_modes=(14,0,2))
             result['seconds_requested']=args.seconds
             result['exercise_verified']=args.exercise
+            result['options_verified']=args.options
             result['restart_verified']=args.retry
             result['failure_verified']=args.wait_failure
             result['seed_save_unchanged']=not args.seed_save or hashlib.sha256(args.seed_save.read_bytes()).hexdigest()==source_hash
@@ -120,9 +143,10 @@ if __name__=='__main__':
     parser.add_argument('--seed-save',type=Path)
     parser.add_argument('--exercise',action='store_true')
     parser.add_argument('--retry',action='store_true')
+    parser.add_argument('--options',action='store_true')
     parser.add_argument('--wait-failure',action='store_true')
     args=parser.parse_args()
     if args.seconds<90:parser.error('At least 90 seconds are required for the mission transition')
-    if (args.retry or args.wait_failure) and not args.exercise:parser.error('Retry/failure needs --exercise')
+    if (args.retry or args.wait_failure or args.options) and not args.exercise:parser.error('Retry/failure/options needs --exercise')
     try:run(args)
     except (ValueError,subprocess.SubprocessError) as error:parser.exit(1,str(error)+'\n')

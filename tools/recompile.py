@@ -136,6 +136,14 @@ def main():
     (out / 'fallbacks.cpp').write_text('\n'.join(fallback+['}'])+'\n')
 
 def normalize(folder):
+    # These hooks depend on the original pause layout and callable entries.
+    rom=(ROOT/'.local/hd_code.bin').read_bytes()
+    for address,expected in (
+        (0x802F8BDC,'010000d000200010f1000039000000000005001b001c001d00000000'),
+        (0x8024BDA4,'27bdffd03c0e8036'),(0x8026BCE0,'3c0f80313c188037')):
+        at=address-0x802447C0
+        if rom[at:at+len(expected)//2].hex()!=expected:
+            raise ValueError(f'Original PC options hook layout changed at {address:08X}')
     pattern = re.compile(r'RECOMP_FUNC void [^(]+\([^)]*\) \{.*?^;\}', re.M | re.S)
     temporary = re.compile(r'^(?P<indent>\s*)gpr (?P<name>jr_addend_[0-9A-F]{8}) = (?P<value>[^;]+);$', re.M)
     def fix(match):
@@ -168,6 +176,10 @@ def normalize(folder):
             if body.startswith('RECOMP_FUNC void '+name+'(') and 'bc_guest_window_trace' not in body:
                 at=body.index('\n')+1
                 body=body[:at]+f'    bc_guest_window_trace(rdram,ctx,{draw});\n'+body[at:]
+        if body.startswith('RECOMP_FUNC void func_8026BCE0(') and 'bc_pc_options_draw' not in body:
+            at=body.index('\n')+1;body=body[:at]+'    bc_pc_options_draw(rdram);\n'+body[at:]
+        if body.startswith('RECOMP_FUNC void func_8024BDA4(') and 'bc_pc_options_selection' not in body:
+            at=body.index('\n')+1;body=body[:at]+'    if(bc_pc_options_selection(rdram,ctx))return;\n'+body[at:]
         if body.startswith('RECOMP_FUNC void func_8026BCE0(') and 'bc_original_window_off' not in body:
             rom=(ROOT/'.local/hd_code.bin').read_bytes();at=0x8026BF7C-0x802447C0
             assert rom[at:at+8].hex()=='0c09abdb24044000', 'Original mission-failure cancellation changed'

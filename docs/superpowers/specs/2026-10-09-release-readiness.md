@@ -67,3 +67,22 @@ the failure. Graphics choices that cannot yet apply live say restart required.
 The selection hook uses the proven ROM-specific row indices and is regenerated,
 and text scratch storage resides outside the game's 8 MiB RDRAM region in the
 host allocation; it contains CPU-read strings only, never RSP data.
+
+## Controller Pak implementation decision
+
+The game stores per-level data in Controller Pak files in addition to EEPROM.
+Provide a host implementation of its verified high-level libultra services
+(`osPfsInit`, `osPfsIsPlug`, `osPfsFreeBlocks`, `osPfsChecker`, allocation,
+find/delete, read/write and file state). Keep guest menu/save logic intact.
+Port 0 has one persistent Pak with 16 directory slots and 123 256-byte pages;
+other ports report no Pak. File identity contains company/game codes and the
+original encoded 16-byte name/4-byte extension. Preserve file indices, enforce
+libultra's 32-byte read/write alignment and return its documented error codes.
+Use a bounded, versioned/checksummed host image with atomic primary/backup
+storage in the explicit data directory. A corrupt primary recovers only a
+validated backup; two corrupt copies must not create an empty Pak. Do not claim
+raw hardware-image import/export until implemented and tested separately.
+The guest bridge must bound RAM pointers and O32 stack arguments and translate
+metadata into the original big-endian `OSPfsState` layout. Test file capacity,
+duplicates, deletion, partial writes, alignment/range errors, reload, corruption
+and interrupted writes before enabling the Pak in native gameplay.

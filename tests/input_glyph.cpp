@@ -33,6 +33,9 @@ int main(){
  check(!bc::input_glyph(model.prompt(bc::InputAction::Start),model.family()).empty(),"keyboard keycap");
  model.replace(bc::InputAction::Start,bc::InputSource::Keyboard,{});
  check(bc::input_glyph(model.prompt(bc::InputAction::Start),model.family()).empty(),"unbound has no promised physical glyph");
+ auto press=bc::input_glyph(model.physical_prompt({bc::BindingKind::Button,SDL_CONTROLLER_BUTTON_LEFTSTICK}),model.family());
+ auto direction=bc::input_glyph(model.physical_prompt({bc::BindingKind::Axis,SDL_CONTROLLER_AXIS_LEFTX}),model.family());
+ check(!press.empty()&&press!=direction,"stick click glyph cannot be mistaken for movement direction");
  auto commands=bc::glyph_commands({{10,20,2,3,0xFFFFFFFF}});
  check(commands.size()==11&&commands[6]==bc::GlyphCommand{0xF603005C,0x00028050},"rectangle encoding matches original SDK macros");
  check(commands[1][0]==0x6400001B&&commands[2][0]==0x64000027&&commands[8][0]==0x64000028&&commands[9][0]==0x6400001C,"combiner and colour paired restoration");

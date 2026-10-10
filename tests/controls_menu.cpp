@@ -16,4 +16,7 @@ int main(){
  bc::ControlsMenu help(true);view.activity(bc::InputSource::Controller);check(help.title(view)=="SWITCH HELP"&&help.rows(view)[0].find("Y")!=std::string::npos,"help follows remapped controller binding");view.activity(bc::InputSource::Keyboard);check(help.title(view)=="KEYBOARD HELP"&&help.rows(view)[0].find("Z")!=std::string::npos,"help follows last active keyboard");
  check(help.prompts(view)[0].source==bc::InputSource::Keyboard&&help.prompts(view)[0].glyph==bc::InputGlyph::Key,"help glyph and label follow the same last-active source");
  for(int i=0;i<4;i++)help.select(3);check(help.rows(view).size()==4,"help paginates all logical actions");help.select(3);check(help.closed(),"help Back returns to Controls");
+ view.manual_family(bc::ControllerFamily::Auto);view.controller_identity(bc::controller_identity(SDL_CONTROLLER_TYPE_PS5,""));
+ bc::ControlsMenu cancel(false);cancel.select(1);cancel.select(0);
+ check(cancel.rows(view).back()=="ESC / CREATE: CANCEL","capture cancellation names the PS5 physical Create button even when keyboard is active");
 }

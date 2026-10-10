@@ -4,6 +4,29 @@
 #include <cctype>
 #include <stdexcept>
 namespace bc {
+ControllerIdentity controller_identity(SDL_GameControllerType type,std::string_view name){
+ switch(type){
+ case SDL_CONTROLLER_TYPE_XBOX360:case SDL_CONTROLLER_TYPE_XBOXONE:return {ControllerFamily::Xbox,type};
+ case SDL_CONTROLLER_TYPE_PS3:case SDL_CONTROLLER_TYPE_PS4:case SDL_CONTROLLER_TYPE_PS5:return {ControllerFamily::PlayStation,type};
+ case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO:case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR:return {ControllerFamily::Switch,type};
+ // Single Joy-Con orientation cannot be inferred from the SDL family alone.
+ // Keep physical-position prompts rather than claiming Pro-controller letters.
+ case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_LEFT:case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT:return {ControllerFamily::Unknown,type};
+ case SDL_CONTROLLER_TYPE_AMAZON_LUNA:case SDL_CONTROLLER_TYPE_GOOGLE_STADIA:case SDL_CONTROLLER_TYPE_NVIDIA_SHIELD:return {ControllerFamily::Unknown,type};
+ default:break;
+ }
+ std::string compact;for(unsigned char c:name)if(std::isalnum(c))compact+=char(std::tolower(c));
+ if(compact.find("joycon")!=std::string::npos&&compact.find("pair")==std::string::npos&&compact.find("joyconlr")==std::string::npos)return {};
+ if(compact.find("dualsense")!=std::string::npos||compact.find("ps5")!=std::string::npos||compact.find("playstation5")!=std::string::npos||compact.find("playstationr5")!=std::string::npos)return {ControllerFamily::PlayStation,SDL_CONTROLLER_TYPE_PS5};
+ if(compact.find("dualshock3")!=std::string::npos||compact.find("ps3")!=std::string::npos||compact.find("playstation3")!=std::string::npos||compact.find("playstationr3")!=std::string::npos)return {ControllerFamily::PlayStation,SDL_CONTROLLER_TYPE_PS3};
+ if(compact.find("dualshock4")!=std::string::npos||compact.find("ps4")!=std::string::npos||compact.find("playstation4")!=std::string::npos||compact.find("playstationr4")!=std::string::npos)return {ControllerFamily::PlayStation,SDL_CONTROLLER_TYPE_PS4};
+ if(compact.find("xbox360")!=std::string::npos)return {ControllerFamily::Xbox,SDL_CONTROLLER_TYPE_XBOX360};
+ if(compact.find("xboxone")!=std::string::npos||compact.find("xboxseries")!=std::string::npos)return {ControllerFamily::Xbox,SDL_CONTROLLER_TYPE_XBOXONE};
+ if(compact.find("playstation")!=std::string::npos||compact.find("dualshock")!=std::string::npos)return {ControllerFamily::PlayStation,SDL_CONTROLLER_TYPE_UNKNOWN};
+ if(compact.find("xbox")!=std::string::npos)return {ControllerFamily::Xbox,SDL_CONTROLLER_TYPE_UNKNOWN};
+ if(compact.find("switch")!=std::string::npos||compact.find("nintendo")!=std::string::npos)return {ControllerFamily::Switch,SDL_CONTROLLER_TYPE_UNKNOWN};
+ return {};
+}
 namespace {
 constexpr float deadzone=.2f;
 constexpr std::array<uint16_t,14> bits={0x8000,0x4000,0x1000,0x2000,2,4,8,1,0x20,0x10,0,0,0,0};
@@ -72,23 +95,30 @@ InputFrame InputModel::sample(const InputSnapshot& snapshot){
 InputPrompt InputModel::prompt(InputAction action) const{
  auto& list=bindings_.at(size_t(action));auto found=std::find_if(list.begin(),list.end(),[&](auto b){return keyboard(b)==(source_==InputSource::Keyboard);});
  if(found==list.end())return {"UNBOUND",InputGlyph::Other,source_};auto binding=*found;
- if(binding.kind==BindingKind::Key)return {key_name(binding.code),InputGlyph::Key,source_};
+ return physical_prompt(binding);
+}
+InputPrompt InputModel::physical_prompt(InputBinding binding) const{
+ validate(binding);const auto source=keyboard(binding)?InputSource::Keyboard:InputSource::Controller;
+ if(binding.kind==BindingKind::Key)return {key_name(binding.code),InputGlyph::Key,source};
  auto f=family();
  if(binding.kind==BindingKind::Axis){
   auto code=binding.code;
-  if(code>=SDL_CONTROLLER_AXIS_TRIGGERLEFT)return {f==ControllerFamily::PlayStation?(code==SDL_CONTROLLER_AXIS_TRIGGERLEFT?"L2":"R2"):f==ControllerFamily::Switch?(code==SDL_CONTROLLER_AXIS_TRIGGERLEFT?"ZL":"ZR"):(code==SDL_CONTROLLER_AXIS_TRIGGERLEFT?"LT":"RT"),InputGlyph::Trigger,source_};
-  std::string label=code<=SDL_CONTROLLER_AXIS_LEFTY?"LS ":"RS ";label+=(code==SDL_CONTROLLER_AXIS_LEFTX||code==SDL_CONTROLLER_AXIS_RIGHTX)?(binding.direction>0?"RIGHT":"LEFT"):(binding.direction>0?"DOWN":"UP");return {label,InputGlyph::Stick,source_};
+  if(code>=SDL_CONTROLLER_AXIS_TRIGGERLEFT)return {f==ControllerFamily::PlayStation?(code==SDL_CONTROLLER_AXIS_TRIGGERLEFT?"L2":"R2"):f==ControllerFamily::Switch?(code==SDL_CONTROLLER_AXIS_TRIGGERLEFT?"ZL":"ZR"):(code==SDL_CONTROLLER_AXIS_TRIGGERLEFT?"LT":"RT"),InputGlyph::Trigger,source};
+  std::string label=code<=SDL_CONTROLLER_AXIS_LEFTY?"LS ":"RS ";label+=(code==SDL_CONTROLLER_AXIS_LEFTX||code==SDL_CONTROLLER_AXIS_RIGHTX)?(binding.direction>0?"RIGHT":"LEFT"):(binding.direction>0?"DOWN":"UP");return {label,InputGlyph::Stick,source};
  }
  auto code=binding.code;
  if(code>=SDL_CONTROLLER_BUTTON_A&&code<=SDL_CONTROLLER_BUTTON_Y){
   constexpr std::array<const char*,4> xbox={"A","B","X","Y"},sw={"B","A","Y","X"},ps={"CROSS","CIRCLE","SQUARE","TRIANGLE"},unknown={"SOUTH","EAST","WEST","NORTH"};
   constexpr std::array<InputGlyph,4> positions={InputGlyph::South,InputGlyph::East,InputGlyph::West,InputGlyph::North},shapes={InputGlyph::Cross,InputGlyph::Circle,InputGlyph::Square,InputGlyph::Triangle};
-  return {(f==ControllerFamily::Xbox?xbox:f==ControllerFamily::Switch?sw:f==ControllerFamily::PlayStation?ps:unknown)[code],f==ControllerFamily::PlayStation?shapes[code]:positions[code],source_};
+  return {(f==ControllerFamily::Xbox?xbox:f==ControllerFamily::Switch?sw:f==ControllerFamily::PlayStation?ps:unknown)[code],f==ControllerFamily::PlayStation?shapes[code]:positions[code],source};
  }
- if(code==SDL_CONTROLLER_BUTTON_START)return {f==ControllerFamily::Switch?"PLUS":f==ControllerFamily::PlayStation?"OPTIONS":"MENU",InputGlyph::Menu,source_};
- if(code==SDL_CONTROLLER_BUTTON_BACK)return {f==ControllerFamily::Switch?"-":f==ControllerFamily::PlayStation?"SHARE":"VIEW",InputGlyph::Menu,source_};
- if(code==SDL_CONTROLLER_BUTTON_LEFTSHOULDER||code==SDL_CONTROLLER_BUTTON_RIGHTSHOULDER){bool left=code==SDL_CONTROLLER_BUTTON_LEFTSHOULDER;return {f==ControllerFamily::Switch?(left?"L":"R"):f==ControllerFamily::PlayStation?(left?"L1":"R1"):(left?"LB":"RB"),InputGlyph::Shoulder,source_};}
- if(code>=SDL_CONTROLLER_BUTTON_DPAD_UP&&code<=SDL_CONTROLLER_BUTTON_DPAD_RIGHT){constexpr std::array<const char*,4> labels={"DPAD UP","DPAD DOWN","DPAD LEFT","DPAD RIGHT"};return {labels[code-SDL_CONTROLLER_BUTTON_DPAD_UP],InputGlyph::Dpad,source_};}
- std::string name=SDL_GameControllerGetStringForButton(SDL_GameControllerButton(code));std::transform(name.begin(),name.end(),name.begin(),[](unsigned char c){return std::toupper(c);});return {name,InputGlyph::Other,source_};
+ auto type=controller_type();
+ if(code==SDL_CONTROLLER_BUTTON_START)return {type==SDL_CONTROLLER_TYPE_PS3||type==SDL_CONTROLLER_TYPE_XBOX360?"START":f==ControllerFamily::Switch?"PLUS":f==ControllerFamily::PlayStation?"OPTIONS":"MENU",InputGlyph::Menu,source};
+ if(code==SDL_CONTROLLER_BUTTON_BACK)return {type==SDL_CONTROLLER_TYPE_PS3?"SELECT":type==SDL_CONTROLLER_TYPE_XBOX360?"BACK":type==SDL_CONTROLLER_TYPE_PS5?"CREATE":f==ControllerFamily::Switch?"-":f==ControllerFamily::PlayStation?"SHARE":f==ControllerFamily::Xbox?"VIEW":"BACK",InputGlyph::Menu,source};
+ if(code==SDL_CONTROLLER_BUTTON_GUIDE)return {f==ControllerFamily::Switch?"HOME":f==ControllerFamily::PlayStation?"PS":f==ControllerFamily::Xbox?"XBOX":"GUIDE",InputGlyph::Menu,source};
+ if(code==SDL_CONTROLLER_BUTTON_LEFTSTICK||code==SDL_CONTROLLER_BUTTON_RIGHTSTICK){bool left=code==SDL_CONTROLLER_BUTTON_LEFTSTICK;return {f==ControllerFamily::PlayStation?(left?"L3":"R3"):(left?"LS CLICK":"RS CLICK"),InputGlyph::StickPress,source};}
+ if(code==SDL_CONTROLLER_BUTTON_LEFTSHOULDER||code==SDL_CONTROLLER_BUTTON_RIGHTSHOULDER){bool left=code==SDL_CONTROLLER_BUTTON_LEFTSHOULDER;return {f==ControllerFamily::Switch?(left?"L":"R"):f==ControllerFamily::PlayStation?(left?"L1":"R1"):(left?"LB":"RB"),InputGlyph::Shoulder,source};}
+ if(code>=SDL_CONTROLLER_BUTTON_DPAD_UP&&code<=SDL_CONTROLLER_BUTTON_DPAD_RIGHT){constexpr std::array<const char*,4> labels={"DPAD UP","DPAD DOWN","DPAD LEFT","DPAD RIGHT"};return {labels[code-SDL_CONTROLLER_BUTTON_DPAD_UP],InputGlyph::Dpad,source};}
+ const char* raw=SDL_GameControllerGetStringForButton(SDL_GameControllerButton(code));std::string name=raw?raw:"BUTTON";std::transform(name.begin(),name.end(),name.begin(),[](unsigned char c){return std::toupper(c);});return {name,InputGlyph::Other,source};
 }
 }

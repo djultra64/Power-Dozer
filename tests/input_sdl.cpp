@@ -18,8 +18,8 @@ int main(){
  auto sync=[&](){SDL_JoystickUpdate();SDL_Event event;while(SDL_PollEvent(&event))bc_input_event(event);bc_input_update(window);};
  auto frame=[](){bc::InputFrame value;check(bc_get_input(0,&value.buttons,&value.x,&value.y),"controller zero");return value;};
  auto event=[](uint8_t type){SDL_Event value{};value.type=SDL_WINDOWEVENT;value.window.event=type;bc_input_event(value);};
- struct Family {const char* name;uint16_t vendor,product;const char* south;};
- for(auto family:{Family{"QA Xbox One",0x045E,0x0B12,"A"},Family{"QA DualSense PS5",0x054C,0x0CE6,"CROSS"},Family{"QA Nintendo Switch Pro",0x057E,0x2009,"B"},Family{"QA Ambiguous",0x1234,0xBEEF,"SOUTH"}}){
+ struct Family {const char* name;uint16_t vendor,product;const char* south;const char* start;const char* cancel;};
+ for(auto family:{Family{"QA Xbox One",0x045E,0x0B12,"A","MENU","VIEW"},Family{"QA Microsoft X-Box 360 pad",0x045E,0x028E,"A","START","BACK"},Family{"QA DualShock 3",0x054C,0x0268,"CROSS","START","SELECT"},Family{"QA DualShock 4",0x054C,0x09CC,"CROSS","OPTIONS","SHARE"},Family{"QA DualSense PS5",0x054C,0x0CE6,"CROSS","OPTIONS","CREATE"},Family{"QA Nintendo Switch Pro",0x057E,0x2009,"B","PLUS","-"},Family{"QA Ambiguous",0x1234,0xBEEF,"SOUTH","MENU","BACK"}}){
   SDL_VirtualJoystickDesc desc{};desc.version=SDL_VIRTUAL_JOYSTICK_DESC_VERSION;desc.type=SDL_JOYSTICK_TYPE_GAMECONTROLLER;desc.naxes=6;desc.nbuttons=SDL_CONTROLLER_BUTTON_MAX;desc.vendor_id=family.vendor;desc.product_id=family.product;desc.name=family.name;desc.button_mask=(1u<<SDL_CONTROLLER_BUTTON_MAX)-1;desc.axis_mask=63;
   auto index=SDL_JoystickAttachVirtualEx(&desc);check(index>=0,"attach virtual controller");auto* joystick=SDL_JoystickOpen(index);check(joystick,"open virtual joystick");
   // Virtual trigger axes use the full raw range; the controller mapping maps
@@ -29,6 +29,9 @@ int main(){
   SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_A,0);sync();
   SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_A,1);sync();
   check(frame().buttons==0x8000,"physical south invokes confirm only");check(bc_input_prompt(bc::InputAction::Confirm).label==family.south,"detected family and real action agree");
+  SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_A,0);SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_START,1);sync();check(frame().buttons==0x1000&&bc_input_prompt(bc::InputAction::Start).label==family.start,"actual Start event and generation-specific prompt agree");
+  check(bc_input_view().physical_prompt({bc::BindingKind::Button,SDL_CONTROLLER_BUTTON_BACK}).label==family.cancel,"physical capture-cancel name follows SDL controller identity");
+  SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_START,0);SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_A,1);sync();
   if(family.vendor==0x1234){
    bc_input_set_family("playstation");check(bc_input_prompt(bc::InputAction::Confirm).label=="CROSS","manual family applies to an ambiguous SDL device");
    bc_input_set_family("switch");check(bc_input_prompt(bc::InputAction::Confirm).label=="B","manual Switch south is B");bc_input_set_family("auto");

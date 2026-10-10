@@ -384,7 +384,7 @@ Source progress stays unchanged. Full suites pass.
 
 Remaining Task 4 work: native device-driven help/tutorial glyph captures,
 glyphs beside original HUD/tutorial instructions (currently adapted names),
-device-specific menu/stick-click naming, and physical button/prompt acceptance.
+and physical button/prompt acceptance.
 Kernel inventory announces a physical Xbox-compatible controller and HHD/Steam
 virtual devices; enumerating those does not count as pressing physical buttons.
 
@@ -393,3 +393,22 @@ clamps manual refresh to the detected swap-chain rate. Xvfb's 60-Hz surface
 therefore gives effective target 60 despite --refresh 120. Do not bypass this
 with a fake physical acceptance claim; validate actual supported display modes
 and geometry interpolation separately before the graphics release gate.
+
+Controller generation refinement: SDL-reported Xbox 360/One and PS3/4/5 types
+now select the actual Start/Back, Menu/View, Start/Select, Options/Share or
+Options/Create names. Normalized device-name fallback handles Linux X-Box and
+PLAYSTATION(R) names when SDL only identifies a virtual/unknown controller.
+Reliable SDL type takes priority over names; single Joy-Cons stay unknown
+because their physical orientation is not inferred. Same-family manual
+selection preserves a known generation; a different-family override uses
+that family's generic labels. Reserved capture cancel follows the actual
+physical Back control even while keyboard is active. Stick clicks use a
+distinct glyph from stick directions, with L3/R3 names on PlayStation.
+
+Current verification: build completed, 20/20 native and 26/26 Python tests
+passed. The SDL integration test uses seven virtual device identities, sends
+actual South/Start events, checks resulting guest action bits and captions,
+and exercises keyboard handover, focus release, disconnect/reconnect and
+durable remapping. This verifies the SDL adapter, not physical hardware
+presses or a rendered native controller handover; those acceptance gates
+remain open.

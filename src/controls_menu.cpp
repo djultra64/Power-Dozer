@@ -38,7 +38,7 @@ std::vector<std::string> ControlsMenu::rows(const InputModel& view) const{
  }
  case Page::Capture:
   if(source_==InputSource::Keyboard)return {"RELEASE THEN PRESS KEY","ESC: CANCEL"};
-  return {"RELEASE THEN PRESS INPUT","MOVE STICKS FULLY",std::string("ESC / ")+(view.family()==ControllerFamily::PlayStation?"SHARE":view.family()==ControllerFamily::Switch?"-":"VIEW")+": CANCEL"};
+  return {"RELEASE THEN PRESS INPUT","MOVE STICKS FULLY",std::string("ESC / ")+view.physical_prompt({BindingKind::Button,SDL_CONTROLLER_BUTTON_BACK}).label+": CANCEL"};
  case Page::Reset:return {"NO","YES RESET ALL"};
  case Page::Saving:return {"PLEASE WAIT"};
  case Page::Closed:return {};

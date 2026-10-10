@@ -53,6 +53,7 @@ std::vector<GlyphRectangle> input_glyph(const InputPrompt& prompt,ControllerFami
   line(p,7+dx*3,7+dy*3,7+dx-dy*2,7+dy+dx*2,white);
   line(p,7+dx*3,7+dy*3,7+dx+dy*2,7+dy-dx*2,white);break;
  }
+ case InputGlyph::StickPress:circle(p,white);box(p,6,6,4,4,white);break;
  case InputGlyph::Other:box(p,3,3,10,10,white);break;
  }
  std::vector<GlyphRectangle> rectangles;

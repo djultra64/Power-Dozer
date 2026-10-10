@@ -32,4 +32,28 @@ int main(){
  input.controller_family(bc::ControllerFamily::Xbox);
  bool refused=false;try{input.replace(bc::InputAction::Back,bc::InputSource::Controller,{{bc::BindingKind::Button,999}});}catch(const std::exception&){refused=true;}check(refused,"invalid remap is rejected");
  snapshot={};snapshot.buttons[SDL_CONTROLLER_BUTTON_B]=true;check(input.sample(snapshot).buttons==0x4000,"failed remap keeps old binding");
+ bc::InputModel names;names.activity(bc::InputSource::Controller);
+ struct Layout {SDL_GameControllerType type;const char* start;const char* back;};
+ for(auto layout:{Layout{SDL_CONTROLLER_TYPE_XBOX360,"START","BACK"},Layout{SDL_CONTROLLER_TYPE_XBOXONE,"MENU","VIEW"},Layout{SDL_CONTROLLER_TYPE_PS3,"START","SELECT"},Layout{SDL_CONTROLLER_TYPE_PS4,"OPTIONS","SHARE"},Layout{SDL_CONTROLLER_TYPE_PS5,"OPTIONS","CREATE"},Layout{SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO,"PLUS","-"}}){
+  auto identity=bc::controller_identity(layout.type,"unreliable name");names.controller_identity(identity);
+  names.replace(bc::InputAction::Back,bc::InputSource::Controller,{{bc::BindingKind::Button,SDL_CONTROLLER_BUTTON_BACK}});
+  check(names.prompt(bc::InputAction::Start).label==layout.start&&names.prompt(bc::InputAction::Back).label==layout.back,"generation-specific menu names");
+  names.replace(bc::InputAction::Confirm,bc::InputSource::Controller,{{bc::BindingKind::Button,SDL_CONTROLLER_BUTTON_LEFTSTICK}});
+  auto click=names.prompt(bc::InputAction::Confirm);check(click.glyph==bc::InputGlyph::StickPress,"stick press is distinct from stick direction");
+  check(click.label==(identity.family==bc::ControllerFamily::PlayStation?"L3":"LS CLICK"),"stick click uses physical family name");
+ }
+ names.controller_identity(bc::controller_identity(SDL_CONTROLLER_TYPE_UNKNOWN,"QA DualSense PS5"));
+ names.manual_family(bc::ControllerFamily::PlayStation);check(names.prompt(bc::InputAction::Back).label=="CREATE","same-family manual override preserves reliable generation");
+ names.manual_family(bc::ControllerFamily::Xbox);check(names.prompt(bc::InputAction::Back).label=="VIEW","cross-family override discards the foreign generation");
+ names.manual_family(bc::ControllerFamily::Auto);
+ check(bc::controller_identity(SDL_CONTROLLER_TYPE_UNKNOWN,"Microsoft X-Box 360 pad").type==SDL_CONTROLLER_TYPE_XBOX360,"Linux hyphenated Xbox name fallback");
+ check(bc::controller_identity(SDL_CONTROLLER_TYPE_UNKNOWN,"DualShock 3").type==SDL_CONTROLLER_TYPE_PS3,"PS3 name fallback");
+ check(bc::controller_identity(SDL_CONTROLLER_TYPE_UNKNOWN,"Wireless PS4 controller").type==SDL_CONTROLLER_TYPE_PS4,"PS4 name fallback");
+ check(bc::controller_identity(SDL_CONTROLLER_TYPE_PS5,"Xbox").family==bc::ControllerFamily::PlayStation,"reliable SDL type takes priority over misleading name");
+ check(bc::controller_identity(SDL_CONTROLLER_TYPE_UNKNOWN,"PLAYSTATION(R)3 Controller").type==SDL_CONTROLLER_TYPE_PS3,"registered-mark Linux PS3 name fallback");
+ check(bc::controller_identity(SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR,"").family==bc::ControllerFamily::Switch,"paired Joy-Con has normal Switch layout");
+ check(bc::controller_identity(SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT,"Nintendo Switch").family==bc::ControllerFamily::Unknown,"single Joy-Con must not promise Pro letters with unknown orientation");
+ check(bc::controller_identity(SDL_CONTROLLER_TYPE_UNKNOWN,"Nintendo Switch Joy-Con (L)").family==bc::ControllerFamily::Unknown,"single Joy-Con name also keeps position prompts");
+ names.activity(bc::InputSource::Keyboard);
+ check(names.physical_prompt({bc::BindingKind::Button,SDL_CONTROLLER_BUTTON_BACK}).label=="CREATE","reserved physical control lookup is independent of last-active source and action remaps");
 }

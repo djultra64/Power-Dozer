@@ -20,18 +20,10 @@ bc::ControllerFamily parse_family(const std::string& family){
  if(family=="playstation")return bc::ControllerFamily::PlayStation;if(family=="switch")return bc::ControllerFamily::Switch;
  throw std::invalid_argument("Invalid controller family");
 }
-bc::ControllerFamily detected_family(){
- if(!pad)return bc::ControllerFamily::Unknown;
- auto type=SDL_GameControllerGetType(pad);
- if(type==SDL_CONTROLLER_TYPE_PS3||type==SDL_CONTROLLER_TYPE_PS4||type==SDL_CONTROLLER_TYPE_PS5)return bc::ControllerFamily::PlayStation;
- if(type==SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO)return bc::ControllerFamily::Switch;
- if(type==SDL_CONTROLLER_TYPE_XBOX360||type==SDL_CONTROLLER_TYPE_XBOXONE)return bc::ControllerFamily::Xbox;
- const char* raw=SDL_GameControllerName(pad);std::string name=raw?raw:"";
- std::transform(name.begin(),name.end(),name.begin(),[](unsigned char c){return std::tolower(c);});
- if(name.find("switch")!=std::string::npos||name.find("nintendo")!=std::string::npos)return bc::ControllerFamily::Switch;
- if(name.find("playstation")!=std::string::npos||name.find("dual")!=std::string::npos||name.find("ps4")!=std::string::npos||name.find("ps5")!=std::string::npos)return bc::ControllerFamily::PlayStation;
- if(name.find("xbox")!=std::string::npos)return bc::ControllerFamily::Xbox;
- return bc::ControllerFamily::Unknown;
+bc::ControllerIdentity detected_identity(){
+ if(!pad)return {};
+ const char* name=SDL_GameControllerName(pad);
+ return bc::controller_identity(SDL_GameControllerGetType(pad),name?name:"");
 }
 std::string active_name(){
  if(model.source()==bc::InputSource::Keyboard)return "keyboard";
@@ -79,7 +71,7 @@ void connect(){
  }
  if(!pad)for(int i=0;i<SDL_NumJoysticks();i++)if(SDL_IsGameController(i)){
   pad=SDL_GameControllerOpen(i);if(pad){
-   model.controller_family(detected_family());auto held=snapshot();
+   model.controller_identity(detected_identity());auto held=snapshot();
    consume_held(held,false);
    break;
   }

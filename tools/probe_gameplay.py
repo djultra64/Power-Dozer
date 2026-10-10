@@ -85,6 +85,7 @@ def run(args):
                 if args.retry:
                     key('Return');time.sleep(1)
                     key('Down');screenshot('restart-focused');key('z');time.sleep(2);screenshot('restart-selected')
+                    wait(lambda value:'game mode switch from 8 to 13' in value)
                     key('z');time.sleep(3);screenshot('restarted')
                     key('z');time.sleep(1)
                     print('Restart selected; transition and capture require review',flush=True)
@@ -104,6 +105,8 @@ def run(args):
             result=check(log,required_modes=(14,0,2))
             result['seconds_requested']=args.seconds
             result['exercise_verified']=args.exercise
+            result['restart_verified']=args.retry
+            result['failure_verified']=args.wait_failure
             result['seed_save_unchanged']=not args.seed_save or hashlib.sha256(args.seed_save.read_bytes()).hexdigest()==source_hash
             if not result['seed_save_unchanged']:raise ValueError('Source save changed during isolated test')
             (directory/'result.json').write_text(json.dumps(result,indent=2)+'\n')

@@ -57,6 +57,9 @@ void run_thread_function(uint8_t* rdram,uint64_t address,uint64_t stack,uint64_t
  get_function(address)(rdram,&ctx);
 }
 extern "C" {
+void bc_original_window_off(uint8_t* rdram,unsigned phase) {
+ fprintf(stderr,"{\"event\":\"original_window_off\",\"phase\":\"%s\",\"pc\":\"8026BF7C\",\"pending\":%u,\"failed\":%u,\"state_hi\":%u,\"state_lo\":%u}\n",phase==0?"begin":"end",MEM_HU(0,S32(0x8036BB14)),MEM_BU(0,S32(0x803643D6)),uint32_t(MEM_W(0,S32(0x80364A90))),uint32_t(MEM_W(0,S32(0x80364A94))));
+}
 void bc_guest_translucent_mode(uint8_t* rdram,recomp_context* ctx,unsigned phase) {
  auto mode=uint32_t(MEM_W(0x28,ctx->r29));auto mapped=bc::translucent_mode(mode);
  if(!mapped){bc_guest_render_mode(rdram,ctx);bc_fatal("unsupported_translucent_mode",mode);}

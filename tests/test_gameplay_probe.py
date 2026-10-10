@@ -77,3 +77,14 @@ class GameplayAcceptance(unittest.TestCase):
         lines=self.fade().splitlines();event=json.loads(lines[-1]);event['state_lo']=4;lines[-1]=json.dumps(event)
         with self.assertRaisesRegex(ValueError,'assertion'):
             self.inspect(self.log('\n'.join(lines)))
+
+    def off(self, pending=16384):
+        begin={'event':'original_window_off','phase':'begin','pc':'8026BF7C','pending':pending,'failed':1,'state_hi':0,'state_lo':512}
+        end=begin|{'phase':'end','pending':16384}
+        return '\n'.join([json.dumps(begin),' --- ASSERTION FAULT - !yoshiDemandV - yoshi.c, line 1312',f'guest: NEW: 4000 OLD:{pending:x}',' --- ASSERTION FAULT - !yoshiDemandV - yoshi.c, line 1331',f'guest: GOING FOR NEW: 4000 OLD:{pending:x}',json.dumps(end)])
+
+    def test_original_duplicate_off_demand_is_classified(self):
+        self.assertEqual(self.inspect(self.log(self.off()))['original_off_diagnostics'],1)
+
+    def test_original_off_must_not_replace_another_pending_window(self):
+        with self.assertRaisesRegex(ValueError,'assertion'):self.inspect(self.log(self.off(32768)))

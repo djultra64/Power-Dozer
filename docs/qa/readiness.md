@@ -86,6 +86,37 @@ Progress follow-up: Controller Pak services are currently absent. The original
 EEPROM saves player info; the 3,552-byte Pak file stores additional per-level
 data. Complete and verify Pak persistence before the release gate.
 
+Attract regression after the render-mode correction: 360 seconds, exit 0,
+21,602 VI / 22,870 graphics / 10,799 audio tasks. Exact former level-15 failure
+sites were reached four times and used `0C192078`→`0C192230`; no mb assertions.
+The acceptance checker passed, classifying five verified original fade pairs.
+This used software Vulkan and dummy audio; output-device continuity remains
+a separate desktop test.
+
+Gameplay restart and failure: telemetry proves mode 8→13→2 (Restart), changed
+vehicle position, pause/resume and failed=1 followed by modes 9/6. The full log
+was rejected for a second original yoshi diagnostic: the failure renderer at
+`8026BF7C` repeats the same OFF demand (`NEW:4000 OLD:4000`). It assigns the
+same value and has no other side effect for that demand. Instrument this exact
+ROM-validated site, preserving the diagnostics; classify only the matching pair
+with failed=1 in mode 9 and equal pending OFF demands. A different pending
+window still fails. RED→GREEN tests passed; native reproduction is running.
+
+Settings foundation: atomic primary/backup JSON storage, strict types/ranges,
+nonfinite and integer-overflow rejection, bounded files and unknown-field
+preservation. Preferences now reach graphics/audio and CLI overrides remain
+temporary unless explicitly saved. Alt+Enter saves only window preference.
+Mute queues zero samples while executing RSP tasks. Native 8-second probes
+produced 239 audio tasks and 724,608 zero PCM bytes muted; reload with temporary
+unmute/50% volume produced nonzero PCM while persistent mute/75% stayed intact.
+In-game settings menu remains pending. Seven native and 19 Python tests pass.
+
+Test audit: the two new tests initially used `assert`, disabled by the release
+build's NDEBUG. Converted them to unconditional checks like the existing suite
+and reran 7/7 successfully. An isolated build with the earlier unchecked integer
+conversion now aborts against the settings regression; the corrected build
+passes. No progress or audio tests had disabled checks.
+
 Ruling: use branch `codex/release-readiness` in the existing unborn repository
 instead of duplicating ROM/private build state in a worktree — this workspace
 contains only the prototype, and no prior branch commit exists — reproducible

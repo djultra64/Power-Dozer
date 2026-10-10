@@ -168,6 +168,12 @@ def normalize(folder):
             if body.startswith('RECOMP_FUNC void '+name+'(') and 'bc_guest_window_trace' not in body:
                 at=body.index('\n')+1
                 body=body[:at]+f'    bc_guest_window_trace(rdram,ctx,{draw});\n'+body[at:]
+        if body.startswith('RECOMP_FUNC void func_8026BCE0(') and 'bc_original_window_off' not in body:
+            rom=(ROOT/'.local/hd_code.bin').read_bytes();at=0x8026BF7C-0x802447C0
+            assert rom[at:at+8].hex()=='0c09abdb24044000', 'Original mission-failure cancellation changed'
+            call='    ctx->r4 = ADD32(0, 0X4000);\n    func_8026AF6C(rdram, ctx);'
+            assert body.count(call)==1
+            body=body.replace(call,'    ctx->r4 = ADD32(0, 0X4000);\n    bc_original_window_off(rdram,0);\n    func_8026AF6C(rdram, ctx);\n    bc_original_window_off(rdram,1);')
         if body.startswith('RECOMP_FUNC void func_80274BF0(') and 'bc_original_fade_window' not in body:
             rom=(ROOT/'.local/hd_code.bin').read_bytes()
             at=0x80274CB8-0x802447C0

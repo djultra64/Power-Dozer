@@ -18,11 +18,23 @@ def original_fade_diagnostics(content):
     pending demand, then restores it at 802750F0. No guest state is patched.
     Any other assertion, malformed scope or missing restoration still fails.
     """
-    lines=content.splitlines();allowed=set();candidates=[];scope=None
+    lines=content.splitlines();allowed=set();candidates=[];scope=None;off_scope=None;off_count=0
     for index,line in enumerate(lines):
         try:event=json.loads(line)
         except json.JSONDecodeError:continue
-        if not isinstance(event,dict) or event.get('event')!='original_fade_window':continue
+        if not isinstance(event,dict):continue
+        if event.get('event')=='original_window_off':
+            if event.get('phase')=='begin':off_scope=(index,event)
+            elif event.get('phase')=='end' and off_scope:
+                start,begin=off_scope;off_scope=None
+                if not (begin.get('pc')=='8026BF7C' and event.get('pc')=='8026BF7C' and begin.get('pending')==event.get('pending')==16384 and begin.get('state_hi')==event.get('state_hi')==0 and begin.get('state_lo')==event.get('state_lo')==512 and begin.get('failed')==event.get('failed')==1):continue
+                assertions=[i for i in range(start+1,index) if ASSERTION.search(lines[i])]
+                expected=[f'ASSERTION FAULT - !yoshiDemandV - yoshi.c, line {number}' for number in (1312,1331)]
+                block='\n'.join(lines[start+1:index])
+                if len(assertions)==2 and all(text in lines[i] for i,text in zip(assertions,expected)) and 'NEW: 4000 OLD:4000' in block and 'GOING FOR NEW: 4000 OLD:4000' in block:
+                    allowed.update(assertions);off_count+=1
+            continue
+        if event.get('event')!='original_fade_window':continue
         phase=event.get('phase')
         if phase=='begin':scope=(index,event)
         elif phase=='end' and scope:
@@ -44,11 +56,11 @@ def original_fade_diagnostics(content):
                     allowed.update(assertions);candidates.remove(candidate);break
     if any(ASSERTION.search(line) and index not in allowed for index,line in enumerate(lines)):
         raise ValueError('Guest assertion fault: run is not release acceptance')
-    return len(allowed)//2
+    return len(allowed)//2-off_count,off_count
 
 def check(path, required_modes=()):
     content=Path(path).read_text(errors='replace')
-    fade_count=original_fade_diagnostics(content)
+    fade_count,off_count=original_fade_diagnostics(content)
     if re.search(r'Segmentation fault|core dumped|terminate called|XIO:.*fatal',content,re.I):
         raise ValueError('Native crash reported')
     check_audio_probe.check(path)
@@ -64,7 +76,7 @@ def check(path, required_modes=()):
     modes={int(mode) for mode in re.findall(r'game mode switch from -?\d+ to (-?\d+)',content)}
     for mode in required_modes:
         if mode not in modes:raise ValueError(f'Missing required game mode {mode}')
-    return {key:progress[-1][key] for key in ('vi','gfx','audio')}|{'modes':sorted(modes),'original_fade_diagnostics':fade_count}
+    return {key:progress[-1][key] for key in ('vi','gfx','audio')}|{'modes':sorted(modes),'original_fade_diagnostics':fade_count,'original_off_diagnostics':off_count}
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)

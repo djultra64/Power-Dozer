@@ -1,12 +1,8 @@
 #include "save_store.h"
+#include "atomic_file.h"
 #include <algorithm>
-#include <cerrno>
-#include <cstring>
 #include <fstream>
 #include <stdexcept>
-#include <vector>
-#include <fcntl.h>
-#include <unistd.h>
 
 namespace bc {
 namespace {
@@ -38,33 +34,7 @@ CheckedImage encode(const SaveStore::Image& image){
  put32(bytes.data()+4,1);put32(bytes.data()+8,crc(image));
  std::copy(image.begin(),image.end(),bytes.begin()+12);return bytes;
 }
-void sync_directory(const fs::path& directory){
- int fd=open(directory.c_str(),O_RDONLY|O_DIRECTORY);
- if(fd<0)throw std::runtime_error("Cannot open save directory for synchronization");
- const bool ok=fsync(fd)==0;const int closed=close(fd);
- if(!ok||closed!=0)throw std::runtime_error("Cannot synchronize save directory");
-}
-void atomic_write(const fs::path& path,const CheckedImage& image){
- auto directory=path.parent_path();if(directory.empty())directory=".";
- std::string pattern=path.string()+".tmp.XXXXXX";
- std::vector<char> name(pattern.begin(),pattern.end());name.push_back(0);
- int fd=mkstemp(name.data());
- if(fd<0)throw std::runtime_error("Cannot create temporary save: "+std::string(strerror(errno)));
- try{
-  size_t count=0;
-  while(count<image.size()){
-   auto n=write(fd,image.data()+count,image.size()-count);
-   if(n<0&&errno==EINTR)continue;
-   if(n<=0)throw std::runtime_error("Cannot write complete save");
-   count+=size_t(n);
-  }
-  if(fsync(fd)!=0)throw std::runtime_error("Cannot synchronize save");
-  const int closed=close(fd);fd=-1;
-  if(closed!=0)throw std::runtime_error("Cannot close save");
-  fs::rename(name.data(),path);
-  sync_directory(directory);
- }catch(...){if(fd>=0)close(fd);std::error_code ec;fs::remove(name.data(),ec);throw;}
-}
+
 }
 SaveStore::Image SaveStore::load() const {
  Image image{};
@@ -76,7 +46,7 @@ void SaveStore::save(const Image& image) const {
  const auto previous=load(); // Validate recovery before touching either copy.
  auto directory=path_.parent_path();if(directory.empty())directory=".";
  fs::create_directories(directory);
- if(fs::exists(path_)||fs::exists(path_.string()+".bak"))atomic_write(path_.string()+".bak",encode(previous));
- atomic_write(path_,encode(image));
+ if(fs::exists(path_)||fs::exists(path_.string()+".bak"))atomic_write_file(path_.string()+".bak",encode(previous));
+ atomic_write_file(path_,encode(image));
 }
 }

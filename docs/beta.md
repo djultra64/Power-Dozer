@@ -4,6 +4,10 @@ Abrir `Run Blast Corps Beta.sh` en este equipo. Permanece abierto hasta cerrar
 la ventana; usa escala 3 (720p interno), perfil 16:9, audio estéreo y objetivo
 de interpolación de 120. RT64 limita ese objetivo al refresco disponible.
 La beta todavía necesita validar el recorrido completo de menús y misiones.
+Las preferencias se leen de `settings.json` en la carpeta de datos; los
+argumentos cambian esta ejecución. Añadir `--save-settings` conserva los cambios.
+Alt+Enter conserva el modo de ventana. El menú gráfico dentro del juego sigue
+pendiente.
 
 `--data-dir PATH` permite usar una carpeta independiente para progreso y
 remapeos. El progreso anterior de 512 bytes sigue siendo compatible; al guardar
@@ -25,11 +29,11 @@ prueba usó llvmpipe y audio dummy; no verifica la jugabilidad de toda la misió
 | Tecla | Acción / botón N64 |
 |---|---|
 | Alt+Enter | Alternar pantalla completa; no activa Start. |
-| Flechas | Stick analógico: movimiento y navegación. |
+| Flechas | Caminar, dirigir vehículos y navegar menús. |
 | Enter | Start: iniciar o pausar según el juego. |
-| Z | Acción primaria / confirmar, botón N64 A. |
-| X | Acción secundaria / volver, botón N64 B. |
-| Shift izquierdo | Gatillo N64 Z. |
+| Z | Acelerar / confirmar, botón N64 A. |
+| X | Retroceder con el vehículo / volver, botón N64 B. |
+| Shift izquierdo | Detenerse / salir del vehículo, gatillo N64 Z. |
 | I / J / K / L | C arriba / izquierda / abajo / derecha. |
 | Q / E | Botones N64 L / R. |
 
@@ -55,4 +59,6 @@ no una medición de 120 fps sostenidos.
 ./'Run Blast Corps Beta.sh'
 ./'Run Blast Corps Beta.sh' --scale 9 # Perfil 4K, más exigente.
 ./'Run Blast Corps Beta.sh' --refresh 0 # Comparar con presentación original.
+./'Run Blast Corps Beta.sh' --scale 9 --msaa 4 --save-settings
+./'Run Blast Corps Beta.sh' --volume 50 --mute # Silencia la salida; el RSP sigue activo.
 ```

@@ -1,6 +1,7 @@
 // RT64 core wiring adapted from the user's Tetrisphere prototype.
 #include "prototype.h"
 #include "l3d.h"
+#include "settings.h"
 #include "hle/rt64_application.h"
 #include "ultramodern/ultramodern.hpp"
 #include <array>
@@ -62,6 +63,10 @@ Context(uint8_t* rdram,ultramodern::renderer::WindowHandle window) {
         app_->userConfig.aspectTarget = 16.0/9.0;
         app_->userConfig.refreshRate = bc_refresh ? RT64::UserConfiguration::RefreshRate::Manual : RT64::UserConfiguration::RefreshRate::Original;
         app_->userConfig.refreshRateTarget = bc_refresh;
+        using UC=RT64::UserConfiguration;
+        app_->userConfig.antialiasing=bc::settings.msaa==8?UC::Antialiasing::MSAA8X:bc::settings.msaa==4?UC::Antialiasing::MSAA4X:bc::settings.msaa==2?UC::Antialiasing::MSAA2X:UC::Antialiasing::None;
+        app_->userConfig.filtering=bc::settings.presentation=="nearest"?UC::Filtering::Nearest:bc::settings.presentation=="pixel"?UC::Filtering::AntiAliasedPixelScaling:UC::Filtering::Linear;
+        app_->userConfig.threePointFiltering=bc::settings.texture=="three_point";
         app_->userConfig.developerMode = false;
         app_->enhancementConfig.presentation.mode = RT64::EnhancementConfiguration::Presentation::Mode::Console;
         auto result=app_->setup(0);

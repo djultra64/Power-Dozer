@@ -13,3 +13,8 @@ inline std::vector<int16_t> n64_stereo_pcm(std::span<const int16_t> rdram) {
     }
     return pcm;
 }
+
+inline void apply_audio_output(std::span<int16_t> pcm,int volume,bool mute) {
+    if(volume<0||volume>100)throw std::invalid_argument("Invalid output volume");
+    for(auto& sample:pcm)sample=mute?0:int16_t(int32_t(sample)*volume/100);
+}

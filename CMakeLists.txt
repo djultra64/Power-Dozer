@@ -22,7 +22,7 @@ list(APPEND BC_UM_SOURCES "${CMAKE_BINARY_DIR}/blastcorps-events.cpp")
 set_property(TARGET ultramodern PROPERTY SOURCES "${BC_UM_SOURCES}")
 file(GLOB GUEST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/.local/generated/functions/funcs_*.c")
 set_source_files_properties(${GUEST} PROPERTIES LANGUAGE CXX COMPILE_OPTIONS "-w;-O1")
-add_executable(blastcorps-prototype src/main.cpp src/runtime.cpp src/renderer.cpp src/input.cpp src/l3d.cpp src/save_store.cpp
+add_executable(blastcorps-prototype src/main.cpp src/runtime.cpp src/renderer.cpp src/input.cpp src/l3d.cpp src/save_store.cpp src/atomic_file.cpp src/settings.cpp
  "${CMAKE_SOURCE_DIR}/.local/generated/fallbacks.cpp"
  "${CMAKE_SOURCE_DIR}/.local/audio-rsp.cpp"
  "${RUNTIME}/librecomp/src/ultra_translation.cpp"
@@ -66,9 +66,12 @@ add_test(NAME audio_stereo_channels COMMAND audio_pcm_test)
 add_executable(line_quad_test tests/line_quad.cpp)
 target_include_directories(line_quad_test PRIVATE include)
 add_test(NAME l3d_line_geometry COMMAND line_quad_test)
-add_executable(save_store_test tests/save_store.cpp src/save_store.cpp)
+add_executable(save_store_test tests/save_store.cpp src/save_store.cpp src/atomic_file.cpp)
 target_include_directories(save_store_test PRIVATE include)
 add_test(NAME save_recovery_and_isolation COMMAND save_store_test)
 add_executable(translucent_mode_test tests/translucent_mode.cpp)
 target_include_directories(translucent_mode_test PRIVATE include)
 add_test(NAME original_and_pass_translucent_modes COMMAND translucent_mode_test)
+add_executable(settings_test tests/settings.cpp src/settings.cpp src/atomic_file.cpp)
+target_include_directories(settings_test PRIVATE include "${RUNTIME}/thirdparty/json")
+add_test(NAME durable_validated_settings COMMAND settings_test)

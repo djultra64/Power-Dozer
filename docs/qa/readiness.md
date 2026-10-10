@@ -1174,3 +1174,31 @@ VI1202–1502/485 in gameplay-ja976uzj; passing u_wrjqbd returnsNone.
 README/audio documentation now distinguishes measured virtual120 interpolation,
 4K120 performance failure, implemented simulated output recovery, and still-open
 intermittent native freezes. No claim of complete launch readiness was added.
+
+4K live-monitor three-startup sequence reached terminal exit0 (handle76689):
+.local/qa/gameplay-jzqzhj5b90seconds5401VI/5101gfx/2699audio;
+.local/qa/gameplay-ddfaci3290seconds5401VI/5101gfx/2699audio;
+.local/qa/gameplay-srosv5lb90seconds5401VI/5102gfx/2698audio. All reached
+Simian Acres and passed movement/pause/Continue/source EEPROM preservation,
+without a false live-stall report. This does not close the intermittent failure
+or certify4K120 rate (no sustained-FPS gate requested in these trials).
+No actual frozen-native backtrace obtained and no native handle from the
+sequence remains live.
+
+Source investigation supports retaining the existing DP gate: original sched.c
+__scExec assigns curRDPTask only when OS_SC_SWAPBUFFER0x40 is set. __scRspDone
+sets OS_SC_DRAM_DLIST0x4 and the completion helper masks nonswap tasks to
+OS_SC_NEEDS_RDP0x1, completing those tasks upon SP completion. Thus changing
+DP generation to every NEEDS_RDP flag would contradict this game's scheduler.
+No speculative SP/DP/FullSync behavior change made. Steering source46F60.c
+confirms80370C70 is current vehicle heading and80364414 contributes camera yaw;
+these must be distinguished from80364456's vehicle/control type selector.
+
+Cold-cache live-monitor regression is running: handle85401 explicitly polled
+live, .local/qa/gameplay-8mx1fjat,360seconds requested,4K120/three_point,
+MESA_SHADER_CACHE_DISABLE=true in private hierarchy only, movement/pause/
+Continue/Restart requested. Last observation reached Simian Acres. Evidence
+.local/evidence/gpu-cold360-live-hang-monitor.log. Preserve this handle across
+continuations; poll for terminal result rather than restarting on observation
+timeout. Do not rebuild/replace the native executable while a gdb-capable
+native trial is alive, to preserve matching symbols for a possible capture.

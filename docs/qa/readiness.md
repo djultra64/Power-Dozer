@@ -1450,3 +1450,11 @@ maximum queue3712bytes. This is audio processing/queue evidence, not physical
 speaker verification. No live-health stall triggered. Strict4K120 sustained
 acceptance remains open; late private paused windows measure about117fps.
 No visual fidelity claim from stale X11 window screenshots.
+
+Independent timer review completed at0b2fdd0: no Critical/Important runtime
+findings. Reviewer independently reran3 transform tests and2 actual timer checks.
+Minor incremental-build issue verified: generator absent from RERUN_CMAKE inputs.
+CMAKE_CONFIGURE_DEPENDS now tracks both transform and pinned SDK timer source.
+Touching only generator mtime caused automatic reconfiguration; identical output
+retained its mtime. Evidence timer-cmake-regeneration-oct10.log. Full30 native
+checks pass after rebuilding. Native-freeze causality and release gates remain open.

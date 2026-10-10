@@ -19,6 +19,9 @@ string(REPLACE "                sp_complete();" "                // Signal SP af
 string(REPLACE "                renderer_context->send_dl(&task_action->task);" "                auto gfx_address = bc_graphics_task_address(task_action->task.t.data_ptr);\n                renderer_context->send_dl(&task_action->task);\n                if (bc_complete_graphics(gfx_address)) sp_complete();" BC_EVENTS "${BC_EVENTS}")
 file(WRITE "${CMAKE_BINARY_DIR}/blastcorps-events.cpp" "#include <cstdint>\nextern bool bc_should_signal_dp();\nextern uint32_t bc_graphics_task_address(uint32_t);\nextern bool bc_complete_graphics(uint32_t);\n${BC_EVENTS}")
 get_target_property(BC_UM_SOURCES ultramodern SOURCES)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+ "${CMAKE_SOURCE_DIR}/tools/prepare_timer_runtime.py"
+ "${RUNTIME}/ultramodern/src/timer.cpp")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/prepare_timer_runtime.py" "${RUNTIME}" "${CMAKE_BINARY_DIR}" RESULT_VARIABLE BC_TIMER_RESULT)
 if(NOT BC_TIMER_RESULT EQUAL 0)
  message(FATAL_ERROR "Cannot prepare validated immutable SDK timer scheduling")

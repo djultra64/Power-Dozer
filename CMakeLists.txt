@@ -54,6 +54,8 @@ target_link_libraries(blastcorps-prototype PRIVATE
  /home/linuxbrew/.linuxbrew/lib/libdbus-1.so
  pthread dl)
 set_target_properties(blastcorps-prototype PROPERTIES BUILD_RPATH "/home/linuxbrew/.linuxbrew/lib;${RT64}/src/contrib/dxc/lib/x64")
+set_target_properties(blastcorps-prototype PROPERTIES INSTALL_RPATH "$ORIGIN/lib")
+install(TARGETS blastcorps-prototype RUNTIME DESTINATION .)
 
 target_link_options(blastcorps-prototype PRIVATE -Wl,--wrap=osCreateThread_recomp -Wl,--wrap=osStartThread_recomp -Wl,--wrap=osSetThreadPri_recomp -Wl,--wrap=osRecvMesg_recomp)
 

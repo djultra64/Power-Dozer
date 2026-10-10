@@ -723,3 +723,41 @@ the prior unchanged normal boot path; these short chooser runs prove bootstrap
 only. Clean dependency packaging, actual installed portal/UI acceptance,
 mission objectives, 4K/interpolation/audio performance and final review remain
 open release work.
+
+Task 6 private Linux package recipe added: CMake installs/strips the executable
+with $ORIGIN/lib, package_linux.py copies explicit SDL2-compat/SDL3/D-Bus/DXC
+runtime files, rewrites their embedded Linuxbrew RPATH to $ORIGIN, and creates
+a deterministic tar/gzip layout with per-file SHA256 inventory plus archive
+checksum. A launcher locates its own directory and runtime libraries. System
+Vulkan/display/audio drivers and standard C/C++ runtime remain host services.
+Controller database and provenance/license come from the pinned Tetrisphere
+reference; recipe checks source byte counts/hashes before copying. Vendor
+license texts are collected, but complete license/corresponding-source review
+is explicitly not claimed. BUILD.json ready_for_release=false and
+license_review_complete=false; this is a private diagnostic package, not an RC.
+
+RED: stub package audit accepted private files, symlink and disguised ROM.
+GREEN privacy cases reject data/progress/ROM/overlay/capture/state paths,
+symlinks and ROM headers hidden as license text. Recipe exports an explicit
+layout; normal data directories are absent from the archive. Python suite
+47 passed (previous 44 plus three packaging tests). Existing 26 native tests
+remain unchanged by install metadata. Source EEPROM hash remains unchanged.
+
+First native package evidence: .local/qa/clean package g5crq0r4. Extracted the
+71-member private archive into a fresh folder with spaces, verified every
+manifest file hash and absence of data before launch. With no LD_LIBRARY_PATH
+override from the host, launcher run from /tmp imports the supplied ZIP,
+721 VI / 684 graphics / 358 audio over 12 seconds. Second launch supplies no
+ROM and loads its private cache, 721 VI / 684 graphics / 359 audio. Both exit
+normally. /proc maps in both runs prove SDL2, SDL3 and D-Bus came from package
+lib; no mapped Linuxbrew library was present. This is native software-Vulkan/
+dummy-output bootstrap evidence, not full mission/package GPU acceptance.
+
+The first tested draft archive SHA256 was
+7ce9a8a70c69490f8ef2d04ad427afc6cfe229fe55db7a158915c86b6ccc9dec.
+After native acceptance the recipe gained explicit controller provenance and
+license-review metadata; regeneration may change only BUILD.json while keeping
+the accepted executable/runtime payload hashes. Clean-tree provenance and
+payload comparison must be checked on that final draft. Actual installed portal
+UI, other Linux distributions, Windows, package-based full mission/control/
+GPU/audio regressions and independent review remain open. No public upload.

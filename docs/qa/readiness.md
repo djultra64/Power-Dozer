@@ -12,9 +12,10 @@ Ruling: execute local design/plan stages without renewed approvals — the user
 explicitly authorizes autonomous work while away — scope decisions must remain
 documented and publishing remains external.
 
-Ruling: preserve the existing `.local/eeprom.bin` default until portable bootstrap
-migration is tested; add explicit isolated data paths first — tests must not
-change the user's progress — incorrect migration could otherwise lose saves.
+Ruling: portable migration is now tested below. Bare executables use adjacent
+`data`; development launchers explicitly retain `.local`, preserving the current
+installation. All QA imports use private destinations; original progress is
+never changed by acceptance tests.
 
 ## Work queue
 
@@ -626,3 +627,51 @@ remove BC_ROOT from runtime/controller mappings and provide packaged database
 lookup. The beta still defaults to an eight-second prototype run and needs
 normal indefinite operation before an RC. GUI ROM selection, cache/migration
 interruption checks and dependency packaging remain required.
+
+Portable data layout/import acceptance: application_data_directory resolves
+SDL_GetBasePath()/data (matching Tetrisphere), with BLASTCORPS_DATA_DIR and
+--data-dir overrides. The normal run is indefinite; --seconds remains a QA
+limit. Runtime/input no longer reference BC_ROOT: remaps live in the selected
+data directory, and optional controller database is beside the executable.
+Development launchers explicitly use .local to retain existing progress.
+The import service recognizes EEPROM/Pak/settings/controls plus backups and
+legacy parent config/controls.json only where applicable. It bounds each file
+to 64 KiB, refuses symlinks and nonempty destinations, writes a unique sibling
+staging directory, validates its complete copied snapshot with the real store
+recovery/committed-Pak rules, atomically renames it and syncs the parent. Original
+bytes and unknown metadata are retained. It never imports ROM/overlays/captures
+as progress and never deletes unrelated interrupted staging directories.
+
+RED: missing import behavior failed the initial native migration. GREEN native
+fixtures cover preservation of progress/Pak/settings/remaps, unchanged source,
+no unrelated files/assets, refusal to merge, invalid snapshot with no partial
+destination, valid backup recovery, empty destination, legacy remap, missing/
+empty source, interrupted-staging retry and symlink rejection. Current suites
+25 native / 44 Python passed.
+
+Relocated default-layout evidence: .local/qa/portable data 8d8tskcj. A copied
+binary run from /tmp imports the real .local snapshot into its private adjacent
+data, then restarts with neither --data-dir nor --rom. Both 12-second sessions
+exit normally. A third session supplies no --seconds, remains alive at 12
+seconds and reports 601 VI / 558 graphics / 298 audio tasks at the ten-second
+sample; the QA supervisor then terminates it deliberately. This proves the
+prototype timeout was removed, not orderly user-close acceptance. Original
+EEPROM hash unchanged.
+
+Abrupt-interruption native evidence: .local/qa/import-interrupted-xc_t4bp0.
+A private LD_PRELOAD rename wrapper calls _exit(99) after the first staged
+EEPROM file rename. The exact exit code and partial sibling staging directory
+were observed, with live data still absent. A clean retry completes import/
+cache/bootstrap and exits normally. The original source hash stays unchanged.
+The helper is private and not linked into the port; this is process-loss
+acceptance, not physical power-cut evidence. Existing stage is preserved.
+Clean library packaging, GUI ROM selection and Windows acceptance remain open.
+
+Native regression after portable paths/default timeout changes:
+.local/qa/gameplay-ric9_1xo, 140 seconds, 8,401 VI / 8,062 graphics / 4,199
+audio. Automatic Switch Help, keyboard handover, held-button reconnect
+suppression, steering/acceleration and native pause/Continue passed. Integrated
+original-instruction checker accepted four sites including ZL/R map controls.
+Source EEPROM/Pak unchanged. Active-help capture reviewed: Switch B/A/PLUS
+face/Start prompts and ZL/R map labels/glyphs agree. This remains virtual SDL,
+software Vulkan and dummy audio evidence.

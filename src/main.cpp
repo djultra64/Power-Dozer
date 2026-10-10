@@ -21,6 +21,8 @@
 #include "pak_runtime.h"
 #include "input.h"
 #include "rom_input.h"
+#include "data_import.h"
+#include "data_directory.h"
 
 double bc_scale=3;
 bool bc_wide=false;
@@ -90,14 +92,20 @@ static void error(const char* text){fprintf(stderr,"runtime: %s\n",text);bc_fata
 static void load(uint8_t* ram,const std::vector<uint8_t>& bytes,uint32_t offset){if(bytes.size()>0x800000-offset)bc_fatal("load_bounds");for(size_t i=0;i<bytes.size();i++)ram[(offset+i)^3]=bytes[i];}
 int main(int argc,char** argv){
  setvbuf(stdout,nullptr,_IOLBF,0);
- double seconds=8;std::string family="auto";bool save_settings=false;std::filesystem::path rom_path;
+ double seconds=0;std::string family="auto";bool save_settings=false;std::filesystem::path rom_path,import_path;
  for(int i=1;i<argc;i++)if(std::string(argv[i])=="--help"){
-  printf("Blast Corps experimental native beta\n--rom PATH (USA Rev 1 z64/v64/n64/ZIP) --seconds N --data-dir PATH\n--scale N --wide --original-aspect --refresh 0|30|60|120\n--fullscreen --windowed --msaa 0|2|4|8 --presentation nearest|linear|pixel --texture linear|three_point\n--volume 0..100 --mute --no-mute --family auto|xbox|playstation|switch --save-settings --capture-audio FILE.wav\nKeyboard: arrows walk/steer, Z accelerate/confirm, X reverse/back, Enter pause/start, Shift stop/exit, I/J/K/L camera, Q/E horn\nAlt+Enter: toggle fullscreen\n");return 0;
+  printf("Blast Corps experimental native beta\n--rom PATH (USA Rev 1 z64/v64/n64/ZIP) --seconds N (0: unlimited)\n--data-dir PATH (default: executable/data) --import-data OLD_DIRECTORY\n--scale N --wide --original-aspect --refresh 0|30|60|120\n--fullscreen --windowed --msaa 0|2|4|8 --presentation nearest|linear|pixel --texture linear|three_point\n--volume 0..100 --mute --no-mute --family auto|xbox|playstation|switch --save-settings --capture-audio FILE.wav\nKeyboard: arrows walk/steer, Z accelerate/confirm, X reverse/back, Enter pause/start, Shift stop/exit, I/J/K/L camera, Q/E horn\nAlt+Enter: toggle fullscreen\n");return 0;
  }
  try {
- for(int i=1;i<argc;i++)if(std::string(argv[i])=="--data-dir"){
-  if(i+1>=argc)throw std::invalid_argument("--data-dir requires a path");bc_data_directory=argv[++i];
+ bc_data_directory=bc::application_data_directory();
+ for(int i=1;i<argc;i++){
+  auto option=std::string(argv[i]);
+  if(option=="--data-dir"||option=="--import-data"){
+   if(i+1>=argc)throw std::invalid_argument(option+" requires a path");
+   if(option=="--data-dir")bc_data_directory=argv[++i];else import_path=argv[++i];
+  }
  }
+ if(!import_path.empty())bc::import_data(import_path,bc_data_directory);
  const auto persisted=bc::SettingsStore(bc_data_directory/"settings.json").load();
  bc::settings=persisted;
  auto number=[](const char* value){std::string text=value;size_t end=0;double result=std::stod(text,&end);if(end!=text.size())throw std::invalid_argument("Invalid numeric option");return result;};
@@ -106,6 +114,7 @@ int main(int argc,char** argv){
   std::string a=argv[i];
   if(a=="--seconds"&&i+1<argc)seconds=number(argv[++i]);
   else if(a=="--rom"&&i+1<argc)rom_path=argv[++i];
+  else if(a=="--import-data"&&i+1<argc)++i;
   else if(a=="--data-dir"&&i+1<argc)bc_data_directory=argv[++i];
   else if(a=="--scale"&&i+1<argc)bc::settings.scale=number(argv[++i]);
   else if(a=="--mute")bc::settings.mute=true;

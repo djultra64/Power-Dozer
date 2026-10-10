@@ -2,14 +2,15 @@
 
 Recompilación estática experimental de **Blast Corps USA Rev 1**. Ejecuta código
 MIPS traducido a C++ con N64Recomp, N64ModernRuntime y RT64. La ROM suministrada
-por el usuario aporta código, overlays y recursos; permanece en `.local/` y no
-se incluye en los archivos públicos del proyecto.
+por el usuario aporta código, overlays y recursos. El arranque valida la ROM,
+guarda una caché privada y genera los overlays en memoria; estos archivos no
+se incluyen en los paquetes del proyecto.
 
 Se han visto las intros, el título, una escena 3D del modo de demostración,
-el mapa y la carga de Simian Acres. La regresión de beta duró 110 segundos
-sin cierre, con progreso continuo de gráficos y audio.
-Se ha medido un render target interno de **3840×2160** con el perfil 16:9.
-Es una prueba técnica, todavía no un port completo jugable.
+el mapa y Simian Acres, con movimiento, pausa y reanudación en pruebas aisladas.
+También hay pruebas nativas de reconexión y acciones con mandos SDL virtuales.
+El port sigue en desarrollo: la aceptación de 4K, interpolación, rendimiento
+y todas las misiones todavía está pendiente.
 
 El audio mantiene el progreso durante una prueba de 90 segundos de intros,
 título y demo. También se verificó salida por PipeWire/PulseAudio durante
@@ -32,8 +33,8 @@ pantalla completa sin activar Start. Controles y límites en
 ./'Run Blast Corps.sh' --seconds 35 --scale 9 --wide --refresh 120
 ```
 
-La prueba predeterminada dura ocho segundos; `--seconds 0` permite ejecutar
-hasta cerrar la ventana. `--scale 3` usa el perfil de investigación de 720p.
+La sesión predeterminada continúa hasta cerrar la ventana; `--seconds N` limita
+una prueba a N segundos. `--scale 3` usa el perfil de investigación de 720p.
 El perfil 4K necesita más recursos: las pruebas automatizadas usaron Vulkan
 por software, no midieron el rendimiento de una GPU dedicada.
 
@@ -49,13 +50,15 @@ El adaptador distingue acciones de posiciones físicas. SDL usa posiciones
 Xbox; las etiquetas cambian para Xbox, PlayStation y Switch, incluyendo
 sur=B, este=A, oeste=Y y norte=X en Switch. La barra de título sigue el último
 dispositivo con eventos de entrada. `--family xbox|playstation|switch` permite
-resolver una detección ambigua. Copiar `config/controls.example.json` a
-`config/controls.json` permite remapear acciones a botones SDL; el gatillo
-derecho conserva el acceso a N64 Z. Los prompts gráficos originales del juego
-todavía no se han sustituido por glifos modernos. No se probaron mandos físicos.
+resolver una detección ambigua. El menú PC ofrece ayuda y remapeo por acción;
+los cambios se guardan en `controls.json` dentro de la carpeta de datos.
+El gatillo derecho acelera/confirma y el izquierdo frena/sale del vehículo.
+La ayuda y las instrucciones originales adaptadas muestran nombres e iconos
+del último dispositivo. Las pruebas usan mandos SDL virtuales; la aceptación
+con botones de mandos físicos sigue pendiente.
 
-`--mute` es un modo de diagnóstico que omite la ejecución del microcódigo de
-audio; no sirve como prueba del sonido.
+`--mute` silencia la salida y mantiene el microcódigo y las tareas de audio
+activos. El menú PC permite ajustar volumen, silencio y filtros en ejecución.
 
 Para escuchar el prototipo hasta cerrar la ventana y guardar su mezcla PCM:
 
@@ -67,6 +70,25 @@ La captura es WAV estéreo de 16 bits a 22.050 Hz, anterior al remuestreo del
 dispositivo de salida; no contiene los silencios que pudiera introducir el
 backend. La investigación y los comandos de regresión están en
 [docs/audio.md](docs/audio.md).
+
+## Datos y ROM para el ejecutable portátil
+
+El ejecutable usa `data` junto a su archivo por defecto. `--data-dir PATH` o
+`BLASTCORPS_DATA_DIR` selecciona otra carpeta; los lanzadores de este checkout
+usan `.local` para conservar la instalación de desarrollo.
+
+```bash
+/path/to/blastcorps --rom '/path/to/Blast Corps.zip'
+/path/to/blastcorps --import-data '/path/to/old/.local' --rom '/path/to/Blast Corps.zip'
+```
+
+Se acepta una ROM USA Rev 1 en z64/v64/n64 o un ZIP con una sola ROM. La caché
+`data/cache/rom.z64` se valida en cada inicio. `--import-data` copia partidas,
+Pak, preferencias y remapeos hacia una carpeta nueva o vacía, conservando
+backups y metadatos. Nunca mezcla ni sobrescribe una instalación existente;
+el origen permanece intacto. Los overlays, capturas y ROM no forman parte de
+esa importación de progreso. El empaquetado de dependencias y la selección
+gráfica de ROM todavía están pendientes.
 
 ## Reproducir la compilación
 

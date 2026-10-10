@@ -37,12 +37,13 @@ prueba usó llvmpipe y audio dummy; no verifica la jugabilidad de toda la misió
 | I / J / K / L | C arriba / izquierda / abajo / derecha. |
 | Q / E | Botones N64 L / R. |
 
-Los mandos se conectan con SDL. Los nombres de los prompts de la barra de título
-siguen el último dispositivo activo: Xbox, PlayStation o Switch. La disposición
-Switch conserva sus posiciones reales (sur=B, este=A, oeste=Y, norte=X).
-`--family xbox|playstation|switch` permite selección manual; el remapeo por
-acción está en `config/controls.example.json`. Los prompts originales dentro
-del juego y la verificación con mandos físicos siguen pendientes.
+Los mandos se conectan con SDL. La ayuda y las instrucciones adaptadas siguen
+el último dispositivo activo: teclado, Xbox, PlayStation o Switch, con nombres
+e iconos. Switch conserva sus posiciones reales (sur=B, este=A, oeste=Y, norte=X).
+`--family xbox|playstation|switch` permite selección manual; el menú PC ofrece
+remapeo por acción y guarda `controls.json` en la carpeta de datos. Se verificó
+con mandos SDL virtuales; la aceptación con botones de mandos físicos y todos
+los tutoriales/vehículos permanece pendiente.
 
 La interpolación genera cuadros adicionales entre los del juego original.
 Falta verificar su corrección en cámaras, vehículos, partículas y demolición.

@@ -20,7 +20,7 @@ std::vector<uint8_t> bc_rom;
 std::atomic<uint64_t> bc_vis{0},bc_gfx{0},bc_audio{0},bc_polls{0};
 std::atomic_bool exited{false};
 std::atomic_bool bc_dp_sync{false};
-std::filesystem::path bc_data_directory=BC_ROOT "/.local";
+std::filesystem::path bc_data_directory;
 static std::mutex task_mutex;
 struct TaskMetadata { uint32_t address; bool swap; };
 static std::unordered_map<uint32_t,TaskMetadata> task_swaps;

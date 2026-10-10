@@ -82,11 +82,12 @@ void bc_input_set_family(const std::string& family){std::lock_guard lock(input_m
 void bc_input_init(const std::string& family){
  std::lock_guard lock(input_mutex);if(pad){SDL_GameControllerClose(pad);pad=nullptr;}frame={};previous={};focus_keys.fill(false);capture.cancel();remap_result.reset();input_focused=true;
  auto mappings=bc_data_directory/"controls.json";
- if(bc_data_directory==std::filesystem::path(BC_ROOT "/.local")&&!std::filesystem::exists(mappings)&&!std::filesystem::exists(mappings.string()+".bak"))mappings=BC_ROOT "/config/controls.json";
  try{
   model=bc::ControlsStore(mappings).load();model.manual_family(parse_family(family));
  }catch(const std::exception& error){fprintf(stderr,"Controls: %s\n",error.what());bc_fatal("invalid_action_remap");}
- SDL_GameControllerAddMappingsFromFile(BC_ROOT "/.local/gamecontrollerdb.txt");connect();
+ auto* base=SDL_GetBasePath();
+ if(base){auto database=std::filesystem::u8path(base)/"gamecontrollerdb.txt";SDL_free(base);SDL_GameControllerAddMappingsFromFile(database.string().c_str());}
+ connect();
 }
 bc::InputPrompt bc_input_prompt(bc::InputAction action){std::lock_guard lock(input_mutex);return model.prompt(action);}
 bc::InputModel bc_input_view(){std::lock_guard lock(input_mutex);return model;}

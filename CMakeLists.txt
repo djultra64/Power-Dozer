@@ -32,7 +32,8 @@ add_executable(blastcorps-prototype src/main.cpp src/audio_sdl.cpp src/runtime.c
  "${RUNTIME}/librecomp/src/rsp.cpp"
  ${GUEST})
 target_compile_options(blastcorps-prototype PRIVATE -mssse3 -msse4.1)
-target_compile_definitions(blastcorps-prototype PRIVATE PLUME_SDL_VULKAN_ENABLED HLSL_CPU IMGUI_IMPL_VULKAN_NO_PROTOTYPES FFX_GCC BC_ROOT="${CMAKE_SOURCE_DIR}")
+target_compile_definitions(blastcorps-prototype PRIVATE PLUME_SDL_VULKAN_ENABLED HLSL_CPU IMGUI_IMPL_VULKAN_NO_PROTOTYPES FFX_GCC)
+target_sources(blastcorps-prototype PRIVATE src/data_import.cpp)
 target_include_directories(blastcorps-prototype PRIVATE include .local/generated/functions
  "${RUNTIME}/N64Recomp/include" "${RUNTIME}/ultramodern/include"
  "${RUNTIME}/librecomp/include" "${RUNTIME}/librecomp/include/librecomp"
@@ -55,6 +56,10 @@ set_target_properties(blastcorps-prototype PROPERTIES BUILD_RPATH "/home/linuxbr
 target_link_options(blastcorps-prototype PRIVATE -Wl,--wrap=osCreateThread_recomp -Wl,--wrap=osStartThread_recomp -Wl,--wrap=osSetThreadPri_recomp -Wl,--wrap=osRecvMesg_recomp)
 
 enable_testing()
+add_executable(data_import_test tests/data_import.cpp src/data_import.cpp src/save_store.cpp src/settings.cpp src/controls_store.cpp src/input_model.cpp src/pak_store.cpp src/pak_session.cpp src/atomic_file.cpp)
+target_include_directories(data_import_test PRIVATE include "${RUNTIME}/thirdparty/json" /home/linuxbrew/.linuxbrew/include/SDL2)
+target_link_libraries(data_import_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+add_test(NAME transactional_portable_data_import COMMAND data_import_test)
 set(BC_MINIZ "${RUNTIME}/thirdparty/miniz")
 add_library(bc_miniz STATIC "${BC_MINIZ}/miniz.c" "${BC_MINIZ}/miniz_tinfl.c" "${BC_MINIZ}/miniz_tdef.c" "${BC_MINIZ}/miniz_zip.c")
 file(WRITE "${CMAKE_BINARY_DIR}/miniz_export.h" "#pragma once\n#define MINIZ_EXPORT\n")

@@ -23,12 +23,19 @@ def run(args):
     if args.seed_save:
         source_hash=hashlib.sha256(args.seed_save.read_bytes()).hexdigest()
         shutil.copyfile(args.seed_save,data/'eeprom.bin')
-    env=dict(os.environ,BC_TRACE_INPUT='1',SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',VK_DRIVER_FILES='/usr/share/vulkan/icd.d/lvp_icd.x86_64.json')
+    env=dict(os.environ,BC_TRACE_INPUT='1',BC_TRACE_GAMEPLAY='1',SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',VK_DRIVER_FILES='/usr/share/vulkan/icd.d/lvp_icd.x86_64.json')
     log=directory/'native.log'
     print(f'Private test directory: {directory}',flush=True)
     with log.open('w') as output:
         process=subprocess.Popen([str(ROOT/'build/blastcorps-prototype'),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale','1','--wide','--refresh','120'],env=env,stdout=output,stderr=subprocess.STDOUT)
         def text():return log.read_text(errors='replace')
+        def states():
+            result=[]
+            for line in text().splitlines():
+                try:event=json.loads(line)
+                except json.JSONDecodeError:continue
+                if isinstance(event,dict) and event.get('event')=='guest_state':result.append(event)
+            return result
         def wait(condition,timeout=20):
             deadline=time.monotonic()+timeout
             while time.monotonic()<deadline:
@@ -65,14 +72,38 @@ def run(args):
             wait(lambda value:'game mode switch from 13 to 2' in value,30)
             time.sleep(2);screenshot('mission-start')
             if args.exercise:
-                key('Up',2);screenshot('mission-move')
+                key('z');time.sleep(1);screenshot('briefing-dismissed')
+                before=states()[-1]
+                key('z',2);screenshot('mission-move')
+                after=states()[-1]
+                if (before['x'],before['z'])==(after['x'],after['z']):raise ValueError('Vehicle position did not change during acceleration')
                 key('Return');time.sleep(1);screenshot('pause')
-                key('Return');time.sleep(1);key('Right',1);key('z');screenshot('resume')
-                print('Movement, pause and action input delivered; captures require visual review',flush=True)
+                if not states()[-1]['paused']:raise ValueError('Start did not pause the guest')
+                key('Return');time.sleep(1);key('Right',1);key('z',2);screenshot('resume')
+                if states()[-1]['paused']:raise ValueError('Start did not resume the guest')
+                print('Guest position changed; pause and resume confirmed by guest state',flush=True)
+                if args.retry:
+                    key('Return');time.sleep(1)
+                    key('Down');screenshot('restart-focused');key('z');time.sleep(2);screenshot('restart-selected')
+                    key('z');time.sleep(3);screenshot('restarted')
+                    key('z');time.sleep(1)
+                    print('Restart selected; transition and capture require review',flush=True)
+                if args.wait_failure:
+                    deadline=time.monotonic()+150
+                    while time.monotonic()<deadline:
+                        current=states()
+                        if any(e['failed'] for e in current):break
+                        if process.poll() is not None:break
+                        if current and current[-1]['paused'] and current[-1]['window']>=70:
+                            screenshot(f"tutorial-{current[-1]['window']}");key('z');time.sleep(1)
+                        time.sleep(.3)
+                    if not any(e['failed'] for e in states()):raise ValueError('No mission failure observed')
+                    screenshot('mission-failure');print('Mission failure confirmed by guest state',flush=True)
             process.wait(timeout=args.seconds+15)
             if process.returncode!=0:raise ValueError(f'Native process exited {process.returncode}')
             result=check(log,required_modes=(14,0,2))
             result['seconds_requested']=args.seconds
+            result['exercise_verified']=args.exercise
             result['seed_save_unchanged']=not args.seed_save or hashlib.sha256(args.seed_save.read_bytes()).hexdigest()==source_hash
             if not result['seed_save_unchanged']:raise ValueError('Source save changed during isolated test')
             (directory/'result.json').write_text(json.dumps(result,indent=2)+'\n')
@@ -85,7 +116,10 @@ if __name__=='__main__':
     parser.add_argument('--seconds',type=int,default=180)
     parser.add_argument('--seed-save',type=Path)
     parser.add_argument('--exercise',action='store_true')
+    parser.add_argument('--retry',action='store_true')
+    parser.add_argument('--wait-failure',action='store_true')
     args=parser.parse_args()
     if args.seconds<90:parser.error('At least 90 seconds are required for the mission transition')
+    if (args.retry or args.wait_failure) and not args.exercise:parser.error('Retry/failure needs --exercise')
     try:run(args)
     except (ValueError,subprocess.SubprocessError) as error:parser.exit(1,str(error)+'\n')

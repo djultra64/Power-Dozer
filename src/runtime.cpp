@@ -12,6 +12,9 @@
 #include <unordered_map>
 #include "rsp_scheduler.h"
 #include "save_store.h"
+#include "translucent_mode.h"
+#include <execinfo.h>
+#include <dlfcn.h>
 
 std::vector<uint8_t> bc_rom;
 std::atomic<uint64_t> bc_vis{0},bc_gfx{0},bc_audio{0},bc_polls{0};
@@ -54,6 +57,37 @@ void run_thread_function(uint8_t* rdram,uint64_t address,uint64_t stack,uint64_t
  get_function(address)(rdram,&ctx);
 }
 extern "C" {
+void bc_guest_translucent_mode(uint8_t* rdram,recomp_context* ctx,unsigned phase) {
+ auto mode=uint32_t(MEM_W(0x28,ctx->r29));auto mapped=bc::translucent_mode(mode);
+ if(!mapped){bc_guest_render_mode(rdram,ctx);bc_fatal("unsupported_translucent_mode",mode);}
+ if(phase==0){
+  if(MEM_W(0x2C,ctx->r29)>=3){
+   fprintf(stderr,"{\"event\":\"translucent_mode_extended\",\"from\":\"%08X\",\"to\":\"%08X\",\"level\":%d}\n",mode,mapped->value,MEM_W(0,S32(0x802E8BDC)));
+   MEM_W(0x2C,ctx->r29)=mapped->index;MEM_B(0x33,ctx->r29)=1;
+  }
+ }else ctx->r15=S32(mapped->value);
+}
+void bc_guest_state(uint8_t* rdram) {
+ if(!std::getenv("BC_TRACE_GAMEPLAY"))return;
+ static uint64_t next=0;auto vi=bc_vis.load();if(vi<next)return;next=vi+15;
+ fprintf(stderr,"{\"event\":\"guest_state\",\"vi\":%llu,\"level\":%d,\"state_hi\":%u,\"state_lo\":%u,\"paused\":%u,\"failed\":%u,\"complete\":%u,\"window\":%d,\"x\":%d,\"y\":%d,\"z\":%d}\n",(unsigned long long)vi,MEM_W(0,S32(0x802E8BDC)),uint32_t(MEM_W(0,S32(0x80364A90))),uint32_t(MEM_W(0,S32(0x80364A94))),MEM_BU(0,S32(0x802E8BD0)),MEM_BU(0,S32(0x803643D6)),MEM_BU(0,S32(0x803643D7)),MEM_H(0,S32(0x8036BB18)),MEM_W(0,S32(0x803643E0)),MEM_W(0,S32(0x803643E4)),MEM_W(0,S32(0x803643E8)));
+}
+void bc_guest_render_mode(uint8_t* rdram,recomp_context* ctx) {
+ fprintf(stderr,"{\"event\":\"guest_render_mode_fault\",\"pc\":\"80278D38\",\"mode\":\"%08X\",\"source\":\"%08X\",\"index\":%d,\"level\":%d,\"vi\":%llu}\n",uint32_t(MEM_W(0x28,ctx->r29)),uint32_t(MEM_W(0x40,ctx->r29)),MEM_W(0x2C,ctx->r29),MEM_W(0,S32(0x802E8BDC)),(unsigned long long)bc_vis.load());
+}
+void bc_original_fade_window(uint8_t* rdram,recomp_context* ctx,unsigned phase) {
+ fprintf(stderr,"{\"event\":\"original_fade_window\",\"phase\":\"%s\",\"pending\":%u,\"saved\":%u,\"demand\":%u,\"frame\":%u,\"state_hi\":%u,\"state_lo\":%u,\"vi\":%llu}\n",phase==0?"begin":phase==1?"end":"restore",MEM_HU(0,S32(0x8036BB14)),MEM_HU(0,S32(0x8036C770)),uint16_t(ctx->r4),uint32_t(MEM_W(0,S32(0x80358060))),uint32_t(MEM_W(0,S32(0x80364A90))),uint32_t(MEM_W(0,S32(0x80364A94))),(unsigned long long)bc_vis.load());
+}
+void bc_guest_window_trace(uint8_t* rdram,recomp_context* ctx,bool draw) {
+ if(!std::getenv("BC_TRACE_GUEST_WINDOWS"))return;
+ const uint16_t pending=MEM_HU(0,S32(0x8036BB14));
+ if(draw&&!pending)return;
+ fprintf(stderr,"{\"event\":\"guest_window\",\"draw\":%s,\"demand\":%u,\"pending\":%u,\"frame\":%u,\"state_hi\":%u,\"state_lo\":%u}\n",draw?"true":"false",uint16_t(ctx->r4),pending,uint32_t(MEM_W(0,S32(0x80358060))),uint32_t(MEM_W(0,S32(0x80364A90))),uint32_t(MEM_W(0,S32(0x80364A94))));
+ if(!draw&&pending){
+  void* frames[12];int size=backtrace(frames,12);
+  for(int i=0;i<size;i++){Dl_info info{};if(dladdr(frames[i],&info)&&info.dli_fbase)fprintf(stderr,"window_stack[%d] module_offset=%zx\n",i,size_t(reinterpret_cast<uintptr_t>(frames[i])-reinterpret_cast<uintptr_t>(info.dli_fbase)));}
+ }
+}
 void bc_trace(uint32_t address) { static std::atomic<uint32_t> count=0; if(++count<300) {fprintf(stderr,"{\"event\":\"call\",\"vram\":\"0x%08X\"}\n",address);fflush(stderr);} }
 void recomp_syscall_handler(uint8_t*,recomp_context*,int32_t address) { bc_fatal("mips_syscall",address); }
 void do_break(uint32_t address) { bc_fatal("mips_break",address); }

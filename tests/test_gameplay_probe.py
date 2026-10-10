@@ -40,3 +40,40 @@ class GameplayAcceptance(unittest.TestCase):
     def test_crash_text_rejects_even_complete_counters(self):
         with self.assertRaisesRegex(ValueError,'crash'):
             self.inspect(self.log('Segmentation fault (core dumped)'))
+
+    def fade(self, restore=True, extra=''):
+        begin={'event':'original_fade_window','phase':'begin','pending':32779,'saved':32779,'demand':0,'frame':0,'state_hi':0,'state_lo':262144,'vi':100}
+        end=begin|{'phase':'end','pending':0}
+        restored=begin|{'phase':'restore','pending':0,'demand':32779,'frame':33,'vi':133}
+        lines=[json.dumps(begin),' --- ASSERTION FAULT - !yoshiDemandV - yoshi.c, line 1312','guest: NEW: 0 OLD:800b',' --- ASSERTION FAULT - !yoshiDemandV - yoshi.c, line 1331','guest: GOING FOR NEW: 0 OLD:800b',extra,json.dumps(end)]
+        if restore:lines.append(json.dumps(restored))
+        return '\n'.join(lines)
+
+    def test_original_fade_cancel_and_restore_is_classified(self):
+        result=self.inspect(self.log(self.fade()))
+        self.assertEqual(result['original_fade_diagnostics'],1)
+
+    def test_fade_without_restore_is_rejected(self):
+        with self.assertRaisesRegex(ValueError,'assertion'):
+            self.inspect(self.log(self.fade(restore=False)))
+
+    def test_other_assertion_in_fade_scope_is_rejected(self):
+        with self.assertRaisesRegex(ValueError,'assertion'):
+            self.inspect(self.log(self.fade(extra=' --- ASSERTION FAULT - found - mb.c, line 157')))
+
+    def test_unexpected_yoshi_assertion_after_fade_is_rejected(self):
+        with self.assertRaisesRegex(ValueError,'assertion'):
+            self.inspect(self.log(self.fade()+'\n --- ASSERTION FAULT - !yoshiDemandV - yoshi.c, line 1312'))
+
+    def test_inconsistent_cancel_marker_is_rejected(self):
+        with self.assertRaisesRegex(ValueError,'assertion'):
+            self.inspect(self.log(self.fade().replace('"saved": 32779','"saved": 32780')))
+
+    def test_restore_after_bounded_fade_is_rejected(self):
+        with self.assertRaisesRegex(ValueError,'assertion'):
+            self.inspect(self.log(self.fade().replace('"vi": 133','"vi": 301')))
+
+    def test_restore_in_different_game_state_is_rejected(self):
+        lines=self.fade().splitlines();event=json.loads(lines[-1]);event['state_lo']=4;lines[-1]=json.dumps(event)
+        with self.assertRaisesRegex(ValueError,'assertion'):
+            self.inspect(self.log('\n'.join(lines)))

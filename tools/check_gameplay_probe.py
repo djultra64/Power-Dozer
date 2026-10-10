@@ -9,10 +9,46 @@ _spec=importlib.util.spec_from_file_location('bc_audio_probe',Path(__file__).wit
 check_audio_probe=importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(check_audio_probe)
 
+ASSERTION=re.compile(r'ASSERTION\s+FAULT|assertion[^\n]*failed',re.I)
+
+def original_fade_diagnostics(content):
+    """Recognize only the ROM's bounded cancel→restore, retaining its diagnostics.
+
+    Original UpdateDrawFade calls yoshiShow(0) at 80274CB8 after saving the
+    pending demand, then restores it at 802750F0. No guest state is patched.
+    Any other assertion, malformed scope or missing restoration still fails.
+    """
+    lines=content.splitlines();allowed=set();candidates=[];scope=None
+    for index,line in enumerate(lines):
+        try:event=json.loads(line)
+        except json.JSONDecodeError:continue
+        if not isinstance(event,dict) or event.get('event')!='original_fade_window':continue
+        phase=event.get('phase')
+        if phase=='begin':scope=(index,event)
+        elif phase=='end' and scope:
+            start,begin=scope;scope=None
+            pending=begin.get('pending',0)
+            state=(begin.get('state_hi',0)<<32)|begin.get('state_lo',0)
+            if not (pending and begin.get('saved')==pending and begin.get('demand')==0 and begin.get('frame')==0 and state&0x51800100040000 and event.get('pending')==0 and event.get('saved')==pending):continue
+            assertions=[i for i in range(start+1,index) if ASSERTION.search(lines[i])]
+            expected=[f'ASSERTION FAULT - !yoshiDemandV - yoshi.c, line {number}' for number in (1312,1331)]
+            if len(assertions)!=2 or any(text not in lines[i] for i,text in zip(assertions,expected)):continue
+            block='\n'.join(lines[start+1:index])
+            if f'NEW: 0 OLD:{pending:x}' not in block or f'GOING FOR NEW: 0 OLD:{pending:x}' not in block:continue
+            candidates.append((begin,assertions))
+        elif phase=='restore':
+            for candidate in list(candidates):
+                begin,assertions=candidate
+                elapsed=event.get('vi',-1)-begin.get('vi',0)
+                if (event.get('demand')==begin['pending'] and event.get('saved')==begin['pending'] and event.get('pending')==0 and event.get('state_hi')==begin.get('state_hi') and event.get('state_lo')==begin.get('state_lo') and 0<elapsed<=180):
+                    allowed.update(assertions);candidates.remove(candidate);break
+    if any(ASSERTION.search(line) and index not in allowed for index,line in enumerate(lines)):
+        raise ValueError('Guest assertion fault: run is not release acceptance')
+    return len(allowed)//2
+
 def check(path, required_modes=()):
     content=Path(path).read_text(errors='replace')
-    if re.search(r'ASSERTION\s+FAULT|assertion[^\n]*failed',content,re.I):
-        raise ValueError('Guest assertion fault: run is not release acceptance')
+    fade_count=original_fade_diagnostics(content)
     if re.search(r'Segmentation fault|core dumped|terminate called|XIO:.*fatal',content,re.I):
         raise ValueError('Native crash reported')
     check_audio_probe.check(path)
@@ -28,7 +64,7 @@ def check(path, required_modes=()):
     modes={int(mode) for mode in re.findall(r'game mode switch from -?\d+ to (-?\d+)',content)}
     for mode in required_modes:
         if mode not in modes:raise ValueError(f'Missing required game mode {mode}')
-    return {key:progress[-1][key] for key in ('vi','gfx','audio')}|{'modes':sorted(modes)}
+    return {key:progress[-1][key] for key in ('vi','gfx','audio')}|{'modes':sorted(modes),'original_fade_diagnostics':fade_count}
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)

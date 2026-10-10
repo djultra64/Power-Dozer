@@ -44,7 +44,7 @@ global `bc_data_directory`; CLI `--data-dir PATH`.
 - [x] Route EEPROM and optional action mappings through the explicit data path.
 - [x] Run native tests and a native launch with a copied isolated save; confirm
   the user's original save hash is unchanged.
-- [ ] Record acceptance and commit the coherent change.
+- [x] Record acceptance and commit the coherent change.
 
 ### Task 2: Gameplay and transition harness
 
@@ -53,7 +53,7 @@ global `bc_data_directory`; CLI `--data-dir PATH`.
 **Interfaces:** controlled native runs with `--data-dir`, recorded key/controller
 events, progress counters, guest mode/mission telemetry and screenshots.
 
-- [ ] Add tests that reject frozen graphics/audio, fatal events and guest assertion
+- [x] Add tests that reject frozen graphics/audio, fatal events and guest assertion
   faults even when a run exits zero; inspect a known bad log and observe failure.
 - [ ] Automate boot, new/existing game, map, mission, movement, pause/retry,
   objective/failure transitions and save reload in isolated directories.

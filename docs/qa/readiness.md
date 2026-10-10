@@ -56,6 +56,36 @@ yoshiDemand assertions on transition 53→18. The original game function reports
 these when an unconsumed window demand already exists. Investigate calls and
 frame consumption before selecting a fix; do not suppress the diagnostic.
 
+Task 2 diagnosis: the ROM itself deliberately saves the pending window and
+calls `yoshiShow(0)` at `80274CB8` (encoded instructions validated), before
+restoring it at `802750F0`. This necessarily trips its generic pending-demand
+guards during the fade. Keep guest behavior and diagnostics intact. The
+acceptance checker recognizes only the exact pair of yoshi.c 1312/1331 inside
+instrumented cancellation, with matching saved demand, state and restoration
+within 180 VI. Missing/late/wrong-state restoration and all other assertions
+remain failures. Tests observed RED→GREEN for the original fade classification.
+
+Native fresh-install gameplay: 120 seconds, exit 0, 7,202 VI / 6,893 graphics /
+3,596 audio tasks; new name, map, Simian Acres, acceleration, pause mode 2→8,
+resume 8→2. Native captures reviewed. Source progress was untouched.
+The next telemetry run independently confirmed changed vehicle position and
+paused/resumed state. Its attempted restart selected Quit instead; therefore
+restart/failure acceptance remains pending and its timeout is a harness failure.
+
+Task 2 graphics reproduction: a 360-second attract run logged four mb.c 157
+assertions during level 15 load, all mode `0C192078`, lookup index 3. The original
+three-row table then reads outside its bounds. This is the G_RM_PASS cycle-1
+variant of `00552078`, already covered by the ROM's six-row ghost table.
+Extend only the three verified PASS variants while preserving cycle 1 and
+applying the original cycle-2/shared-flag translation. Validate the original
+table bytes before generation; unknown modes now stop before an out-of-bounds
+read. Six native tests and 17 Python tests pass; the corrected native attract
+regression is running. Do not claim its acceptance until it finishes.
+
+Progress follow-up: Controller Pak services are currently absent. The original
+EEPROM saves player info; the 3,552-byte Pak file stores additional per-level
+data. Complete and verify Pak persistence before the release gate.
+
 Ruling: use branch `codex/release-readiness` in the existing unborn repository
 instead of duplicating ROM/private build state in a worktree — this workspace
 contains only the prototype, and no prior branch commit exists — reproducible

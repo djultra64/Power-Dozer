@@ -146,11 +146,38 @@ def normalize(folder):
             at = body.index('\n')+1
             body = body[:at]+''.join(f'    gpr {n} = 0;\n' for n in names)+body[at:]
         if body.startswith('RECOMP_FUNC void func_80244930('):
+            body=body.replace('    bc_guest_state(rdram);\n','')
+            body=body.replace('    yield_self_1ms(rdram);\n    yield_self_1ms(rdram);','    yield_self_1ms(rdram);')
             for label in ['L_80244CE8','L_80245E70']:
                 if label+':\n    yield_self_1ms(rdram);' not in body:
                     body = body.replace(label+':', label+':\n    yield_self_1ms(rdram);')
+            body=body.replace('L_802473F0:', 'L_802473F0:\n    bc_guest_state(rdram);')
+        if body.startswith('RECOMP_FUNC void func_80278BF0(') and 'bc_guest_render_mode' not in body:
+            body=body.replace('    // 0x80278D38: lui', '    bc_guest_render_mode(rdram,ctx);\n    // 0x80278D38: lui')
+        if body.startswith('RECOMP_FUNC void func_80278BF0(') and 'bc_guest_translucent_mode' not in body:
+            rom=(ROOT/'.local/hd_code.bin').read_bytes()
+            at=0x802FC060-0x802447C0
+            assert rom[at:at+24].hex()=='0055207800552230005049d800504a500055307800553078', 'Original translucent table changed'
+            body=body.replace('L_80278D2C:', 'L_80278D2C:\n    bc_guest_translucent_mode(rdram,ctx,0);')
+            lookup='    ctx->r15 = MEM_W(ctx->r15, -0X3F9C);'
+            assert body.count(lookup)==1
+            body=body.replace(lookup,lookup+'\n    bc_guest_translucent_mode(rdram,ctx,1);')
         if body.startswith('RECOMP_FUNC void func_8028FCD4(') and 'yield_self_1ms(rdram)' not in body:
             body = body.replace('L_8028FD04:', 'L_8028FD04:\n    yield_self_1ms(rdram);')
+        for name,draw in [('func_8026AF6C','false'),('func_8026BCE0','true')]:
+            if body.startswith('RECOMP_FUNC void '+name+'(') and 'bc_guest_window_trace' not in body:
+                at=body.index('\n')+1
+                body=body[:at]+f'    bc_guest_window_trace(rdram,ctx,{draw});\n'+body[at:]
+        if body.startswith('RECOMP_FUNC void func_80274BF0(') and 'bc_original_fade_window' not in body:
+            rom=(ROOT/'.local/hd_code.bin').read_bytes()
+            at=0x80274CB8-0x802447C0
+            assert rom[at:at+8].hex()=='0c09abdb00002025', 'Original fade cancellation changed'
+            cancel='    ctx->r4 = 0 | 0;\n    func_8026AF6C(rdram, ctx);'
+            assert body.count(cancel)==1
+            body=body.replace(cancel,'    ctx->r4 = 0 | 0;\n    bc_original_fade_window(rdram,ctx,0);\n    func_8026AF6C(rdram, ctx);\n    bc_original_fade_window(rdram,ctx,1);')
+            restore='    ctx->r4 = MEM_HU(ctx->r4, -0X3890);\n    func_8026AF6C(rdram, ctx);'
+            assert body.count(restore)==1
+            body=body.replace(restore,'    ctx->r4 = MEM_HU(ctx->r4, -0X3890);\n    bc_original_fade_window(rdram,ctx,2);\n    func_8026AF6C(rdram, ctx);')
         if body.startswith('RECOMP_FUNC void func_8029CB04('):
             rom = (ROOT / '.local/hd_code.bin').read_bytes()
             a,b = 0x8029CB40-0x802447C0,0x8029CF40-0x802447C0

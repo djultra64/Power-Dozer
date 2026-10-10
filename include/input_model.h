@@ -5,6 +5,8 @@
 #include <vector>
 namespace bc {
 enum class InputAction {Confirm,Back,Start,Trigger,CameraLeft,CameraDown,CameraUp,CameraRight,L,R,MoveLeft,MoveRight,MoveUp,MoveDown,Count};
+inline constexpr std::array<const char*,14> input_action_keys={"confirm","back","start","trigger","camera_left","camera_down","camera_up","camera_right","l","r","move_left","move_right","move_up","move_down"};
+inline constexpr std::array<const char*,14> input_action_labels={"ACCEL/OK","BACK/REVERSE","PAUSE","BRAKE/EXIT","CAM LEFT","CAM DOWN","CAM UP","CAM RIGHT","HORN L","HORN R","MOVE LEFT","MOVE RIGHT","MOVE UP","MOVE DOWN"};
 enum class InputSource {Keyboard,Controller};
 enum class ControllerFamily {Auto,Unknown,Xbox,PlayStation,Switch};
 enum class BindingKind {Key,Button,Axis};

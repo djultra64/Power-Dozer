@@ -18,6 +18,7 @@
 #include "settings.h"
 #include "pc_options.h"
 #include "pak_runtime.h"
+#include "input.h"
 
 double bc_scale=3;
 bool bc_wide=false;
@@ -170,7 +171,10 @@ int main(int argc,char** argv){
     bc::acknowledge_pc_change(updated,true);
    }catch(const std::exception& error){fprintf(stderr,"PC options: %s\n",error.what());bc::acknowledge_pc_change({},false);}
   }
+  if(bc::take_pc_controls_cancel())bc_input_cancel_remap();
+  if(auto request=bc::take_pc_remap_request())bc_input_begin_remap(*request);
   bc_input_update(window);
+  if(auto result=bc_input_take_remap_result())bc::acknowledge_pc_remap(*result);
   auto now=std::chrono::steady_clock::now();
   if(now>=next){fprintf(stderr,"{\"event\":\"progress\",\"vi\":%llu,\"gfx\":%llu,\"audio\":%llu,\"polls\":%llu}\n",(unsigned long long)bc_vis.load(),(unsigned long long)bc_gfx.load(),(unsigned long long)bc_audio.load(),(unsigned long long)bc_polls.load());fflush(stderr);next=now+std::chrono::seconds(5);}
   if(seconds>0&&std::chrono::duration<double>(now-start).count()>=seconds)break;

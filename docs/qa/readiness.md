@@ -26,6 +26,10 @@ change the user's progress — incorrect migration could otherwise lose saves.
 - Pending: portable ROM bootstrap, clean package and platform verification.
 - Pending: independent release review.
 
+Latest controls acceptance: editor and help are integrated into the original
+pause window. Task 4 remains in progress: original tutorial/HUD prompts and
+drawn device glyphs are not yet integrated, and physical acceptance is pending.
+
 Task 1 tests: missing save, raw import, persistence, damaged-primary recovery,
 both copies invalid (no reset), oversized image, checksum corruption, interrupted
 temporary file and independent data folders. RED: missing SaveStore sources;
@@ -295,3 +299,30 @@ Source save and original EEPROM hash unchanged. Software Vulkan/dummy audio.
 The later SDL family-name/hotplug corrections are covered by virtual SDL tests;
 they do not alter the keyboard path, but the final release regression must
 still run against the eventual complete build.
+
+Controls persistence/editor: versioned, bounded action JSON with primary/backup
+recovery, strict source/type validation, preserved unknown metadata and legacy
+flat-controller import. Capture waits for opening controls to release, cancels
+on Escape, focus loss or disconnection, rejects an input assigned to another
+action, and applies a remap only after its durable save succeeds. Defaults
+require explicit selection; reset also waits for durable acknowledgement.
+Tests cover signed-axis/integer overflow, corrupt files, write failure, held
+inputs, cancellation, conflicts and live/reloaded mappings. Native suite 18/18
+and Python 26/26 passed. These are software tests, not physical acceptance.
+
+Native editor acceptance: `.local/qa/gameplay-wg2epib2` passed 180 seconds,
+10,801 VI / 10,471 graphics / 5,399 audio tasks. Changed Confirm/acceleration
+Z→T, checked durable JSON, cancelled a second change with byte-identical config,
+reviewed two help pages, drove using T, paused/resumed and restarted. A prior
+harness timeout came from assuming JSON key order; corrected parsing uses the
+event fields and the full run was repeated.
+
+Capture review found the cloned View Stats row retained its original disabled
+grey palette. An unconditional guest-table regression reproduced this; custom
+rows now use ROM-verified white/red colours. `.local/qa/gameplay-el8i5pp9`
+repeated the full 180-second flow after the fix: 10,801 VI / 10,462 graphics /
+5,399 audio tasks, accepted with remap/cancel/help/movement/pause/Restart and no
+unclassified assertions. Keyboard screenshot confirms Back is white/available.
+The selected row follows the original blink animation. User EEPROM SHA-256
+remains `1bb5b014be69e0a38a76d24d78c953ca51f492f93aff40d4d5fda62ab4bae26b`.
+Both runs use software Vulkan and dummy audio; physical output remains pending.

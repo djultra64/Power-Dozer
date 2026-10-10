@@ -1,4 +1,5 @@
 #include "input.h"
+#include "controls_store.h"
 #include "prototype.h"
 #include <chrono>
 #include <stdexcept>
@@ -44,5 +45,26 @@ int main(){
   SDL_JoystickClose(joystick);check(SDL_JoystickDetachVirtual(index)==0,"detach virtual controller");sync();check(frame().buttons==0&&frame().x==0&&frame().y==0,"disconnect releases all guest actions");
   check(bc_input_prompt(bc::InputAction::Confirm).label=="Z","disconnect restores keyboard prompt");
  }
+ bc::InputModel remapped;remapped.replace(bc::InputAction::Confirm,bc::InputSource::Keyboard,{{bc::BindingKind::Key,SDL_SCANCODE_T}});remapped.replace(bc::InputAction::Confirm,bc::InputSource::Controller,{{bc::BindingKind::Button,SDL_CONTROLLER_BUTTON_X}});
+ bc::ControlsStore(bc_data_directory/"controls.json").save(remapped);bc_input_init("switch");check(bc_input_prompt(bc::InputAction::Confirm).label=="T","SDL adapter loads versioned keyboard mapping");
+ SDL_VirtualJoystickDesc desc{};desc.version=SDL_VIRTUAL_JOYSTICK_DESC_VERSION;desc.type=SDL_JOYSTICK_TYPE_GAMECONTROLLER;desc.naxes=6;desc.nbuttons=SDL_CONTROLLER_BUTTON_MAX;desc.name="QA Remap";desc.button_mask=(1u<<SDL_CONTROLLER_BUTTON_MAX)-1;desc.axis_mask=63;
+ auto index=SDL_JoystickAttachVirtualEx(&desc);check(index>=0,"attach remapped virtual pad");auto* joystick=SDL_JoystickOpen(index);
+ SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERLEFT,-32768);SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768);sync();
+ SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_X,1);sync();check(frame().buttons==0x8000&&bc_input_prompt(bc::InputAction::Confirm).label=="Y","saved physical west remap invokes confirm with correct Switch Y prompt");
+  SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_X,0);SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_A,1);sync();check(frame().buttons==0,"saved remap removes previous physical south assignment");
+ bc_input_begin_remap({bc::InputAction::Back,bc::InputSource::Controller});sync();check(frame().buttons==0,"editor excludes guest actions while capture is active");
+ SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_A,0);sync();SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_X,1);sync();
+ auto outcome=bc_input_take_remap_result();check(outcome&&!outcome->success&&outcome->status.find("IN USE")!=std::string::npos,"editor refuses a binding assigned to another logical action");
+ check(frame().buttons==0,"conflicting capture does not leak its original confirm action");SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_X,0);sync();
+ bc_input_begin_remap({bc::InputAction::Back,bc::InputSource::Keyboard});SDL_Event key{};key.type=SDL_KEYDOWN;key.key.keysym.scancode=SDL_SCANCODE_W;bc_input_event(key);sync();outcome=bc_input_take_remap_result();
+ check(outcome&&outcome->success&&bc_input_prompt(bc::InputAction::Back).label=="W","live keyboard remap applies only after durable save");
+ check(bc::ControlsStore(bc_data_directory/"controls.json").load().prompt(bc::InputAction::Back).label=="W","live remap survives reload");
+ auto backup=bc_data_directory/"controls.json.bak";std::filesystem::remove(backup);std::filesystem::create_directory(backup);
+ bc_input_begin_remap({bc::InputAction::Back,bc::InputSource::Keyboard});key.key.keysym.scancode=SDL_SCANCODE_U;bc_input_event(key);sync();outcome=bc_input_take_remap_result();
+ check(outcome&&!outcome->success&&bc_input_prompt(bc::InputAction::Back).label=="W","failed remap save retains actual live binding");std::filesystem::remove(backup);
+ bc_input_begin_remap({bc::InputAction::Back,bc::InputSource::Keyboard});key.key.keysym.scancode=SDL_SCANCODE_ESCAPE;bc_input_event(key);sync();outcome=bc_input_take_remap_result();check(outcome&&outcome->cancelled,"Escape cancels live capture");
+ bc_input_begin_remap({bc::InputAction::Confirm,bc::InputSource::Keyboard,true});outcome=bc_input_take_remap_result();check(outcome&&outcome->success&&bc_input_prompt(bc::InputAction::Confirm).label=="Z","explicit reset restores defaults and saves them");
+ check(bc::ControlsStore(bc_data_directory/"controls.json").load().prompt(bc::InputAction::Back).label=="X","reset persists default reverse/back");
+  SDL_JoystickClose(joystick);SDL_JoystickDetachVirtual(index);sync();
  puts("Virtual SDL input families, focus, axes and reconnect passed");
 }

@@ -32,6 +32,7 @@ def run(args):
     env=dict(os.environ,BC_TRACE_INPUT='1',BC_TRACE_GAMEPLAY='1',SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',VK_DRIVER_FILES='/usr/share/vulkan/icd.d/lvp_icd.x86_64.json')
     log=directory/'native.log'
     print(f'Private test directory: {directory}',flush=True)
+    confirm='z'
     with log.open('w') as output:
         process=subprocess.Popen([str(ROOT/'build/blastcorps-prototype'),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale','1','--wide','--refresh','120'],env=env,stdout=output,stderr=subprocess.STDOUT)
         def text():return log.read_text(errors='replace')
@@ -50,6 +51,13 @@ def run(args):
                 if process.poll() is not None:raise ValueError(f'Native process exited {process.returncode}')
                 time.sleep(.1)
             raise ValueError('Native transition timed out: '+text()[-1800:])
+        def control_view(content,title,first=None):
+            for line in reversed(content.splitlines()):
+                try:event=json.loads(line)
+                except json.JSONDecodeError:continue
+                if isinstance(event,dict) and event.get('event')=='pc_controls_view':
+                    return event.get('title')==title and (first is None or event.get('rows',[None])[0]==first)
+            return False
         def command(*values):subprocess.run(['xdotool',*values],env=env,check=True,stdout=subprocess.DEVNULL)
         def key(name,hold=.4):
             command('keydown',name);time.sleep(hold);command('keyup',name);time.sleep(.3)
@@ -67,56 +75,79 @@ def run(args):
                 key('Return' if attempt%2==0 else 'z',.6);time.sleep(1.5)
             wait(lambda value:' to 18\n' in value or 'l3d_adapter_ready' in value or '"state_lo":65536,"paused":0' in value)
             if 'l3d_adapter_ready' not in text() and states()[-1]['state_lo']==65536:
-                time.sleep(2);screenshot('pak-player-selection');key('z')
+                time.sleep(2);screenshot('pak-player-selection');key(confirm)
                 wait(lambda value:' to 18\n' in value or 'l3d_adapter_ready' in value)
             if 'l3d_adapter_ready' not in text():
                 if args.require_existing_player:raise ValueError('Existing Pak player was not recognized; name-entry flow reached')
                 time.sleep(2);screenshot('new-game')
-                key('z');key('z');key('z');key('Return')
+                key(confirm);key(confirm);key(confirm);key('Return')
                 wait(lambda value:'game mode switch from 24 to 44' in value)
                 time.sleep(3);key('Return')
             wait(lambda value:'l3d_adapter_ready' in value)
             time.sleep(5);screenshot('map')
             print('Map reached; selecting Simian Acres',flush=True)
-            key('z')
+            key(confirm)
             wait(lambda value:'game mode switch from 13 to 2' in value or 'game mode switch from 14 to 7' in value,30)
             if 'game mode switch from 14 to 7' in text():
                 wait(lambda value:bool(states()) and states()[-1]['state_lo']==128 and states()[-1]['window']==15)
                 time.sleep(2);screenshot('completed-level-stats')
-                screenshot('completed-level-replay');key('z')
+                screenshot('completed-level-replay');key(confirm)
             wait(lambda value:'game mode switch from 13 to 2' in value,30)
             time.sleep(2);screenshot('mission-start')
             if args.exercise:
-                key('z');time.sleep(1);screenshot('briefing-dismissed')
+                key(confirm);time.sleep(1);screenshot('briefing-dismissed')
                 before=states()[-1]
-                key('z',2);screenshot('mission-move')
+                key(confirm,2);screenshot('mission-move')
                 after=states()[-1]
                 if (before['x'],before['z'])==(after['x'],after['z']):raise ValueError('Vehicle position did not change during acceleration')
                 key('Return');time.sleep(1);screenshot('pause')
                 if not states()[-1]['paused']:raise ValueError('Start did not pause the guest')
                 if args.options:
-                    key('z');wait(lambda value:'"event":"pc_options_selection"' in value);time.sleep(2);screenshot('pc-options-root')
-                    key('z');time.sleep(2);screenshot('pc-options-graphics')
-                    key('z');time.sleep(2);screenshot('pc-options-saved')
+                    key(confirm);wait(lambda value:'"event":"pc_options_selection"' in value);time.sleep(2);screenshot('pc-options-root')
+                    key(confirm);time.sleep(2);screenshot('pc-options-graphics')
+                    key(confirm);time.sleep(2);screenshot('pc-options-saved')
                     settings=json.loads((data/'settings.json').read_text())
                     if settings.get('scale')!=4.5:raise ValueError('PC resolution selection was not saved')
-                    key('Down');key('Down');key('Down');key('z');time.sleep(1)
-                    key('Down');key('Down');key('z');time.sleep(2);screenshot('pc-options-filter')
+                    key('Down');key('Down');key('Down');key(confirm);time.sleep(1)
+                    key('Down');key('Down');key(confirm);time.sleep(2);screenshot('pc-options-filter')
                     wait(lambda value:'"event":"pc_filters_applied","presentation":"pixel"' in value)
-                    key('Down');key('Down');key('Down');key('z');time.sleep(1)
-                    key('z');time.sleep(2);screenshot('pc-options-texture')
+                    key('Down');key('Down');key('Down');key(confirm);time.sleep(1)
+                    key(confirm);time.sleep(2);screenshot('pc-options-texture')
                     wait(lambda value:'"event":"pc_filters_applied","presentation":"pixel","texture":"linear"' in value)
                     settings=json.loads((data/'settings.json').read_text())
                     if settings.get('presentation')!='pixel' or settings.get('texture')!='linear':raise ValueError('PC filters were not saved')
                     # Each page reuses the original closing/opening animation;
                     # wait for it before sending the next Back edge.
                     key('x');time.sleep(1);key('x');time.sleep(1)
-                    key('x');time.sleep(1);key('Down');key('z');time.sleep(1);screenshot('pc-options-audio')
-                    key('z');time.sleep(2)
+                    key('x');time.sleep(1);key('Down');key(confirm);time.sleep(1);screenshot('pc-options-audio')
+                    key(confirm);time.sleep(2)
                     settings=json.loads((data/'settings.json').read_text())
                     if settings.get('volume')!=0:raise ValueError('PC volume selection was not saved')
                     key('x');time.sleep(1);key('x');time.sleep(2);screenshot('pc-options-return')
-                key('Return');time.sleep(1);key('Right',1);key('z',2);screenshot('resume')
+                if args.controls:
+                    key(confirm);time.sleep(2)
+                    key('Down');key('Down');key(confirm);time.sleep(1)
+                    key('Down');key(confirm);time.sleep(1);screenshot('controls-devices')
+                    key(confirm);time.sleep(1);screenshot('controls-keyboard')
+                    key(confirm)
+                    wait(lambda value:control_view(value,'REMAP ACCEL/OK'));time.sleep(1);screenshot('controls-capture')
+                    key('t');confirm='t'
+                    wait(lambda value:control_view(value,'SAVED','ACCEL/OK: T'))
+                    time.sleep(1);screenshot('controls-saved')
+                    controls=(data/'controls.json').read_bytes()
+                    saved=json.loads(controls)
+                    if saved.get('schema')!=1 or saved['actions']['confirm']['keyboard']!=[{'key':'T'}]:raise ValueError('Keyboard confirm remap was not persisted')
+                    key('Down');key(confirm)
+                    wait(lambda value:control_view(value,'REMAP BACK/REVERSE'));time.sleep(1);key('Escape')
+                    wait(lambda value:control_view(value,'CANCELLED'));time.sleep(1);screenshot('controls-cancelled')
+                    if (data/'controls.json').read_bytes()!=controls:raise ValueError('Cancel changed the saved controls')
+                    key('x');time.sleep(1);key('x');time.sleep(1)
+                    key('Down');key('Down');key(confirm)
+                    wait(lambda value:control_view(value,'KEYBOARD HELP','ACCEL/OK: T'));time.sleep(1);screenshot('controls-help')
+                    key(confirm);time.sleep(1);screenshot('controls-help-camera')
+                    key('x');time.sleep(1);key('x');time.sleep(1);key('x');time.sleep(1)
+                    print('Controls remap, cancellation and in-game help verified',flush=True)
+                key('Return');time.sleep(1);key('Right',1);key(confirm,2);screenshot('resume')
                 if states()[-1]['paused']:raise ValueError('Start did not resume the guest')
                 print('Guest position changed; pause and resume confirmed by guest state',flush=True)
                 if args.retry:
@@ -125,10 +156,10 @@ def run(args):
                     # View Stats is enabled for previously completed missions;
                     # a fresh mission skips that row and reaches Restart first.
                     if 'game mode switch from 14 to 7' in text():key('Down')
-                    screenshot('restart-focused');key('z');time.sleep(2);screenshot('restart-selected')
+                    screenshot('restart-focused');key(confirm);time.sleep(2);screenshot('restart-selected')
                     wait(lambda value:re.search(r'game mode switch from (?:2|8) to 13',value[restart_at:]))
-                    key('z');time.sleep(3);screenshot('restarted')
-                    key('z');time.sleep(1)
+                    key(confirm);time.sleep(3);screenshot('restarted')
+                    key(confirm);time.sleep(1)
                     print('Restart selected; transition and capture require review',flush=True)
                 if args.wait_failure:
                     deadline=time.monotonic()+150
@@ -137,7 +168,7 @@ def run(args):
                         if any(e['failed'] for e in current):break
                         if process.poll() is not None:break
                         if current and current[-1]['paused'] and current[-1]['window']>=70:
-                            screenshot(f"tutorial-{current[-1]['window']}");key('z');time.sleep(1)
+                            screenshot(f"tutorial-{current[-1]['window']}");key(confirm);time.sleep(1)
                         time.sleep(.3)
                     if not any(e['failed'] for e in states()):raise ValueError('No mission failure observed')
                     screenshot('mission-failure');print('Mission failure confirmed by guest state',flush=True)
@@ -149,6 +180,7 @@ def run(args):
             result['seconds_requested']=args.seconds
             result['exercise_verified']=args.exercise
             result['options_verified']=args.options
+            result['controls_verified']=args.controls
             result['restart_verified']=args.retry
             result['failure_verified']=args.wait_failure
             result['seed_save_unchanged']=not args.seed_save or hashlib.sha256(args.seed_save.read_bytes()).hexdigest()==source_hash
@@ -172,9 +204,10 @@ if __name__=='__main__':
     parser.add_argument('--exercise',action='store_true')
     parser.add_argument('--retry',action='store_true')
     parser.add_argument('--options',action='store_true')
+    parser.add_argument('--controls',action='store_true')
     parser.add_argument('--wait-failure',action='store_true')
     args=parser.parse_args()
     if args.seconds<90:parser.error('At least 90 seconds are required for the mission transition')
-    if (args.retry or args.wait_failure or args.options) and not args.exercise:parser.error('Retry/failure/options needs --exercise')
+    if (args.retry or args.wait_failure or args.options or args.controls) and not args.exercise:parser.error('Retry/failure/options needs --exercise')
     try:run(args)
     except (ValueError,subprocess.SubprocessError) as error:parser.exit(1,str(error)+'\n')

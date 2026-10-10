@@ -1,11 +1,10 @@
 #include "prototype.h"
 #include "input.h"
+#include "controls_store.h"
 #include <algorithm>
 #include <cmath>
 #include <mutex>
-#include <fstream>
 #include <cstdlib>
-#include <json.hpp>
 namespace {
 std::mutex input_mutex;
 bc::InputModel model;
@@ -13,7 +12,9 @@ bc::InputFrame frame;
 bc::InputSnapshot previous;
 std::array<bool,SDL_NUM_SCANCODES> focus_keys{};
 SDL_GameController* pad=nullptr;
-const char* action_names[]={"confirm","back","start","trigger","camera_left","camera_down","camera_up","camera_right","l","r","move_left","move_right","move_up","move_down"};
+bool input_focused=true;
+bc::InputCapture capture;
+std::optional<bc::RemapResult> remap_result;
 bc::ControllerFamily parse_family(const std::string& family){
  if(family=="auto")return bc::ControllerFamily::Auto;if(family=="xbox")return bc::ControllerFamily::Xbox;
  if(family=="playstation")return bc::ControllerFamily::PlayStation;if(family=="switch")return bc::ControllerFamily::Switch;
@@ -49,13 +50,37 @@ bc::InputSnapshot snapshot(){
  return value;
 }
 bool active_pad(SDL_JoystickID instance){return pad&&SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad))==instance;}
+void consume_held(const bc::InputSnapshot& held,bool keyboard=true,bool controller=true){
+ if(keyboard)for(size_t key=1;key<held.keys.size();key++)if(held.keys[key])model.consume({bc::BindingKind::Key,int(key)});
+ if(controller){
+  for(size_t button=0;button<held.buttons.size();button++)if(held.buttons[button])model.consume({bc::BindingKind::Button,int(button)});
+  for(size_t axis=0;axis<held.axes.size();axis++)if(std::abs(held.axes[axis])>.2f)model.consume({bc::BindingKind::Axis,int(axis)});
+ }
+}
+void save_remap(bc::InputModel candidate,const bc::InputSnapshot& held){
+ try{bc::ControlsStore(bc_data_directory/"controls.json").save(candidate);model=std::move(candidate);remap_result=bc::RemapResult{true,false,"SAVED"};}
+ catch(const std::exception& error){fprintf(stderr,"Controls save: %s\n",error.what());remap_result=bc::RemapResult{false,false,"SAVE FAILED"};}
+ consume_held(held);
+}
+void finish_capture(const bc::InputSnapshot& held){
+ if(auto binding=capture.take_binding()){
+  auto request=capture.request();
+  for(size_t i=0;i<size_t(bc::InputAction::Count);i++)if(i!=size_t(request.action))for(auto assigned:model.bindings(bc::InputAction(i)))if(assigned==*binding){
+   remap_result=bc::RemapResult{false,false,std::string("IN USE: ")+bc::input_action_labels[i]};consume_held(held);model.consume(*binding);return;
+  }
+  auto candidate=model;candidate.replace(request.action,request.source,{*binding});save_remap(std::move(candidate),held);model.consume(*binding);
+ }
+ if(capture.take_cancelled()){remap_result=bc::RemapResult{false,true,"CANCELLED"};consume_held(held);}
+}
 void connect(){
- if(pad&&!SDL_GameControllerGetAttached(pad)){model.disconnect(previous);SDL_GameControllerClose(pad);pad=nullptr;frame={};}
+ if(pad&&!SDL_GameControllerGetAttached(pad)){
+  if(capture.active()&&capture.request().source==bc::InputSource::Controller){capture.cancel();remap_result=bc::RemapResult{false,true,"CANCELLED"};}
+  model.disconnect(previous);SDL_GameControllerClose(pad);pad=nullptr;frame={};
+ }
  if(!pad)for(int i=0;i<SDL_NumJoysticks();i++)if(SDL_IsGameController(i)){
   pad=SDL_GameControllerOpen(i);if(pad){
    model.controller_family(detected_family());auto held=snapshot();
-   for(size_t button=0;button<held.buttons.size();button++)if(held.buttons[button])model.consume({bc::BindingKind::Button,int(button)});
-   for(size_t axis=0;axis<held.axes.size();axis++)if(std::abs(held.axes[axis])>.2f)model.consume({bc::BindingKind::Axis,int(axis)});
+   consume_held(held,false);
    break;
   }
  }
@@ -63,36 +88,50 @@ void connect(){
 }
 void bc_input_set_family(const std::string& family){std::lock_guard lock(input_mutex);model.manual_family(parse_family(family));log_device();}
 void bc_input_init(const std::string& family){
- std::lock_guard lock(input_mutex);model=bc::InputModel();model.manual_family(parse_family(family));
+ std::lock_guard lock(input_mutex);if(pad){SDL_GameControllerClose(pad);pad=nullptr;}frame={};previous={};focus_keys.fill(false);capture.cancel();remap_result.reset();input_focused=true;
  auto mappings=bc_data_directory/"controls.json";
- if(bc_data_directory==std::filesystem::path(BC_ROOT "/.local")&&!std::filesystem::exists(mappings))mappings=BC_ROOT "/config/controls.json";
+ if(bc_data_directory==std::filesystem::path(BC_ROOT "/.local")&&!std::filesystem::exists(mappings)&&!std::filesystem::exists(mappings.string()+".bak"))mappings=BC_ROOT "/config/controls.json";
  try{
-  if(std::ifstream file{mappings};file){
-   if(std::filesystem::file_size(mappings)>65536)throw std::runtime_error("Controls file is too large");
-   auto values=nlohmann::json::parse(file);if(!values.is_object())throw std::runtime_error("Controls must be an object");
-   for(size_t i=0;i<size_t(bc::InputAction::Count);i++)if(values.contains(action_names[i])){
-    auto name=values[action_names[i]].get<std::string>();auto button=SDL_GameControllerGetButtonFromString(name.c_str());
-    model.replace(bc::InputAction(i),bc::InputSource::Controller,{{bc::BindingKind::Button,button}});
-   }
-  }
+  model=bc::ControlsStore(mappings).load();model.manual_family(parse_family(family));
  }catch(const std::exception& error){fprintf(stderr,"Controls: %s\n",error.what());bc_fatal("invalid_action_remap");}
  SDL_GameControllerAddMappingsFromFile(BC_ROOT "/.local/gamecontrollerdb.txt");connect();
 }
 bc::InputPrompt bc_input_prompt(bc::InputAction action){std::lock_guard lock(input_mutex);return model.prompt(action);}
+bc::InputModel bc_input_view(){std::lock_guard lock(input_mutex);return model;}
+std::optional<bc::RemapResult> bc_input_take_remap_result(){std::lock_guard lock(input_mutex);auto out=remap_result;remap_result.reset();return out;}
+void bc_input_cancel_remap(){std::lock_guard lock(input_mutex);capture.cancel();remap_result.reset();consume_held(snapshot());frame={};}
+void bc_input_begin_remap(bc::RemapRequest request){
+ std::lock_guard lock(input_mutex);capture.cancel();remap_result.reset();frame={};auto held=snapshot();
+ if(!request.reset){capture.begin(request,held);return;}
+ auto candidate=model;bc::InputModel defaults;
+ for(size_t i=0;i<size_t(bc::InputAction::Count);i++)for(auto source:{bc::InputSource::Keyboard,bc::InputSource::Controller}){
+  std::vector<bc::InputBinding> bindings;for(auto binding:defaults.bindings(bc::InputAction(i)))if((binding.kind==bc::BindingKind::Key)==(source==bc::InputSource::Keyboard))bindings.push_back(binding);
+  candidate.replace(bc::InputAction(i),source,bindings);
+ }
+ save_remap(std::move(candidate),held);
+}
 bool bc_input_event(const SDL_Event& event){
  std::lock_guard lock(input_mutex);
  if(event.type==SDL_WINDOWEVENT&&event.window.event==SDL_WINDOWEVENT_FOCUS_LOST){
-  for(size_t i=0;i<focus_keys.size();i++)focus_keys[i]|=previous.keys[i];model.focus(false,previous);frame={};
+  for(size_t i=0;i<focus_keys.size();i++)focus_keys[i]|=previous.keys[i];model.focus(false,previous);frame={};input_focused=false;
+  if(capture.active()){capture.cancel();remap_result=bc::RemapResult{false,true,"CANCELLED"};}
  }
- if(event.type==SDL_WINDOWEVENT&&event.window.event==SDL_WINDOWEVENT_FOCUS_GAINED)model.focus(true,snapshot());
+ if(event.type==SDL_WINDOWEVENT&&event.window.event==SDL_WINDOWEVENT_FOCUS_GAINED){input_focused=true;model.focus(true,snapshot());}
  if(event.type==SDL_KEYUP&&unsigned(event.key.keysym.scancode)<focus_keys.size())focus_keys[event.key.keysym.scancode]=false;
- if(event.type==SDL_KEYDOWN&&event.key.repeat==0)model.activity(bc::InputSource::Keyboard);
- if(event.type==SDL_CONTROLLERBUTTONDOWN&&active_pad(event.cbutton.which))model.activity(bc::InputSource::Controller);
- if(event.type==SDL_CONTROLLERAXISMOTION&&active_pad(event.caxis.which)&&std::abs(event.caxis.value)>6500)model.activity(bc::InputSource::Controller);
+ if(input_focused&&event.type==SDL_KEYDOWN&&event.key.repeat==0)model.activity(bc::InputSource::Keyboard);
+ if(input_focused&&event.type==SDL_CONTROLLERBUTTONDOWN&&active_pad(event.cbutton.which))model.activity(bc::InputSource::Controller);
+ if(input_focused&&event.type==SDL_CONTROLLERAXISMOTION&&active_pad(event.caxis.which)&&std::abs(event.caxis.value)>6500)model.activity(bc::InputSource::Controller);
  log_device();
  if(event.type==SDL_KEYDOWN&&event.key.keysym.scancode==SDL_SCANCODE_RETURN&&(event.key.keysym.mod&KMOD_ALT)){
   model.consume({bc::BindingKind::Key,SDL_SCANCODE_RETURN});model.consume({bc::BindingKind::Key,SDL_SCANCODE_LALT});model.consume({bc::BindingKind::Key,SDL_SCANCODE_RALT});
   return event.key.repeat==0;
+ }
+ if(input_focused&&capture.active()){
+  try{
+   if(event.type==SDL_KEYDOWN&&event.key.repeat==0)capture.press({bc::BindingKind::Key,event.key.keysym.scancode});
+   if(event.type==SDL_CONTROLLERBUTTONDOWN&&active_pad(event.cbutton.which))capture.press({bc::BindingKind::Button,event.cbutton.button});
+   if(event.type==SDL_CONTROLLERAXISMOTION&&active_pad(event.caxis.which)&&std::abs(event.caxis.value)>21300)capture.press({bc::BindingKind::Axis,event.caxis.axis,event.caxis.value>0?1:-1});
+  }catch(const std::invalid_argument&){/* Ignore unassignable SDL events and keep waiting. */}
  }
  return false;
 }
@@ -100,8 +139,9 @@ void bc_input_update(SDL_Window* window){
  std::string title;
  {
   std::lock_guard lock(input_mutex);connect();auto current=snapshot();
+  capture.update(current);finish_capture(current);
   for(size_t i=1;i<focus_keys.size();i++)if(focus_keys[i]&&current.keys[i])model.consume({bc::BindingKind::Key,int(i)});
-  frame=model.sample(current);previous=current;log_device();
+  frame=model.sample(current);if(capture.active())frame={};previous=current;log_device();
   title="Blast Corps - beta experimental | Confirm: "+model.prompt(bc::InputAction::Confirm).label+" | Back: "+model.prompt(bc::InputAction::Back).label+" | "+active_name()+" | Alt+Enter: Fullscreen";
   if(std::getenv("BC_TRACE_INPUT")){
    static bc::InputFrame before;

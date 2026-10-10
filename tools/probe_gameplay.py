@@ -18,6 +18,7 @@ from check_controller_probe import check as check_controller_probe
 from check_instruction_probe import check as check_instruction_probe
 from check_render_probe import check as check_render_probe
 from check_demolition_probe import check as check_demolition_probe
+from probe_health import stalled_progress
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -69,6 +70,25 @@ def run(args):
     with log.open('w') as output:
         process=subprocess.Popen([str(args.executable.resolve()),'--rom',str(args.rom.resolve()),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale',str(args.scale),'--original-aspect' if args.original_aspect else '--wide','--refresh',str(args.refresh),'--texture',args.texture],cwd=args.launch_dir.resolve(),env=env,stdout=output,stderr=subprocess.STDOUT,preexec_fn=debugger_setup)
         def text():return log.read_text(errors='replace')
+        def capture_hang():
+            if not args.capture_hang:return
+            debugger=shutil.which('gdb')
+            with (directory/'native-hang.txt').open('w') as dump:
+                if debugger:
+                    try:
+                        subprocess.run([debugger,'--batch','-ex','set pagination off','-ex','thread apply all bt 12',
+                                        '-ex','p/x events_context.rdram',
+                                        '-ex','x/6wx events_context.rdram+0x315440',
+                                        '-ex','x/6wx events_context.rdram+0x368238',
+                                        '-ex','x/6wx events_context.rdram+0x368270',
+                                        '-ex','x/9wx events_context.rdram+0x3156a4',
+                                        '-p',str(process.pid)],stdout=dump,stderr=subprocess.STDOUT,timeout=25,check=False)
+                    except subprocess.TimeoutExpired:dump.write('Debugger timed out; native transition still failed\n')
+                else:dump.write('gdb unavailable; native transition still failed\n')
+        def check_health(value):
+            if args.capture_hang and (reason:=stalled_progress(value)):
+                capture_hang()
+                raise ValueError(reason)
         def states():
             result=[]
             for line in text().splitlines():
@@ -81,6 +101,7 @@ def run(args):
             deadline=time.monotonic()+timeout
             while time.monotonic()<deadline:
                 value=text()
+                check_health(value)
                 if args.prompts and not prompt_captured:
                     for line in value.splitlines():
                         try:event=json.loads(line)
@@ -93,20 +114,7 @@ def run(args):
                 if condition(value):return
                 if process.poll() is not None:raise ValueError(f'Native process exited {process.returncode}')
                 time.sleep(.1)
-            if args.capture_hang:
-                debugger=shutil.which('gdb')
-                with (directory/'native-hang.txt').open('w') as dump:
-                    if debugger:
-                        try:
-                            subprocess.run([debugger,'--batch','-ex','set pagination off','-ex','thread apply all bt 12',
-                                            '-ex','p/x events_context.rdram',
-                                            '-ex','x/6wx events_context.rdram+0x315440',
-                                            '-ex','x/6wx events_context.rdram+0x368238',
-                                            '-ex','x/6wx events_context.rdram+0x368270',
-                                            '-ex','x/9wx events_context.rdram+0x3156a4',
-                                            '-p',str(process.pid)],stdout=dump,stderr=subprocess.STDOUT,timeout=25,check=False)
-                        except subprocess.TimeoutExpired:dump.write('Debugger timed out; native transition still failed\n')
-                    else:dump.write('gdb unavailable; native transition still failed\n')
+            capture_hang()
             raise ValueError('Native transition timed out: '+text()[-1800:])
         def control_view(content,title,first=None):
             for line in reversed(content.splitlines()):
@@ -328,7 +336,13 @@ def run(args):
                         time.sleep(.3)
                     if not any(e['failed'] for e in states()):raise ValueError('No mission failure observed')
                     screenshot('mission-failure');print('Mission failure confirmed by guest state',flush=True)
-            process.wait(timeout=args.seconds+15)
+            if args.capture_hang:
+                deadline=time.monotonic()+args.seconds+15
+                while process.poll() is None:
+                    check_health(text())
+                    if time.monotonic()>=deadline:raise subprocess.TimeoutExpired(process.args,args.seconds+15)
+                    time.sleep(.5)
+            else:process.wait(timeout=args.seconds+15)
             if process.returncode!=0:raise ValueError(f'Native process exited {process.returncode}')
             # Mode 0 is the new-player introduction. Existing completed players
             # legitimately go map (14) → statistics (7) → mission (2) instead.

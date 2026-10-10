@@ -1,5 +1,26 @@
 # Audio del prototipo
 
+Estado actual (2026-10-10): la mezcla estéreo, la cesión del RSP y la recuperación
+con fallos SDL simulados tienen pruebas. Dos sesiones aisladas de seis minutos
+mantuvieron el audio activo durante movimiento, pausa y reinicio. Esto todavía
+no demuestra estabilidad total: se observaron tanto una detención del audio
+con gráficos activos como un bloqueo conjunto durante el arranque. La beta
+sigue en investigación; los datos anteriores se conservan como evidencia
+histórica con su alcance original.
+
+La inicialización directa del runtime omitía `set_message_queue_control`, que
+su arranque normal aplica antes de `preinit`. Ahora se aplican los valores
+estándar para reintentar SP/DP/Timer/SI cuando una cola está llena. Una prueba
+con el código real del SDK demostró pérdida de eventos antes del ajuste y
+entrega posterior exactamente una vez. La regresión larga pasó, pero reapareció
+un bloqueo de arranque; no se atribuye ese fallo a una causa todavía no probada.
+
+`BC_TRACE_AUDIO_STATE=1` registra estados acotados de las colas originales de
+frames y respuestas al recibir mensajes del scheduler. El probador privado
+ofrece `--capture-hang`: recoge pilas nativas y colas cuando detecta contadores
+detenidos o una transición que excede su tiempo. Los archivos de diagnóstico
+se guardan en `.local/qa`, y una captura nunca convierte un fallo en aceptación.
+
 La cesión del RSP al audio permite continuar la producción de PCM mientras
 RT64 consume una lista gráfica lenta. La ejecución anterior se detenía tras
 9–12 tareas de audio. Después de la corrección se verificó lo siguiente:
@@ -77,6 +98,7 @@ No se modifica la amplitud original ni se añade un limitador; falta determinar
 con una referencia si esa saturación pertenece a la mezcla original.
 
 Siguen pendientes la comparación perceptual, el audio de todas las misiones,
-las pausas/transiciones y la recuperación al desconectar la salida. El frontend
-y la jugabilidad completa siguen teniendo trabajo pendiente independiente del
-progreso de audio aquí verificado.
+una cobertura más amplia de transiciones y la recuperación con el dispositivo
+físico. Pausa/reinicio y fallos de salida simulados cuentan con pruebas nativas;
+los bloqueos intermitentes descritos al principio siguen pendientes. La
+jugabilidad completa también requiere cobertura adicional.

@@ -1159,3 +1159,18 @@ Navigation source research: D_hd_code_80364456 is a vehicle/control type selecto
 (45BB0.c switch/snapping masks), not a camera angle. Generated8028B734 reads
 16-bit80370C70 while rotating the original stick; further semantic confirmation
 is required before using it to guide private physical-input waypoints.
+
+Live private-probe monitoring added for --capture-hang: it uses the existing
+acceptance condition (VI advances>=60 after initial300 while gfx/audio fails
+to advance) and gathers gdb evidence before teardown. Monitoring runs during
+transition waits and passive mission observation, covering audio-only loss
+after successful startup as well as startup freezes. It is diagnostic-only;
+normal probes retain their existing flow and terminal acceptance checks.
+RED constant-None stub missed both observed failure histories; GREEN5 tests
+cover those failures, passing native observations, initialization and duplicate
+final reports.74 Python tests passed. Against actual private logs it identifies
+Graphics stopped VI1201–1501/968 in gameplay-sfru9ccc and Audio stopped
+VI1202–1502/485 in gameplay-ja976uzj; passing u_wrjqbd returnsNone.
+README/audio documentation now distinguishes measured virtual120 interpolation,
+4K120 performance failure, implemented simulated output recovery, and still-open
+intermittent native freezes. No claim of complete launch readiness was added.

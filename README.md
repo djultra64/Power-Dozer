@@ -9,15 +9,18 @@ se incluyen en los paquetes del proyecto.
 Se han visto las intros, el título, una escena 3D del modo de demostración,
 el mapa y Simian Acres, con movimiento, pausa y reanudación en pruebas aisladas.
 También hay pruebas nativas de reconexión y acciones con mandos SDL virtuales.
-El port sigue en desarrollo: la aceptación de 4K, interpolación, rendimiento
-y todas las misiones todavía está pendiente.
+El port sigue en desarrollo. Las presentaciones interpoladas medidas pasan el
+objetivo de 120 fps en 720p y 1080p sobre una salida virtual de 120 Hz. En 4K,
+la prueba sostenida quedó alrededor de 116,5 fps y no pasó el objetivo de 120.
+Faltan la cobertura de misiones y las comprobaciones en una pantalla física.
 
-El audio mantiene el progreso durante una prueba de 90 segundos de intros,
-título y demo. También se verificó salida por PipeWire/PulseAudio durante
-25 segundos y progreso del audio en el perfil 4K durante 35 segundos.
-Se corrigieron la cesión del RSP al audio y el orden de los canales estéreo.
-La fidelidad respecto a una Nintendo 64 y el audio de todas las misiones
-siguen pendientes de comprobar.
+El audio siguió activo durante sesiones aisladas de seis minutos con movimiento,
+pausa y reinicio. Se corrigieron la cesión del RSP, el orden estéreo y la
+inicialización de los reintentos estándar del runtime para eventos críticos.
+También se verificó la recuperación con fallos simulados del dispositivo SDL.
+Persisten bloqueos intermitentes: una sesión reciente detuvo gráficos y audio
+durante el arranque. La beta todavía no se considera candidata a lanzamiento.
+La evidencia y los diagnósticos están en [docs/qa/readiness.md](docs/qa/readiness.md).
 
 ![Escena renderizada por el prototipo](docs/evidence/scene.png)
 
@@ -39,9 +42,11 @@ El perfil 4K necesita más recursos. Una prueba aislada con Radeon renderizó
 a 3840×2160 con objetivo de 120 Hz virtuales; algunos costes superaron el
 presupuesto de 8,33 ms. Eso todavía no prueba 120 cuadros sostenidos.
 
-RT64 limita el objetivo al refresco detectado por el entorno. En estas pruebas
-se observaron objetivos de 60 y 75 Hz al pedir 120. **120 fps sostenidos y la
-calidad de la interpolación todavía no están validados.**
+RT64 limita el objetivo al refresco detectado por el entorno. Las primeras
+pruebas detectaron 60 y 75 Hz; las mediciones actuales usan una salida virtual
+de 120 Hz. El contador de presentaciones y los renders con pesos fraccionarios
+verifican interpolación efectiva en los perfiles probados. La inspección visual
+abarca un segmento corto de movimiento; faltan escenas y vehículos adicionales.
 
 Teclado: flechas para el stick, **Z** para la acción primaria/confirmar, **X**
 para secundaria/volver, **Enter** para Start, Shift para el gatillo N64 Z,
@@ -91,8 +96,10 @@ el origen permanece intacto. Los overlays, capturas y ROM no forman parte de
 esa importación de progreso. Si falta una ROM instalada o su caché es inválida, el ejecutable abre el
 selector nativo de archivos. Cancelar sale sin escribir datos; un error permite
 elegir otra ROM. `--no-rom-dialog` mantiene el arranque sin diálogos para QA.
-El empaquetado de dependencias y la aceptación del selector del escritorio
-en una instalación limpia todavía están pendientes.
+Hay un paquete Linux privado con dependencias y avisos de licencia, probado
+fuera del checkout con datos aislados. Ese archivo todavía necesita actualizarse
+al código actual y completar la revisión de dependencias/licencias y de la
+instalación. La aceptación visual del selector del escritorio sigue pendiente.
 
 ## Reproducir la compilación
 

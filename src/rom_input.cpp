@@ -1,4 +1,5 @@
 #include "rom_input.h"
+#include "atomic_file.h"
 #include "miniz.h"
 #include <algorithm>
 #include <array>
@@ -98,5 +99,18 @@ RomImage load_rom_image(const std::filesystem::path& path){
  auto data=overlay(rom.subspan(0x7D73B4,0xC713),0x26A90);text.insert(text.end(),data.begin(),data.end());image.code=std::move(text);
  text=overlay(rom.subspan(0x7E3AD0,0x7F63A1-0x7E3AD0),0x21040);
  data=overlay(rom.subspan(0x7F63A1,0x383C),0x8E50);text.insert(text.end(),data.begin(),data.end());image.frontend=std::move(text);return image;
+}
+RomImage load_cached_rom(const std::filesystem::path& data,const std::filesystem::path& source){
+ const auto cache=data/"cache/rom.z64";
+ if(source.empty()&&std::filesystem::exists(cache))return load_rom_image(cache);
+ const auto input=source.empty()?data/"rom.z64":source;
+ if(!std::filesystem::exists(input))throw std::runtime_error("No ROM installed. Select your Blast Corps USA Rev 1 ROM with --rom PATH");
+ auto image=load_rom_image(input);
+ // Validate and extract completely before replacing any private cache.
+ // Existing progress/settings are never part of this transaction.
+ bool matches=false;
+ if(std::filesystem::exists(cache))try{matches=read_rom_input(cache)==image.rom;}catch(const std::exception&){}
+ if(!matches)atomic_write_file(cache,image.rom);
+ return image;
 }
 }

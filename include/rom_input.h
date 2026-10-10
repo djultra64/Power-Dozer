@@ -12,4 +12,5 @@ std::vector<uint8_t> normalize_rom(std::vector<uint8_t>);
 std::vector<uint8_t> read_rom_input(const std::filesystem::path&);
 void validate_rom(std::span<const uint8_t>);
 RomImage load_rom_image(const std::filesystem::path&);
+RomImage load_cached_rom(const std::filesystem::path& data,const std::filesystem::path& source={});
 }

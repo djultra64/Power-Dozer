@@ -49,7 +49,7 @@ def run(args):
     confirm='z'
     prompt_captured=False
     with log.open('w') as output:
-        process=subprocess.Popen([str(ROOT/'build/blastcorps-prototype'),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale','1','--wide','--refresh','120'],cwd=ROOT,env=env,stdout=output,stderr=subprocess.STDOUT)
+        process=subprocess.Popen([str(ROOT/'build/blastcorps-prototype'),'--rom',str(ROOT/'.local/rom.z64'),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale','1','--wide','--refresh','120'],cwd=ROOT,env=env,stdout=output,stderr=subprocess.STDOUT)
         def text():return log.read_text(errors='replace')
         def states():
             result=[]

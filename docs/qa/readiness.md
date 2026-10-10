@@ -582,3 +582,47 @@ Full native suite passed 24 tests; after adding the padding-boundary assertion,
 the affected native loader test passed again. Previous 44 Python tests remain
 unchanged. Cache recovery, progress migration, GUI selection and clean-package
 launch are not yet implemented/accepted; main still uses the legacy asset paths.
+
+Task 6 native cache connected to main: --rom accepts the validated native
+input service; cache/rom.z64 lives under --data-dir. Each restart validates
+the complete cache and regenerates overlays in memory. Main no longer loads
+source-root hd_code.bin/hd_front_end.bin or source-root ROM assets. A missing
+cache can bootstrap from data-relative legacy rom.z64; corrupt cache requires
+a valid explicit import. Import/extraction finishes before atomic cache
+replacement and before --save-settings writes. Matching canonical imports
+avoid rewriting the cache. Default data directory and controller database
+lookup remain legacy source paths deliberately until migration acceptance.
+
+RED: composed-cache stub failed the actual-ROM assertion "explicit import
+returns validated ROM". GREEN private native acceptance covers import/restart,
+invalid import preserving cache, corrupt-cache rejection/explicit repair,
+legacy data-relative bootstrap, and unchanged sentinel progress. A real
+non-root read-only cache repair fails without replacing bytes. The invalid
+shipping CLI exits 66 with a ROM error before creating cache/settings or
+changing sentinel progress, including --save-settings. Native suite 24 passed
+and Python suite 44 passed.
+
+Relocated executable acceptance: .local/qa/relocated ROM bj6mjd_d, arbitrary
+working directory and private data path both containing spaces. First boot
+imports the user's ZIP, 721 VI / 680 graphics / 359 audio tasks over 12 seconds;
+second boot supplies no --rom and reads only its validated private cache,
+721 VI / 680 graphics / 358 audio. Both exit normally and report expected
+overlay byte counts. This establishes the asset loader's relocated operation,
+not clean redistributable libraries or portable default data.
+
+Full mission regression with cache-import startup: .local/qa/gameplay-mse0ob2l,
+120 seconds, 7,201 VI / 6,875 graphics / 3,599 audio, map/Simian Acres, movement,
+pause/Continue and three original-instruction glyph sites accepted. Source
+EEPROM/Pak unchanged. This run preceded the final move of the optional settings
+write after validation; the changed invalid-ROM/settings path was then checked
+separately. No new renderer/audio/input behavior was changed by that move.
+All graphics in these runs remain software Vulkan/dummy audio, not physical
+4K/120-Hz or speaker acceptance.
+
+Next portable-layout evidence: read-only Tetrisphere data_directory.h resolves
+SDL_GetBasePath()/data, with explicit environment override for QA. Match that
+portable behavior after a transactional migration/import service is tested;
+remove BC_ROOT from runtime/controller mappings and provide packaged database
+lookup. The beta still defaults to an eight-second prototype run and needs
+normal indefinite operation before an RC. GUI ROM selection, cache/migration
+interruption checks and dependency packaging remain required.

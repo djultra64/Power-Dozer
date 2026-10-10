@@ -20,6 +20,7 @@
 #include "pc_options.h"
 #include "pak_runtime.h"
 #include "input.h"
+#include "rom_input.h"
 
 double bc_scale=3;
 bool bc_wide=false;
@@ -86,13 +87,12 @@ void bc_complete_audio();
 static bool run_rsp(uint8_t* rdram,const OSTask* task){auto n=++bc_audio;if(n<=3){fprintf(stderr,"audio rsp ucode=%08X type=%u\n",task->t.ucode,task->t.type);fflush(stderr);}bool ok=recomp::rsp::run_task(rdram,task);bc_complete_audio();return ok;}
 static void count_vi(){++bc_vis;}
 static void error(const char* text){fprintf(stderr,"runtime: %s\n",text);bc_fatal("runtime_error");}
-static std::vector<uint8_t> read_file(const std::string& name){std::ifstream f(name,std::ios::binary);if(!f)bc_fatal("file_open");return {std::istreambuf_iterator<char>(f),{}};}
 static void load(uint8_t* ram,const std::vector<uint8_t>& bytes,uint32_t offset){if(bytes.size()>0x800000-offset)bc_fatal("load_bounds");for(size_t i=0;i<bytes.size();i++)ram[(offset+i)^3]=bytes[i];}
 int main(int argc,char** argv){
  setvbuf(stdout,nullptr,_IOLBF,0);
- double seconds=8;std::string family="auto";bool save_settings=false;
+ double seconds=8;std::string family="auto";bool save_settings=false;std::filesystem::path rom_path;
  for(int i=1;i<argc;i++)if(std::string(argv[i])=="--help"){
-  printf("Blast Corps experimental native beta\n--seconds N --data-dir PATH --scale N --wide --original-aspect --refresh 0|30|60|120\n--fullscreen --windowed --msaa 0|2|4|8 --presentation nearest|linear|pixel --texture linear|three_point\n--volume 0..100 --mute --no-mute --family auto|xbox|playstation|switch --save-settings --capture-audio FILE.wav\nKeyboard: arrows walk/steer, Z accelerate/confirm, X reverse/back, Enter pause/start, Shift stop/exit, I/J/K/L camera, Q/E horn\nAlt+Enter: toggle fullscreen\n");return 0;
+  printf("Blast Corps experimental native beta\n--rom PATH (USA Rev 1 z64/v64/n64/ZIP) --seconds N --data-dir PATH\n--scale N --wide --original-aspect --refresh 0|30|60|120\n--fullscreen --windowed --msaa 0|2|4|8 --presentation nearest|linear|pixel --texture linear|three_point\n--volume 0..100 --mute --no-mute --family auto|xbox|playstation|switch --save-settings --capture-audio FILE.wav\nKeyboard: arrows walk/steer, Z accelerate/confirm, X reverse/back, Enter pause/start, Shift stop/exit, I/J/K/L camera, Q/E horn\nAlt+Enter: toggle fullscreen\n");return 0;
  }
  try {
  for(int i=1;i<argc;i++)if(std::string(argv[i])=="--data-dir"){
@@ -105,6 +105,7 @@ int main(int argc,char** argv){
  for(int i=1;i<argc;i++) {
   std::string a=argv[i];
   if(a=="--seconds"&&i+1<argc)seconds=number(argv[++i]);
+  else if(a=="--rom"&&i+1<argc)rom_path=argv[++i];
   else if(a=="--data-dir"&&i+1<argc)bc_data_directory=argv[++i];
   else if(a=="--scale"&&i+1<argc)bc::settings.scale=number(argv[++i]);
   else if(a=="--mute")bc::settings.mute=true;
@@ -125,16 +126,21 @@ int main(int argc,char** argv){
  }
  if(!std::isfinite(seconds)||seconds<0)throw std::invalid_argument("Seconds must be finite and nonnegative");
  bc::validate(bc::settings);
- if(save_settings)bc::SettingsStore(bc_data_directory/"settings.json").save(bc::settings);
  bc::initialize_pc_options(save_settings?bc::settings:persisted);
  }catch(const std::exception& error){fprintf(stderr,"Options: %s\n",error.what());return 64;}
  bc_scale=bc::settings.scale;bc_wide=bc::settings.wide;bc_refresh=bc::settings.refresh;family=bc::settings.family;
  bc_set_audio_output(bc::settings.volume,bc::settings.mute);
  fprintf(stderr,"{\"event\":\"effective_settings\",\"scale\":%.2f,\"wide\":%s,\"fullscreen\":%s,\"refresh\":%d,\"msaa\":%d,\"volume\":%d,\"mute\":%s,\"presentation\":\"%s\",\"texture\":\"%s\",\"family\":\"%s\"}\n",bc_scale,bc_wide?"true":"false",bc::settings.fullscreen?"true":"false",bc_refresh,bc::settings.msaa,bc::settings.volume,bc::settings.mute?"true":"false",bc::settings.presentation.c_str(),bc::settings.texture.c_str(),family.c_str());
- bc_rom=read_file(BC_ROOT "/.local/rom.z64");if(bc_rom.size()!=8388608)bc_fatal("rom_size");
+ bc::RomImage image;
+ try{image=bc::load_cached_rom(bc_data_directory,rom_path);}
+ catch(const std::exception& error){fprintf(stderr,"ROM: %s\n",error.what());return 66;}
+ if(save_settings)try{bc::SettingsStore(bc_data_directory/"settings.json").save(bc::settings);}
+ catch(const std::exception& error){fprintf(stderr,"Settings: %s\n",error.what());return 64;}
+ bc_rom=std::move(image.rom);
+ fprintf(stderr,"{\"event\":\"rom_loaded\",\"revision\":\"blastcorps-us-rev1\",\"code_bytes\":%zu,\"frontend_bytes\":%zu}\n",image.code.size(),image.frontend.size());
  std::vector<uint8_t> ram(0x900000);
- load(ram.data(),read_file(BC_ROOT "/.local/hd_code.bin"),0x2447C0);
- load(ram.data(),read_file(BC_ROOT "/.local/hd_front_end.bin"),0x1E7000);
+ load(ram.data(),image.code,0x2447C0);
+ load(ram.data(),image.frontend,0x1E7000);
  auto* rdram=ram.data();
  MEM_W(0,S32(0x80000300))=1;MEM_W(0,S32(0x80000308))=S32(0xB0000000);MEM_W(0,S32(0x80000318))=0x800000;
  // Boot loader mailboxes supplying compressed front-end ROM boundaries.

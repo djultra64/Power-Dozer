@@ -5,6 +5,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <unistd.h>
+#include <iterator>
 static void check(bool value,const char* message){if(!value)throw std::runtime_error(message);}
 template<class F> void rejects(F f,const char* message){bool rejected=false;try{f();}catch(const std::exception&){rejected=true;}check(rejected,message);}
 static void write(const std::filesystem::path& p,const std::vector<uint8_t>& bytes){std::ofstream f(p,std::ios::binary);f.write(reinterpret_cast<const char*>(bytes.data()),bytes.size());}
@@ -47,6 +48,28 @@ int main(int argc,char** argv){
   auto expected=[](const char* path){std::ifstream f(path,std::ios::binary);check(bool(f),"private overlay reference readable");return std::vector<uint8_t>(std::istreambuf_iterator<char>(f),{});};
   check(image.code==expected(argv[2]),"native code overlay exactly matches private preparation");
   check(image.frontend==expected(argv[3]),"native frontend overlay exactly matches private preparation");
+  char cache_template[]="/tmp/blastcorps-rom-cache-XXXXXX";auto* cache_dir=mkdtemp(cache_template);check(cache_dir,"private cache directory");std::filesystem::path data=cache_dir;
+  try{
+   write(data/"eeprom.bin",{1,2,3,4});
+   auto imported=bc::load_cached_rom(data,argv[1]);check(imported.rom==image.rom,"explicit import returns validated ROM");
+   auto restarted=bc::load_cached_rom(data);check(restarted.rom==image.rom&&restarted.code==image.code,"restart regenerates overlays from validated cache");
+   write(data/"invalid.z64",{0x80,0x37,0x12,0x40});rejects([&]{bc::load_cached_rom(data,data/"invalid.z64");},"invalid import rejected");
+   check(bc::load_cached_rom(data).rom==image.rom,"invalid import preserves valid cache");
+   check(expected((data/"eeprom.bin").c_str())==std::vector<uint8_t>({1,2,3,4}),"ROM import never writes progress");
+   write(data/"cache/rom.z64",{1,2,3});rejects([&]{bc::load_cached_rom(data);},"corrupt cache never launches");
+   check(bc::load_cached_rom(data,argv[1]).rom==image.rom,"explicit valid ROM repairs corrupt cache");
+   if(getuid()!=0){
+    write(data/"cache/rom.z64",{1,2,3});
+    auto writable=std::filesystem::perms::owner_all;
+    std::filesystem::permissions(data/"cache",std::filesystem::perms::owner_read|std::filesystem::perms::owner_exec);
+    bool refused=false;try{bc::load_cached_rom(data,argv[1]);}catch(const std::exception&){refused=true;}
+    std::filesystem::permissions(data/"cache",writable);
+    check(refused&&expected((data/"cache/rom.z64").c_str())==std::vector<uint8_t>({1,2,3}),"read-only cache fails without replacing existing bytes");
+   }
+   std::filesystem::remove_all(data/"cache");write(data/"rom.z64",image.rom);
+   check(bc::load_cached_rom(data).rom==image.rom,"legacy data-relative ROM bootstraps missing cache");
+   std::filesystem::remove_all(data);
+  }catch(...){std::filesystem::remove_all(data);throw;}
   std::printf("Private ROM accepted: sha1=%s code=%zu frontend=%zu\n",bc::sha1(image.rom).c_str(),image.code.size(),image.frontend.size());
  }else check(argc==1,"private acceptance needs ROM and two overlay references");
 }

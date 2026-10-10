@@ -3,11 +3,16 @@
 #include <cstdlib>
 #include <cstdio>
 #include <mutex>
+#include "prototype.h"
 namespace {
 BcRenderObserver observer;std::mutex mutex;
 uint64_t now(){return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();}
 }
 bool bc_render_observing(){static bool enabled=std::getenv("BC_TRACE_RENDER")!=nullptr;return enabled;}
+void bc_render_selection(uint32_t vi_fb,uint32_t selected_fb,int selected_frames,int batch_count,int available,bool enabled,int modified_count,bool modified_match){
+ if(!bc_render_observing())return;
+ fprintf(stderr,"{\"event\":\"rt64_present_selection\",\"vi\":%llu,\"vi_framebuffer\":%u,\"selected_framebuffer\":%u,\"selected_frames\":%d,\"batch_count\":%d,\"available\":%d,\"interpolation_enabled\":%s,\"modified_framebuffers\":%d,\"modified_match\":%s}\n",(unsigned long long)bc_vis.load(),vi_fb,selected_fb,selected_frames,batch_count,available,enabled?"true":"false",modified_count,modified_match?"true":"false");
+}
 void bc_render_present(bool success){if(!bc_render_observing())return;auto ns=now();std::lock_guard lock(mutex);observer.present(ns,success);}
 void bc_render_generated(bool generated,float weight,uint32_t mapped,uint32_t transforms){if(!bc_render_observing())return;auto ns=now();std::lock_guard lock(mutex);observer.render(ns,generated,weight,mapped,transforms);}
 void bc_render_report(uint64_t vi){

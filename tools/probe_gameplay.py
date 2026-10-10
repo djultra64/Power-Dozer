@@ -15,6 +15,7 @@ from check_pak_save import check as check_pak
 from check_audio_recovery import check as check_audio_recovery
 from check_controller_probe import check as check_controller_probe
 from check_instruction_probe import check as check_instruction_probe
+from check_render_probe import check as check_render_probe
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -137,7 +138,17 @@ def run(args):
             if args.exercise:
                 key(confirm);time.sleep(1);screenshot('briefing-dismissed')
                 before=states()[-1]
-                key(confirm,2);screenshot('mission-move')
+                if args.capture_motion:
+                    with (directory/'motion-capture.log').open('w') as capture_log:
+                        capture=subprocess.Popen(['ffmpeg','-nostdin','-y','-f','x11grab','-framerate','120','-window_id',window,'-i',env['DISPLAY'],'-t','3','-vf','scale=640:360','-c:v','libx264','-preset','ultrafast','-crf','12','-threads','2',str(directory/'mission-motion.mp4')],env=env,stdout=capture_log,stderr=subprocess.STDOUT)
+                        try:
+                            time.sleep(.3);key(confirm,2)
+                            capture.wait(timeout=15)
+                            if capture.returncode:raise ValueError('Private motion capture failed; inspect motion-capture.log')
+                        finally:
+                            if capture.poll() is None:capture.terminate();capture.wait(timeout=10)
+                else:key(confirm,2)
+                screenshot('mission-move')
                 after=states()[-1]
                 if (before['x'],before['z'])==(after['x'],after['z']):raise ValueError('Vehicle position did not change during acceleration')
                 key('Return');time.sleep(1);screenshot('pause')
@@ -270,11 +281,13 @@ def run(args):
             # Mode 0 is the new-player introduction. Existing completed players
             # legitimately go map (14) → statistics (7) → mission (2) instead.
             result=check(log,required_modes=(14,2))
+            if args.verify_render:result['render_submission_acceptance']=check_render_probe(log,args.refresh)
             if args.audio_loss:result['audio_recovery']=check_audio_recovery(log)
             if args.controller:result['controller_actions']=check_controller_probe(log,args.controller)
             if args.instruction_glyphs:result['instruction_glyphs']=check_instruction_probe(log,args.controller)
             result['seconds_requested']=args.seconds
             result['graphics_requested']={'gpu_driver':args.gpu,'scale':args.scale,'wide':not args.original_aspect,'refresh':args.refresh}
+            result['motion_capture']=str(directory/'mission-motion.mp4') if args.capture_motion else None
             result['exercise_verified']=args.exercise
             result['options_verified']=args.options
             result['controls_verified']=args.controls
@@ -302,6 +315,8 @@ if __name__=='__main__':
     parser.add_argument('--gpu',choices=('software','radv'),default='software',help='Select software Vulkan or the local Radeon GPU; target rates still depend on the private display')
     parser.add_argument('--scale',type=float,default=1,help='Internal rendering multiplier, 1..9; 9 requests a 2160-line target')
     parser.add_argument('--refresh',type=int,choices=(0,30,60,120),default=120)
+    parser.add_argument('--verify-render',action='store_true',help='Require sustained actual mission presentations with fractional mapped renders; does not certify physical display or visual quality')
+    parser.add_argument('--capture-motion',action='store_true',help='Record three seconds of private mission movement at 120 samples/sec for visual review; recording overhead can affect timing')
     parser.add_argument('--original-aspect',action='store_true')
     parser.add_argument('--seed-save',type=Path)
     parser.add_argument('--seed-pak',type=Path)
@@ -319,6 +334,8 @@ if __name__=='__main__':
     args=parser.parse_args()
     if args.seconds<90:parser.error('At least 90 seconds are required for the mission transition')
     if not 1<=args.scale<=9:parser.error('Scale must be finite and between 1 and 9')
+    if args.verify_render and args.refresh not in (60,120):parser.error('Render interpolation acceptance requires --refresh 60 or 120')
+    if args.capture_motion and not args.exercise:parser.error('Motion capture requires --exercise')
     if (args.retry or args.wait_failure or args.options or args.controls or args.glyphs or args.controller or args.instruction_glyphs) and not args.exercise:parser.error('Retry/failure/options/controls/glyphs/controller/instruction-glyphs needs --exercise')
     if args.controller and args.glyphs:parser.error('Virtual device detection and manual-family rendering need separate runs')
     try:run(args)

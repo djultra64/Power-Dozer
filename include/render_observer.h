@@ -15,3 +15,4 @@ bool bc_render_observing();
 void bc_render_present(bool success);
 void bc_render_generated(bool generated,float weight,uint32_t mapped,uint32_t transforms);
 void bc_render_report(uint64_t vi);
+void bc_render_selection(uint32_t vi_fb,uint32_t selected_fb,int selected_frames,int batch_count,int available,bool enabled,int modified_count,bool modified_match);

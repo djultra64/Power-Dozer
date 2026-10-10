@@ -11,7 +11,7 @@ class RenderHookPreparation(unittest.TestCase):
         self.original=hooks.EXPECTED.copy()
         self.scratch=tempfile.TemporaryDirectory();self.root=Path(self.scratch.name)
         self.source=self.root/'source/src/hle';self.source.mkdir(parents=True)
-        snippets={'present':'                swapChainValid = ext.swapChain->present(swapChainIndex, &waitSemaphore, 1);','workload':'                    framesRendered++;'}
+        snippets={'present':'                swapChainValid = ext.swapChain->present(swapChainIndex, &waitSemaphore, 1);\n                RenderTargetKey colorTargetKey(presentFb->addressStart, presentFb->width, presentFb->siz, Framebuffer::Type::Color);','workload':'                    framesRendered++;'}
         self.files={}
         for kind,site in snippets.items():
             path=self.source/('rt64_'+kind+'_queue.cpp');path.write_text('// fixture\n'+site+'\n')

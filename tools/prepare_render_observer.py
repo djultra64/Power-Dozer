@@ -26,7 +26,21 @@ def prepare(source,destination):
                     }
 '''+site
         if text.count(site)!=1:raise ValueError('RT64 observer hook site is not unique: '+kind)
-        payload='#include "render_observer.h"\n'+text.replace(site,replacement)
+        text=text.replace(site,replacement)
+        if kind=='present':
+            selection='''                RenderTargetKey colorTargetKey(presentFb->addressStart, presentFb->width, presentFb->siz, Framebuffer::Type::Color);'''
+            if text.count(selection)!=1:raise ValueError('RT64 selection hook site is not unique')
+            probe='''                if (bc_render_observing()) {
+                    int count = 0, available = 0;
+                    { std::lock_guard<std::mutex> lock(ext.sharedResources->interpolatedMutex); count = frameCounters.count; available = frameCounters.available; }
+                    bool modified = false;
+                    for (auto address : ext.sharedResources->colorImageAddressVector) modified |= address == presentFb->addressStart;
+                    bc_render_selection(present.screenVI.fbAddress(), presentFb->addressStart, framesToPresent, count, available,
+                        presentFb->interpolationEnabled, int(ext.sharedResources->colorImageAddressVector.size()), modified);
+                }
+'''
+            text=text.replace(selection,probe+selection)
+        payload='#include "render_observer.h"\n'+text
         output=destination/('blastcorps_'+kind+'_queue.cpp')
         if not output.exists() or output.read_text()!=payload:output.write_text(payload)
 

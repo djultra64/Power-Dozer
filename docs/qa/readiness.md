@@ -866,3 +866,77 @@ trace and a targeted experiment establish it. Keep the original SP/DP/FullSync
 semantics, avoid globally stretching/replaying frames to fake smoothness, and
 require actual intermediate geometry and presentation after any correction.
 The private package predates observer objects and needs regeneration later.
+
+Task 5 causal presentation experiment: the opt-in selector trace now records
+VI framebuffer, selected framebuffer, modified-framebuffer membership,
+interpolationEnabled, batch count/availability and selected frame count. Source
+hash guards and unique hook checks still apply to both local queue copies.
+Baseline Console trial .local/qa/gameplay-8nww2mif at internal 1280x720 on RADV,
+virtual 1920x1080@120, reproduced the defect independently of 4K GPU cost.
+601 observed selections had a four-frame batch but selected only one frame:
+VI/selected address 1024 was absent from modified framebuffers and interpolation
+was disabled. The alternate framebuffer address was 154624. Other scene/pause
+selections are not mission interpolation evidence. Two-minute baseline completed
+7201 VI / 6899 graphics / 3599 audio, private input exercise accepted.
+
+Targeted correction uses RT64's existing SkipBuffering presentation mode, whose
+source selects a newly modified framebuffer only if its prior VI history, size,
+pixel format and current VI compatibility match. It then presents that batch.
+No changes to FullSync/SP/DP semantics, guest timing, ROM or SDK reference files.
+Two-minute same-profile correction .local/qa/gameplay-xmx7ae65 completed 7201 VI /
+6902 graphics / 3598 audio. Movement/pause/Continue/original-instruction checks
+passed; source EEPROM/Pak unchanged. Selector now chose four of four available
+batch frames with interpolation enabled and selected framebuffer modified.
+New check_render_probe.py independently validates complete unpaused mode-2
+windows (excludes window/menu/pause/transition intervals), observed count divided
+by real elapsed time, zero swapchain failures, fractional renders and mapped
+geometry, at least ten windows and >=98 percent target rate in every window.
+Baseline fails at VI3720 with 29.999 FPS; corrected 720p trial passes fifteen
+windows / 29.999940 seconds, min119.498/max120.005 submissions per second.
+Seven synthetic checker tests reject generated-but-30-FPS streams, repeated
+original frames, failed presents, paused/short coverage and nonfinite rates.
+They test the acceptance gate, not renderer behavior. Native behavioral RED was
+the baseline actual-frame trace; GREEN is the same native experiment after the
+mode change. 27 native / 58 Python tests passed after this correction.
+
+Static corrected mission-move capture reviewed: intact vehicle/world, wide
+projection, money/minimap/arrow visible; this does not verify moving geometry
+through intermediate phases. Corrected internal4K/target120 trial currently
+running. Physical display scans, sustained performance at other profiles,
+visual interpolation/more missions and final package regression remain open.
+
+Corrected internal4K/target120 trial completed: .local/qa/gameplay-i027dj0x,
+7201 VI / 6904 graphics / 3599 audio, private movement/pause/Continue/instruction
+checks passed and source EEPROM/Pak unchanged. Thirteen full unpaused mission
+windows / 26.000051 seconds: 3029 successful submissions, zero failures, 2288
+fractional renders; rates116.494..116.505 FPS. Strict target120 gate correctly
+fails at VI3840 (116.499 FPS), below117.6 minimum. All978 mission selector
+observations selected four of four batch frames, enabled and newly modified;
+available-at-selection ranged0..3. Rendering or delivery can still skip
+intermediate frames later; selection is not a rate guarantee. GPU p95 across
+mission samples4.6028..9.3049ms and CPU6.041..10.155ms. 4K120 performance remains
+open on this GPU; do not claim the whole requested profile accepted.
+
+Corrected internal1080p/target120 trial .local/qa/gameplay-sv8nzy41 completed
+7201 VI / 6903 graphics / 3598 audio. Harness --verify-render now explicitly
+runs the sustained-submission gate before reporting acceptance; original-rate
+profiles cannot invoke an interpolation gate. All15 complete mission windows /
+30.000028 seconds pass, min119.497/max120.002 FPS. Movement, pause/Continue and
+original adapted prompt captured; source EEPROM/Pak unchanged. No assertion
+diagnostics. Audio remains SDL dummy in this graphics test.
+
+Optional --capture-motion records three seconds from the private X11 game
+window at120 samples/sec using ffmpeg; no input or capture of the host desktop.
+Recorder has bounded wait and cleanup on failure, outputs only private QA data.
+This trial's video: 640x360,361 encoded frames,3.008215 seconds, nominal120/1
+rate and actual variable timestamps (avg72200000/601643). Encoding overhead can
+affect the motion interval, so recording alone is not performance acceptance.
+Decoded consecutive samples120..127 are distinct with mean absolute RGB
+differences5.4385,5.1010,5.1500,5.1141,5.1626,5.3100,5.3061. Four-frame contact
+sheet120..123 visually reviewed: continuous camera/world/vehicle displacement,
+intact geometry and stable money HUD, minimap/arrow present; no obvious tearing
+or exploding geometry in this short segment. This supports actual moving
+intermediate imagery, not just synthetic target/pool values, but does not
+certify all camera/vehicle/effect/cutscene scenarios or physical120Hz scans.
+Goal remains active; wider graphics acceptance and performance, real output
+audio, objective completion, license/package audit and RC review remain open.

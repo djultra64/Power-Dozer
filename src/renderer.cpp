@@ -73,7 +73,10 @@ Context(uint8_t* rdram,ultramodern::renderer::WindowHandle window) {
         app_->userConfig.filtering=bc::settings.presentation=="nearest"?UC::Filtering::Nearest:bc::settings.presentation=="pixel"?UC::Filtering::AntiAliasedPixelScaling:UC::Filtering::Linear;
         app_->userConfig.threePointFiltering=bc::settings.texture=="three_point";
         app_->userConfig.developerMode = false;
-        app_->enhancementConfig.presentation.mode = RT64::EnhancementConfiguration::Presentation::Mode::Console;
+        // Blast Corps' VI points at the preceding buffered image. Select the
+        // newly drawn, VI-compatible image so RT64 presents its interpolation
+        // batch rather than a single stale image per original frame.
+        app_->enhancementConfig.presentation.mode = RT64::EnhancementConfiguration::Presentation::Mode::SkipBuffering;
         auto result=app_->setup(0);
         setup_result=static_cast<ultramodern::renderer::SetupResult>(result);
         chosen_api=ultramodern::renderer::GraphicsApi::Vulkan;

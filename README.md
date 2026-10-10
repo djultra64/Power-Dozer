@@ -1,8 +1,18 @@
+<p align="center">
+  <img src="assets/branding/power-dozer-cover.png" alt="Power Dozer cover artwork" width="820">
+</p>
+
+> This project was created with AI assistance. If that's not your cup of tea, feel free to move along.
+
 # Power Dozer
 
 **v0.81 — beta of a native Blast Corps port for Linux and Windows x86-64.**
 Static recompilation of Blast Corps USA Rev 1 with N64Recomp,
 N64ModernRuntime and RT64. The project is not affiliated with Rare or Nintendo.
+
+<p align="center">
+  <img src="assets/screenshots/simian-acres-gameplay.png" alt="Player bulldozer demolishing a structure in Simian Acres, running in Power Dozer" width="820">
+</p>
 
 ## Download and play
 
@@ -62,7 +72,7 @@ but it has not yet been shown to eliminate all dropouts.
 Full level coverage, physical controllers and sustained 120 fps
 remain for manual testing. End-of-level fades/sky and the
 visual stability of the HUD arrow need further checking.
-v0.81 is a prerelease for testing and reports.
+v0.81 is a public beta release for testing and reports.
 The reported thin black ground line is not currently reproducible; the reporter
 and recent local captures no longer show it. No speculative patch was applied.
 
@@ -81,6 +91,12 @@ source and license review.
 The function map builds on the work of
 [retroplastic](https://github.com/retroplastic/blastcorps) and its continuation by
 [SlaveOfIDO](https://github.com/SlaveOfIDO/blastcorps).
+
+## AI Disclosure
+
+I use **OpenAI Codex** to assist with research, reverse-engineering analysis, code implementation, debugging, tests, builds, packaging, and documentation. I direct that work, contribute code reviews and ideas for implementation, evaluate the game's behavior through hands-on testing, and decide which changes and releases to accept. Validation claims remain limited to the recorded builds and scenarios.
+
+The original game and the upstream tools remain the work of their respective creators, credited in [CREDITS.md](CREDITS.md).
 
 ## Credits
 

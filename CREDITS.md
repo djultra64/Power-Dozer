@@ -210,6 +210,12 @@ the artwork. Exact input hashes and extraction boxes are in
 `config/control-atlas.json`; the extracted sprites are in
 `include/control_atlas_data.h`. See `NOTICE` for the recorded scope.
 
+The README cover artwork and canonical project icon were supplied by
+**djultra64** for project presentation; see [the branding record](https://github.com/djultra64/Power-Dozer/blob/main/assets/branding/README.md).
+The gameplay screenshot shows Simian Acres running in Power Dozer. The host-code
+license does not cover supplied branding images or original game material;
+the original game creators retain their authorship and rights.
+
 **djultra64** provides Power Dozer's integration and project maintenance.
 Power Dozer's contributors provide the game integration, scheduling fixes,
 graphics adaptations, portable saves, controls and device-aware prompts,

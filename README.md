@@ -87,8 +87,11 @@ Se acepta una ROM USA Rev 1 en z64/v64/n64 o un ZIP con una sola ROM. La caché
 Pak, preferencias y remapeos hacia una carpeta nueva o vacía, conservando
 backups y metadatos. Nunca mezcla ni sobrescribe una instalación existente;
 el origen permanece intacto. Los overlays, capturas y ROM no forman parte de
-esa importación de progreso. El empaquetado de dependencias y la selección
-gráfica de ROM todavía están pendientes.
+esa importación de progreso. Si falta una ROM instalada o su caché es inválida, el ejecutable abre el
+selector nativo de archivos. Cancelar sale sin escribir datos; un error permite
+elegir otra ROM. `--no-rom-dialog` mantiene el arranque sin diálogos para QA.
+El empaquetado de dependencias y la aceptación del selector del escritorio
+en una instalación limpia todavía están pendientes.
 
 ## Reproducir la compilación
 

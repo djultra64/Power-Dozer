@@ -675,3 +675,51 @@ original-instruction checker accepted four sites including ZL/R map controls.
 Source EEPROM/Pak unchanged. Active-help capture reviewed: Switch B/A/PLUS
 face/Start prompts and ZL/R map labels/glyphs agree. This remains virtual SDL,
 software Vulkan and dummy audio evidence.
+
+Task 6 native ROM selection implemented: missing/invalid default cache opens
+NFD's UTF-8 file chooser with z64/v64/n64/zip filters. Existing valid cache
+boots without a chooser. Explicit --rom remains deterministic CLI;
+--no-rom-dialog reports failures without UI. The host-only selection controller
+returns on cancel, retains loader errors for retry/quit, and never calls the
+loader on fresh-install cancellation. SDL video/NFD are scoped before the
+game runtime; cancel does not initialize guest threads or write progress.
+Unavailable native chooser shows a visible error with manual --rom fallback.
+
+RED: selection stub failed "valid cache boots without opening chooser". GREEN
+unit cases cover valid-cache bypass, fresh selection, cancellation without
+load, invalid ROM/retry, quit on error and corrupt-cache repair. Full native
+suite passed 26 and unchanged Python suite passed 44.
+
+Native SDK/SDL acceptance uses tools/qa_rom_portal.py on a private
+dbus-run-session plus Xvfb. It refuses desktop DISPLAY and non-private bus
+addresses, owns only that private portal name, and returns controlled responses
+through actual NFD D-Bus parsing. It is not linked into the port. This verifies
+SDK integration, not the user's installed portal chooser or physical clicks.
+The original .local EEPROM remains unchanged.
+
+Initial cancel and valid selection passed in .local/qa/rom-dialog-uap9xhod;
+cancel leaves its data folder empty, valid ZIP boot completes 481 VI /
+446 graphics / 239 audio over eight seconds. Initial retry attempt failed
+overall. A subsequent visible-dialog run showed actual Enter chose Quit despite
+RETURNKEY_DEFAULT on the second button; the screenshot confirms the original
+Quit-first order. The button array now puts retry first with its return flag,
+retaining Quit/Escape. No loader/game behavior was changed to bypass failure.
+
+Final native retry/quit: .local/qa/rom-dialog-final-oklvuvsy. Actual SDL error
+dialog renders useful ROM-size/revision instructions and the two buttons.
+Enter after visible mapping triggers a second real NFD request, imports the
+valid ROM and boots 481 VI / 448 graphics / 238 audio. Escape exits normally
+after invalid selection, leaves data empty and makes no second request.
+Reviewed retry screenshot: readable content and primary retry precedes Quit.
+The first black screenshot preceded mapping and is not visual acceptance.
+
+Native chooser service-error path: .local/qa/rom-dialog-error-5wbyxh_d. Private
+portal supplies an explicit error; shipping native unavailable-chooser message
+becomes visible, Return acknowledges it, main exits 66 and data stays empty.
+The final unavailable-message code was rebuilt and this affected flow checked.
+GTK accessibility/portal teardown warnings belong to the private bus fixture,
+not guest assertions. Full mission/control regressions remain established by
+the prior unchanged normal boot path; these short chooser runs prove bootstrap
+only. Clean dependency packaging, actual installed portal/UI acceptance,
+mission objectives, 4K/interpolation/audio performance and final review remain
+open release work.

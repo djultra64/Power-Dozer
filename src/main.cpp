@@ -23,6 +23,7 @@
 #include "rom_input.h"
 #include "data_import.h"
 #include "data_directory.h"
+#include "rom_selection.h"
 
 double bc_scale=3;
 bool bc_wide=false;
@@ -92,9 +93,9 @@ static void error(const char* text){fprintf(stderr,"runtime: %s\n",text);bc_fata
 static void load(uint8_t* ram,const std::vector<uint8_t>& bytes,uint32_t offset){if(bytes.size()>0x800000-offset)bc_fatal("load_bounds");for(size_t i=0;i<bytes.size();i++)ram[(offset+i)^3]=bytes[i];}
 int main(int argc,char** argv){
  setvbuf(stdout,nullptr,_IOLBF,0);
- double seconds=0;std::string family="auto";bool save_settings=false;std::filesystem::path rom_path,import_path;
+ double seconds=0;std::string family="auto";bool save_settings=false,rom_dialog=true;std::filesystem::path rom_path,import_path;
  for(int i=1;i<argc;i++)if(std::string(argv[i])=="--help"){
-  printf("Blast Corps experimental native beta\n--rom PATH (USA Rev 1 z64/v64/n64/ZIP) --seconds N (0: unlimited)\n--data-dir PATH (default: executable/data) --import-data OLD_DIRECTORY\n--scale N --wide --original-aspect --refresh 0|30|60|120\n--fullscreen --windowed --msaa 0|2|4|8 --presentation nearest|linear|pixel --texture linear|three_point\n--volume 0..100 --mute --no-mute --family auto|xbox|playstation|switch --save-settings --capture-audio FILE.wav\nKeyboard: arrows walk/steer, Z accelerate/confirm, X reverse/back, Enter pause/start, Shift stop/exit, I/J/K/L camera, Q/E horn\nAlt+Enter: toggle fullscreen\n");return 0;
+  printf("Blast Corps experimental native beta\n--rom PATH (USA Rev 1 z64/v64/n64/ZIP) --seconds N (0: unlimited)\n--data-dir PATH (default: executable/data) --import-data OLD_DIRECTORY\n--no-rom-dialog (report missing/invalid ROM without opening a chooser)\n--scale N --wide --original-aspect --refresh 0|30|60|120\n--fullscreen --windowed --msaa 0|2|4|8 --presentation nearest|linear|pixel --texture linear|three_point\n--volume 0..100 --mute --no-mute --family auto|xbox|playstation|switch --save-settings --capture-audio FILE.wav\nKeyboard: arrows walk/steer, Z accelerate/confirm, X reverse/back, Enter pause/start, Shift stop/exit, I/J/K/L camera, Q/E horn\nAlt+Enter: toggle fullscreen\n");return 0;
  }
  try {
  bc_data_directory=bc::application_data_directory();
@@ -114,6 +115,7 @@ int main(int argc,char** argv){
   std::string a=argv[i];
   if(a=="--seconds"&&i+1<argc)seconds=number(argv[++i]);
   else if(a=="--rom"&&i+1<argc)rom_path=argv[++i];
+  else if(a=="--no-rom-dialog")rom_dialog=false;
   else if(a=="--import-data"&&i+1<argc)++i;
   else if(a=="--data-dir"&&i+1<argc)bc_data_directory=argv[++i];
   else if(a=="--scale"&&i+1<argc)bc::settings.scale=number(argv[++i]);
@@ -141,7 +143,13 @@ int main(int argc,char** argv){
  bc_set_audio_output(bc::settings.volume,bc::settings.mute);
  fprintf(stderr,"{\"event\":\"effective_settings\",\"scale\":%.2f,\"wide\":%s,\"fullscreen\":%s,\"refresh\":%d,\"msaa\":%d,\"volume\":%d,\"mute\":%s,\"presentation\":\"%s\",\"texture\":\"%s\",\"family\":\"%s\"}\n",bc_scale,bc_wide?"true":"false",bc::settings.fullscreen?"true":"false",bc_refresh,bc::settings.msaa,bc::settings.volume,bc::settings.mute?"true":"false",bc::settings.presentation.c_str(),bc::settings.texture.c_str(),family.c_str());
  bc::RomImage image;
- try{image=bc::load_cached_rom(bc_data_directory,rom_path);}
+ try{
+  if(!rom_path.empty()||!rom_dialog)image=bc::load_cached_rom(bc_data_directory,rom_path);
+  else{
+   try{image=bc::load_cached_rom(bc_data_directory);}
+   catch(const std::exception&){auto selected=bc::select_rom_gui(bc_data_directory);if(!selected)return 0;image=std::move(*selected);}
+  }
+ }
  catch(const std::exception& error){fprintf(stderr,"ROM: %s\n",error.what());return 66;}
  if(save_settings)try{bc::SettingsStore(bc_data_directory/"settings.json").save(bc::settings);}
  catch(const std::exception& error){fprintf(stderr,"Settings: %s\n",error.what());return 64;}

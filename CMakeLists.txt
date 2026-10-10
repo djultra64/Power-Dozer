@@ -34,6 +34,8 @@ add_executable(blastcorps-prototype src/main.cpp src/audio_sdl.cpp src/runtime.c
 target_compile_options(blastcorps-prototype PRIVATE -mssse3 -msse4.1)
 target_compile_definitions(blastcorps-prototype PRIVATE PLUME_SDL_VULKAN_ENABLED HLSL_CPU IMGUI_IMPL_VULKAN_NO_PROTOTYPES FFX_GCC)
 target_sources(blastcorps-prototype PRIVATE src/data_import.cpp)
+target_sources(blastcorps-prototype PRIVATE src/rom_selection.cpp src/rom_dialog.cpp)
+target_include_directories(blastcorps-prototype PRIVATE "${RT64}/src/contrib/nativefiledialog-extended/src/include")
 target_include_directories(blastcorps-prototype PRIVATE include .local/generated/functions
  "${RUNTIME}/N64Recomp/include" "${RUNTIME}/ultramodern/include"
  "${RUNTIME}/librecomp/include" "${RUNTIME}/librecomp/include/librecomp"
@@ -56,6 +58,9 @@ set_target_properties(blastcorps-prototype PROPERTIES BUILD_RPATH "/home/linuxbr
 target_link_options(blastcorps-prototype PRIVATE -Wl,--wrap=osCreateThread_recomp -Wl,--wrap=osStartThread_recomp -Wl,--wrap=osSetThreadPri_recomp -Wl,--wrap=osRecvMesg_recomp)
 
 enable_testing()
+add_executable(rom_selection_test tests/rom_selection.cpp src/rom_selection.cpp)
+target_include_directories(rom_selection_test PRIVATE include)
+add_test(NAME rom_selection_cancel_retry_and_cache COMMAND rom_selection_test)
 add_executable(data_import_test tests/data_import.cpp src/data_import.cpp src/save_store.cpp src/settings.cpp src/controls_store.cpp src/input_model.cpp src/pak_store.cpp src/pak_session.cpp src/atomic_file.cpp)
 target_include_directories(data_import_test PRIVATE include "${RUNTIME}/thirdparty/json" /home/linuxbrew/.linuxbrew/include/SDL2)
 target_link_libraries(data_import_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)

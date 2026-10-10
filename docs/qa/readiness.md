@@ -117,6 +117,19 @@ and reran 7/7 successfully. An isolated build with the earlier unchecked integer
 conversion now aborts against the settings regression; the corrected build
 passes. No progress or audio tests had disabled checks.
 
+Failure regression with exact OFF-site instrumentation: 240 seconds, exit 0,
+14,401 VI / 14,014 graphics / 7,199 audio tasks. Copied save, mission entry,
+changed position, pause/resume, Restart (8→13→2), tutorial pages and failed=1
+were reached; acceptance passed, classifying one exact original duplicate OFF
+pair. The source save remained unchanged. No objective-completion acceptance
+has yet been recorded. Host telemetry was subsequently routed through one
+stdio stream after observing partial JSON interleaving between stdout/stderr.
+
+Settings menu model now covers original-sized pages, save acknowledgement,
+failed-save rollback, preservation of unrelated settings, restart status,
+Back and Controls/Game Options requests. The runtime hook is still pending;
+this does not constitute an in-game menu implementation.
+
 Ruling: use branch `codex/release-readiness` in the existing unborn repository
 instead of duplicating ROM/private build state in a worktree — this workspace
 contains only the prototype, and no prior branch commit exists — reproducible

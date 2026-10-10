@@ -47,7 +47,7 @@ static void set_frequency(uint32_t freq){
  SDL_AudioSpec wanted{};wanted.freq=freq;wanted.format=AUDIO_S16SYS;wanted.channels=2;wanted.samples=512;
  audio_device=SDL_OpenAudioDevice(nullptr,0,&wanted,nullptr,0);
  if(!audio_device)bc_fatal("audio_open");SDL_PauseAudioDevice(audio_device,0);
- fprintf(stdout,"{\"event\":\"audio_frequency\",\"hz\":%u}\n",freq);
+ fprintf(stderr,"{\"event\":\"audio_frequency\",\"hz\":%u}\n",freq);
 }
 static void queue_audio(int16_t* samples,size_t count){
  std::lock_guard lock(audio_mutex);
@@ -63,8 +63,8 @@ static void queue_audio(int16_t* samples,size_t count){
   if(!capture)capture=std::make_unique<WavCapture>(capture_path,audio_hz);
   capture->append(pcm);
  }
- static bool logged_signal=false;if(!logged_signal){int peak=0;for(size_t i=0;i<count;i++)peak=std::max(peak,std::abs(int(samples[i])));if(peak){logged_signal=true;fprintf(stdout,"{\"event\":\"audio_signal\",\"peak\":%d,\"samples\":%zu}\n",peak,count);}}
- if(!has_audio){has_audio=true;fprintf(stdout,"{\"event\":\"audio_samples\",\"count\":%zu}\n",count);}
+ static bool logged_signal=false;if(!logged_signal){int peak=0;for(size_t i=0;i<count;i++)peak=std::max(peak,std::abs(int(samples[i])));if(peak){logged_signal=true;fprintf(stderr,"{\"event\":\"audio_signal\",\"peak\":%d,\"samples\":%zu}\n",peak,count);}}
+ if(!has_audio){has_audio=true;fprintf(stderr,"{\"event\":\"audio_samples\",\"count\":%zu}\n",count);}
 }
 static size_t remaining_audio(){std::lock_guard lock(audio_mutex);return audio_fifo.head_bytes(audio_device?SDL_GetQueuedAudioSize(audio_device):0)/4;}
 static RspUcodeFunc* select_ucode(const OSTask* task){return task->t.type==M_AUDTASK?blastcorps_audio_rsp:nullptr;}
@@ -115,7 +115,7 @@ int main(int argc,char** argv){
  }catch(const std::exception& error){fprintf(stderr,"Options: %s\n",error.what());return 64;}
  bc_scale=bc::settings.scale;bc_wide=bc::settings.wide;bc_refresh=bc::settings.refresh;family=bc::settings.family;
  bc_set_audio_output(bc::settings.volume,bc::settings.mute);
- fprintf(stdout,"{\"event\":\"effective_settings\",\"scale\":%.2f,\"wide\":%s,\"fullscreen\":%s,\"refresh\":%d,\"msaa\":%d,\"volume\":%d,\"mute\":%s,\"presentation\":\"%s\",\"texture\":\"%s\",\"family\":\"%s\"}\n",bc_scale,bc_wide?"true":"false",bc::settings.fullscreen?"true":"false",bc_refresh,bc::settings.msaa,bc::settings.volume,bc::settings.mute?"true":"false",bc::settings.presentation.c_str(),bc::settings.texture.c_str(),family.c_str());
+ fprintf(stderr,"{\"event\":\"effective_settings\",\"scale\":%.2f,\"wide\":%s,\"fullscreen\":%s,\"refresh\":%d,\"msaa\":%d,\"volume\":%d,\"mute\":%s,\"presentation\":\"%s\",\"texture\":\"%s\",\"family\":\"%s\"}\n",bc_scale,bc_wide?"true":"false",bc::settings.fullscreen?"true":"false",bc_refresh,bc::settings.msaa,bc::settings.volume,bc::settings.mute?"true":"false",bc::settings.presentation.c_str(),bc::settings.texture.c_str(),family.c_str());
  bc_rom=read_file(BC_ROOT "/.local/rom.z64");if(bc_rom.size()!=8388608)bc_fatal("rom_size");
  std::vector<uint8_t> ram(0x900000);
  load(ram.data(),read_file(BC_ROOT "/.local/hd_code.bin"),0x2447C0);
@@ -135,7 +135,7 @@ int main(int argc,char** argv){
  ultramodern::set_callbacks({rsp_init,run_rsp},{bc_create_context},{queue_audio,remaining_audio,set_frequency},
   {bc_poll_input,bc_get_input,[](int,bool){},[](int port){return ultramodern::input::connected_device_info_t{port==0?ultramodern::input::Device::Controller:ultramodern::input::Device::None,ultramodern::input::Pak::None};}}, {},{count_vi,nullptr},{error},{});
  ultramodern::preinit(rdram,window);
- fprintf(stdout,"{\"event\":\"native_entry\",\"entry\":\"0x802447C0\",\"scale\":%.1f,\"wide_requested\":%s,\"refresh_requested\":%d}\n",bc_scale,bc_wide?"true":"false",bc_refresh);fflush(stdout);
+ fprintf(stderr,"{\"event\":\"native_entry\",\"entry\":\"0x802447C0\",\"scale\":%.1f,\"wide_requested\":%s,\"refresh_requested\":%d}\n",bc_scale,bc_wide?"true":"false",bc_refresh);fflush(stderr);
  std::thread guest([rdram]{ultramodern::set_entrypoint_thread();recomp_context ctx{};ctx.status_reg=0x2000FF01;ctx.r29=S32(0x801E6FF0);ctx.f_odd=&ctx.f0.u32h;recomp_entrypoint(rdram,&ctx);});guest.detach();
  auto start=std::chrono::steady_clock::now(),next=start;
  while(!exited){
@@ -144,7 +144,7 @@ int main(int argc,char** argv){
     bool fullscreen=(SDL_GetWindowFlags(window)&SDL_WINDOW_FULLSCREEN)!=0;
     if(SDL_SetWindowFullscreen(window,fullscreen?0:SDL_WINDOW_FULLSCREEN_DESKTOP)!=0)fprintf(stderr,"Fullscreen: %s\n",SDL_GetError());
     else {
-     fprintf(stdout,"{\"event\":\"fullscreen\",\"enabled\":%s}\n",fullscreen?"false":"true");
+     fprintf(stderr,"{\"event\":\"fullscreen\",\"enabled\":%s}\n",fullscreen?"false":"true");
      try{auto store=bc::SettingsStore(bc_data_directory/"settings.json");auto saved=store.load();saved.fullscreen=!fullscreen;store.save(saved);}
      catch(const std::exception& error){fprintf(stderr,"Fullscreen preference: %s\n",error.what());}
     }
@@ -153,14 +153,14 @@ int main(int argc,char** argv){
   }
   bc_input_update(window);
   auto now=std::chrono::steady_clock::now();
-  if(now>=next){fprintf(stdout,"{\"event\":\"progress\",\"vi\":%llu,\"gfx\":%llu,\"audio\":%llu,\"polls\":%llu}\n",(unsigned long long)bc_vis.load(),(unsigned long long)bc_gfx.load(),(unsigned long long)bc_audio.load(),(unsigned long long)bc_polls.load());fflush(stdout);next=now+std::chrono::seconds(5);}
+  if(now>=next){fprintf(stderr,"{\"event\":\"progress\",\"vi\":%llu,\"gfx\":%llu,\"audio\":%llu,\"polls\":%llu}\n",(unsigned long long)bc_vis.load(),(unsigned long long)bc_gfx.load(),(unsigned long long)bc_audio.load(),(unsigned long long)bc_polls.load());fflush(stderr);next=now+std::chrono::seconds(5);}
   if(seconds>0&&std::chrono::duration<double>(now-start).count()>=seconds)break;
   SDL_Delay(4);
  }
- fprintf(stdout,"{\"event\":\"probe_end\",\"vi\":%llu,\"gfx\":%llu,\"audio\":%llu,\"polls\":%llu}\n",(unsigned long long)bc_vis.load(),(unsigned long long)bc_gfx.load(),(unsigned long long)bc_audio.load(),(unsigned long long)bc_polls.load());fflush(stdout);
+ fprintf(stderr,"{\"event\":\"probe_end\",\"vi\":%llu,\"gfx\":%llu,\"audio\":%llu,\"polls\":%llu}\n",(unsigned long long)bc_vis.load(),(unsigned long long)bc_gfx.load(),(unsigned long long)bc_audio.load(),(unsigned long long)bc_polls.load());fflush(stderr);
  {std::lock_guard lock(audio_mutex);
   if(capture)capture->finish();capture.reset();capture_path.clear();
-  fprintf(stdout,"{\"event\":\"audio_summary\",\"hz\":%u,\"buffers\":%llu,\"frames\":%llu,\"peak\":%d,\"empty_queue_observations\":%llu,\"rejected_buffers\":%llu,\"max_queue_bytes\":%u}\n",audio_hz,(unsigned long long)audio_buffers,(unsigned long long)audio_frames,audio_peak,(unsigned long long)audio_empty_queues,(unsigned long long)audio_rejected,audio_max_queue);fflush(stdout);
+  fprintf(stderr,"{\"event\":\"audio_summary\",\"hz\":%u,\"buffers\":%llu,\"frames\":%llu,\"peak\":%d,\"empty_queue_observations\":%llu,\"rejected_buffers\":%llu,\"max_queue_bytes\":%u}\n",audio_hz,(unsigned long long)audio_buffers,(unsigned long long)audio_frames,audio_peak,(unsigned long long)audio_empty_queues,(unsigned long long)audio_rejected,audio_max_queue);fflush(stderr);
  }
  // Experimental probe: terminate all cooperative guest threads together.
  std::_Exit(bc_gfx>0?0:72);

@@ -53,3 +53,17 @@ checks pass, followed by an independent review and resolution of material
 findings. Package privately for review. Keep a readiness ledger distinguishing
 implemented, tested, physically tested, and pending; unknown coverage cannot be
 converted into a passing claim.
+
+## Settings menu implementation decision
+
+Reuse the original pause window's fonts, animation and selection behavior.
+Its More entry will open PC Options; Game Options remains reachable. Host
+pages expose at most four rows so they fit the existing layout. Graphics pages
+cover resolution/aspect/refresh, then fullscreen/MSAA/presentation, then texture
+filter; audio and logical controls have separate pages. Back returns to the
+previous page or the original pause screen. A durable-save acknowledgement
+updates the displayed value; failed writes retain the saved value and report
+the failure. Graphics choices that cannot yet apply live say restart required.
+The selection hook uses the proven ROM-specific row indices and is regenerated,
+and text scratch storage resides outside the game's 8 MiB RDRAM region in the
+host allocation; it contains CPU-read strings only, never RSP data.

@@ -60,7 +60,7 @@ bool bc_input_event(const SDL_Event& event){
  if(event.type==SDL_KEYDOWN||event.type==SDL_KEYUP)next="keyboard";
  else if(pad&&(event.type==SDL_CONTROLLERBUTTONDOWN||event.type==SDL_CONTROLLERBUTTONUP))next=detected_family();
  else if(pad&&event.type==SDL_CONTROLLERAXISMOTION&&std::abs(event.caxis.value)>6500)next=detected_family();
- if(next!=family){family=next;fprintf(stdout,"{\"event\":\"active_device\",\"family\":\"%s\"}\n",family.c_str());}
+ if(next!=family){family=next;fprintf(stderr,"{\"event\":\"active_device\",\"family\":\"%s\"}\n",family.c_str());}
  if(event.type==SDL_KEYDOWN && event.key.keysym.scancode==SDL_SCANCODE_RETURN && (event.key.keysym.mod&KMOD_ALT)){
   suppress_keyboard_start=true;
   return event.key.repeat==0;
@@ -89,7 +89,7 @@ void bc_input_update(SDL_Window* window){
  std::lock_guard lock(input_mutex);buttons=value;stick_x=x;stick_y=y;
  if(std::getenv("BC_TRACE_INPUT")){
   static uint16_t previous=0;static float previous_x=0,previous_y=0;
-  if(value!=previous||x!=previous_x||y!=previous_y){fprintf(stdout,"{\"event\":\"input\",\"buttons\":%u,\"stick_x\":%.3f,\"stick_y\":%.3f}\n",value,x,y);previous=value;previous_x=x;previous_y=y;}
+  if(value!=previous||x!=previous_x||y!=previous_y){fprintf(stderr,"{\"event\":\"input\",\"buttons\":%u,\"stick_x\":%.3f,\"stick_y\":%.3f}\n",value,x,y);previous=value;previous_x=x;previous_y=y;}
  }
 }
 void bc_poll_input(){++bc_polls;}

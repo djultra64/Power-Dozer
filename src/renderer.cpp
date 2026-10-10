@@ -73,8 +73,8 @@ Context(uint8_t* rdram,ultramodern::renderer::WindowHandle window) {
         setup_result=static_cast<ultramodern::renderer::SetupResult>(result);
         chosen_api=ultramodern::renderer::GraphicsApi::Vulkan;
         if (result!=RT64::Application::SetupResult::Success) bc_fatal("rt64_setup",static_cast<uint32_t>(result));
-        fprintf(stdout,"{\"event\":\"rt64_device_ready\",\"gpu\":\"%s\"}\n",app_->device->getDescription().name.c_str());
-        fflush(stdout);
+        fprintf(stderr,"{\"event\":\"rt64_device_ready\",\"gpu\":\"%s\"}\n",app_->device->getDescription().name.c_str());
+        fflush(stderr);
     }
     bool valid() override { return bool(app_); }
     bool update_config(const ultramodern::renderer::GraphicsConfig&,const ultramodern::renderer::GraphicsConfig&) override { return true; }
@@ -87,7 +87,7 @@ Context(uint8_t* rdram,ultramodern::renderer::WindowHandle window) {
         app_->interpreter->loadUCodeGBI(task->t.ucode & 0x3FFFFFF,task->t.ucode_data & 0x3FFFFFF,true);
         bc_load_l3d(*app_->interpreter,task->t.ucode & 0x3FFFFFF,task->t.ucode_data & 0x3FFFFFF);
         if(!app_->interpreter->hleGBI || app_->interpreter->hleGBI->ucode==RT64::GBIUCode::Unknown)bc_fatal("unsupported_graphics_ucode",task->t.ucode);
-        if(count<=12) fprintf(stdout,"{\"event\":\"gfx_task\",\"seq\":%llu,\"ucode\":%u,\"list\":%u}\n",(unsigned long long)count,(uint32_t)task->t.ucode,(uint32_t)task->t.data_ptr);
+        if(count<=12) fprintf(stderr,"{\"event\":\"gfx_task\",\"seq\":%llu,\"ucode\":%u,\"list\":%u}\n",(unsigned long long)count,(uint32_t)task->t.ucode,(uint32_t)task->t.data_ptr);
         app_->processDisplayLists(app_->core.RDRAM,task->t.data_ptr & 0x3FFFFFF,0,true);
     }
     void send_dummy_workload(uint32_t framebuffer) override {
@@ -106,7 +106,7 @@ Context(uint8_t* rdram,ultramodern::renderer::WindowHandle window) {
         {std::lock_guard lock(shared.configurationMutex);target=shared.targetRate;original=shared.viOriginalRate;}
         {std::lock_guard lock(shared.managerMutex);for(auto& [key,fb]:shared.renderTargetManager.targetMap){if(fb->width*fb->height>width*height){width=fb->width;height=fb->height;}}}
         {std::lock_guard lock(shared.interpolatedMutex);for(auto& frames:shared.interpolatedFrames){presented+=frames.presented;count+=frames.count;}}
-        fprintf(stdout,"{\"event\":\"rt64_metrics\",\"width\":%u,\"height\":%u,\"target_rate\":%u,\"original_rate\":%u,\"interpolated_count_snapshot\":%u,\"presented_snapshot\":%u}\n",width,height,target,original,count,presented);
+        fprintf(stderr,"{\"event\":\"rt64_metrics\",\"width\":%u,\"height\":%u,\"target_rate\":%u,\"original_rate\":%u,\"interpolated_count_snapshot\":%u,\"presented_snapshot\":%u}\n",width,height,target,original,count,presented);
     }
     void shutdown() override { app_->end(); }
     uint32_t get_display_framerate() const override { return app_->presentQueue->ext.sharedResources->swapChainRate; }

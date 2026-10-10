@@ -52,7 +52,7 @@ extern "C" recomp_func_t* get_function(int32_t address) {
  bc_fatal("unresolved_indirect",address);
 }
 void run_thread_function(uint8_t* rdram,uint64_t address,uint64_t stack,uint64_t argument) {
- fprintf(stdout,"{\"event\":\"guest_thread\",\"entry\":\"0x%08X\"}\n",uint32_t(address));fflush(stdout);
+ fprintf(stderr,"{\"event\":\"guest_thread\",\"entry\":\"0x%08X\"}\n",uint32_t(address));fflush(stderr);
  recomp_context ctx{};ctx.status_reg=0x2000FF01;ctx.r29=stack;ctx.r4=argument;ctx.f_odd=&ctx.f0.u32h;
  get_function(address)(rdram,&ctx);
 }

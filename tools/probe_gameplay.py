@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import time
 from check_gameplay_probe import check
+from check_pak_save import check as check_pak
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -20,9 +21,13 @@ def run(args):
     directory=Path(tempfile.mkdtemp(prefix='gameplay-',dir=qa))
     data=directory/'data';data.mkdir()
     source_hash=None
+    pak_hash=None
     if args.seed_save:
         source_hash=hashlib.sha256(args.seed_save.read_bytes()).hexdigest()
         shutil.copyfile(args.seed_save,data/'eeprom.bin')
+    if args.seed_pak:
+        pak_hash=hashlib.sha256(args.seed_pak.read_bytes()).hexdigest()
+        shutil.copyfile(args.seed_pak,data/'controller-pak.bin')
     env=dict(os.environ,BC_TRACE_INPUT='1',BC_TRACE_GAMEPLAY='1',SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',VK_DRIVER_FILES='/usr/share/vulkan/icd.d/lvp_icd.x86_64.json')
     log=directory/'native.log'
     print(f'Private test directory: {directory}',flush=True)
@@ -59,8 +64,12 @@ def run(args):
             for attempt in range(12):
                 if 'game mode switch from 1 to 53' in text():break
                 key('Return' if attempt%2==0 else 'z',.6);time.sleep(1.5)
-            wait(lambda value:'game mode switch from 53 to 18' in value or 'l3d_adapter_ready' in value)
+            wait(lambda value:' to 18\n' in value or 'l3d_adapter_ready' in value or '"state_lo":65536,"paused":0' in value)
+            if 'l3d_adapter_ready' not in text() and states()[-1]['state_lo']==65536:
+                time.sleep(2);screenshot('pak-player-selection');key('z')
+                wait(lambda value:' to 18\n' in value or 'l3d_adapter_ready' in value)
             if 'l3d_adapter_ready' not in text():
+                if args.require_existing_player:raise ValueError('Existing Pak player was not recognized; name-entry flow reached')
                 time.sleep(2);screenshot('new-game')
                 key('z');key('z');key('z');key('Return')
                 wait(lambda value:'game mode switch from 24 to 44' in value)
@@ -131,7 +140,11 @@ def run(args):
             result['restart_verified']=args.retry
             result['failure_verified']=args.wait_failure
             result['seed_save_unchanged']=not args.seed_save or hashlib.sha256(args.seed_save.read_bytes()).hexdigest()==source_hash
+            result['seed_pak_unchanged']=not args.seed_pak or hashlib.sha256(args.seed_pak.read_bytes()).hexdigest()==pak_hash
+            result['existing_player_loaded']=args.require_existing_player
+            if (data/'controller-pak.bin').exists():result['pak']=check_pak(data/'controller-pak.bin')
             if not result['seed_save_unchanged']:raise ValueError('Source save changed during isolated test')
+            if not result['seed_pak_unchanged']:raise ValueError('Source Pak changed during isolated test')
             (directory/'result.json').write_text(json.dumps(result,indent=2)+'\n')
             print(json.dumps(result),flush=True)
         finally:
@@ -141,6 +154,8 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--seconds',type=int,default=180)
     parser.add_argument('--seed-save',type=Path)
+    parser.add_argument('--seed-pak',type=Path)
+    parser.add_argument('--require-existing-player',action='store_true')
     parser.add_argument('--exercise',action='store_true')
     parser.add_argument('--retry',action='store_true')
     parser.add_argument('--options',action='store_true')

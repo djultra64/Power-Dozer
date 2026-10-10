@@ -56,4 +56,9 @@ int main(){
  refused=false;try{isolated.load();}catch(const std::exception&){refused=true;}check(refused,"checksum damage rejected without reset");
  {std::ofstream damaged(path,std::ios::binary|std::ios::trunc);std::vector<char> huge(40000);damaged.write(huge.data(),huge.size());}
  refused=false;try{isolated.load();}catch(const std::exception&){refused=true;}check(refused,"oversized input rejected");
+ // CRC generated independently with Python zlib: the framing/checksum are
+ // valid but slot presence 2 is invalid and must not enter the model.
+ std::array<uint8_t,32> malformed={0x42,0x43,0x50,0x4B,1,0,0,0,16,0,0,0,0x36,0x6E,0x1B,0x6B,2};
+ {std::ofstream damaged(path,std::ios::binary|std::ios::trunc);damaged.write(reinterpret_cast<char*>(malformed.data()),malformed.size());}
+ refused=false;try{isolated.load();}catch(const std::exception&){refused=true;}check(refused,"valid-checksum malformed directory rejected");
 }

@@ -17,6 +17,7 @@
 #include "wav_capture.h"
 #include "settings.h"
 #include "pc_options.h"
+#include "pak_runtime.h"
 
 double bc_scale=3;
 bool bc_wide=false;
@@ -129,6 +130,7 @@ int main(int argc,char** argv){
  // Boot loader mailboxes supplying compressed front-end ROM boundaries.
  MEM_W(0,S32(0x803FFFF8))=0x7E3AD0;MEM_W(0,S32(0x803FFFFC))=0x7F9BDD;
  bc_load_save();
+ bc_initialize_pak();
  SDL_SetHint(SDL_HINT_GAMECONTROLLER_USE_BUTTON_LABELS,"0");
  if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_GAMECONTROLLER)!=0)bc_fatal(SDL_GetError());
  auto* window=SDL_CreateWindow("Blast Corps prototype",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,bc_wide?1280:960,720,SDL_WINDOW_VULKAN|SDL_WINDOW_RESIZABLE);

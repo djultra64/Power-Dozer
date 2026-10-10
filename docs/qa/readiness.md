@@ -179,3 +179,40 @@ two invalid copies. Initial RED was the missing Pak implementation; GREEN is
 The guest services still report no Pak; native allocation/progress acceptance
 must follow the high-level service bridge implementation. Structural malformed
 directory fixtures and interrupted-write injection also remain to be added.
+
+Controller Pak bridge now supplies initialization/presence, free blocks,
+checker, allocation/find/delete, aligned read/write and file state. Controller
+query/init retain the existing runtime and add memory-card presence on port 0.
+The bindings are generated from the supported ROM, not edited manually.
+Tests cover O32 stack arguments, endian metadata, RAM/stack bounds, absent
+ports, empty-directory lookup and failed atomic commits retaining both RAM and
+disk contents. A valid-CRC malformed directory fixture and an independent
+Python/zlib inspector were added. Twelve native / 25 Python tests pass.
+
+Native Pak creation: `.local/qa/gameplay-d3_576k7`, 180 seconds, exit 0,
+10,801 VI / 10,491 graphics / 5,399 audio tasks. The original game created its
+four 3,584-byte files, accepted player AAA, loaded Simian Acres and passed
+movement/pause/resume. An independent inspector verified the checked image and
+player header. Native reload: `.local/qa/gameplay-7n7m9q9t`, 150 seconds,
+9,001 VI / 8,675 graphics / 4,498 audio tasks, existing AAA recognized without
+name entry; the same mission and controls passed. The source Pak snapshot was
+unchanged. These are software Vulkan/dummy-audio tests.
+
+Upgrade protection: enabling the Pak hides the original EEPROM-only selector.
+Only when no Pak primary or backup exists, import the validated legacy player
+into slot 1 without modifying EEPROM. A deliberately emptied existing Pak must
+not be repopulated. Import validates the game's player checksum and completion
+marker; a bad source stops before writing. The first native attempt omitted
+the footer marker, and the game rejected the isolated converted file. A RED
+regression reproduced that omission; the corrected import retains the marker
+at the Pak location. `.local/qa/gameplay-k70mc8w6` passed 180 seconds: 10,801 VI /
+10,466 graphics / 5,399 audio tasks, original ALF recognized without name entry,
+map/mission, movement, pause/resume and Restart. Original EEPROM hash unchanged.
+
+Remaining progress hardening: the supplied ALF save has no completed-level
+records. Convert the EEPROM best-time pairs and the original demolition-state
+sentinels for completed saves before claiming general upgrade acceptance.
+Also group the game's in-progress→complete marker save sequence into a durable
+transaction: atomic storage of each individual Pfs write alone cannot guarantee
+that an interrupted multi-write game save restores its last complete version.
+These are required before the release gate, alongside objective completion.

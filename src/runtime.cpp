@@ -176,8 +176,6 @@ void bc_osSyncPrintf(uint8_t* rdram,recomp_context* ctx) {
 
 void bc_rmonPrintf(uint8_t* r,recomp_context* c){bc_osSyncPrintf(r,c);}
 void bc_osDpGetStatus(uint8_t*,recomp_context* ctx) {ctx->r2=dp_status;}
-void bc_osPfsInit(uint8_t*,recomp_context* ctx) {ctx->r2=1;}
-void bc_osPfsIsPlug(uint8_t* rdram,recomp_context* ctx) {MEM_B(0,ctx->r5)=0;ctx->r2=0;}
 static void result64(recomp_context* ctx,uint64_t v){ctx->r2=S32(v>>32);ctx->r3=S32(v);}
 static void to_signed(recomp_context* ctx,double v){
  uint64_t n=uint64_t(INT64_MIN);

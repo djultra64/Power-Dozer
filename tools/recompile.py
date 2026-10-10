@@ -41,8 +41,13 @@ def main():
               'osSpTaskStartGo', 'osSpTaskYield', 'osSpTaskYielded',
               'osEepromProbe', 'osEepromRead', 'osEepromWrite', 'osEepromLongRead', 'osEepromLongWrite',
               'osSyncPrintf', 'rmonPrintf', 'osPfsInit', 'osPfsIsPlug', 'osDpGetStatus',
+              'osPfsFreeBlocks', 'osPfsChecker', 'osPfsAllocateFile', 'osPfsFindFile',
+              'osPfsDeleteFile', 'osPfsReadWriteFile', 'osPfsFileState', 'osContInit', 'osContGetQuery',
               '__d_to_ll', '__f_to_ll', '__d_to_ull', '__f_to_ull',
               '__ll_to_d', '__ll_to_f', '__ull_to_d', '__ull_to_f'}
+    # Keep controller sampling in the established runtime and extend only its
+    # card-presence status for the host Controller Pak services.
+    wrappers.difference_update({'osContInit','osContGetQuery'})
     bindings = {}
     sections = []
     for entry in meta:
@@ -127,7 +132,7 @@ def main():
     (out / 'functions/dispatch.inc').write_text('\n'.join(f'case 0x{a:08X}u: return {n};' for a,n in sorted(all_funcs.items()))+'\n')
     (out / 'functions/bindings.h').write_text('\n'.join(f'extern "C" void {n}(uint8_t*, recomp_context*);' for n in bindings)+'\n')
 
-    native = (ROOT / 'src/runtime.cpp').read_text()
+    native = '\n'.join(path.read_text() for path in (ROOT/'src').glob('*.cpp'))
     implemented = set(re.findall(r'void (bc_\w+)\(', native))
     fallback = ['#include "support.h"', '#include "prototype.h"', 'extern "C" {']
     for name, binding in bindings.items():

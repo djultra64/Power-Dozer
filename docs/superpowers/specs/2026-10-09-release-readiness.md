@@ -86,3 +86,13 @@ The guest bridge must bound RAM pointers and O32 stack arguments and translate
 metadata into the original big-endian `OSPfsState` layout. Test file capacity,
 duplicates, deletion, partial writes, alignment/range errors, reload, corruption
 and interrupted writes before enabling the Pak in native gameplay.
+
+When no Pak primary or backup exists, preserve a valid legacy EEPROM player
+by importing it into the first Blast Corps Pak file. Validate the original
+packet checksum and footer marker; preserve the player packet, completed-level
+best times and the original reconstruction sentinel for demolition levels.
+Existing Pak files, including a deliberately erased empty Pak, take precedence
+and must never be repopulated from the older EEPROM. The original EEPROM is
+retained byte-for-byte. Stage the game's in-progress/complete save sequence
+and persist only a complete transaction, retaining the previous complete image
+for recovery if the process or a write is interrupted.

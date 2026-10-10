@@ -3,6 +3,7 @@
 #include "funcs.h"
 #include "ultramodern/ultramodern.hpp"
 #include "librecomp/rsp.hpp"
+#include "event_delivery.h"
 #include <SDL.h>
 #include <fstream>
 #include <iterator>
@@ -173,6 +174,7 @@ int main(int argc,char** argv){
  ultramodern::renderer::set_graphics_config(graphics);
  ultramodern::set_callbacks({rsp_init,run_rsp},{bc_create_context},{queue_audio,remaining_audio,set_frequency},
   {bc_poll_input,bc_get_input,[](int,bool){},[](int port){return ultramodern::input::connected_device_info_t{port==0?ultramodern::input::Device::Controller:ultramodern::input::Device::None,ultramodern::input::Pak::None};}}, {},{count_vi,nullptr},{error},{});
+ bc::initialize_event_delivery();
  ultramodern::preinit(rdram,window);
  fprintf(stderr,"{\"event\":\"native_entry\",\"entry\":\"0x802447C0\",\"scale\":%.1f,\"wide_requested\":%s,\"refresh_requested\":%d}\n",bc_scale,bc_wide?"true":"false",bc_refresh);fflush(stderr);
  std::thread guest([rdram]{ultramodern::set_entrypoint_thread();recomp_context ctx{};ctx.status_reg=0x2000FF01;ctx.r29=S32(0x801E6FF0);ctx.f_odd=&ctx.f0.u32h;recomp_entrypoint(rdram,&ctx);});guest.detach();

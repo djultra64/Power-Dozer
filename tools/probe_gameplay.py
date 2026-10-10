@@ -40,14 +40,17 @@ def run(args):
         shutil.copyfile(args.seed_pak,data/'controller-pak.bin')
     driver={'software':'/usr/share/vulkan/icd.d/lvp_icd.x86_64.json','radv':'/usr/share/vulkan/icd.d/radeon_icd.x86_64.json'}[args.gpu]
     env=dict(os.environ,BC_TRACE_INPUT='1',BC_TRACE_GAMEPLAY='1',BC_TRACE_RENDER='1',SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',VK_DRIVER_FILES=driver)
+    preload_aliases=tempfile.TemporaryDirectory(prefix='blastcorps-qa-preload-',dir='/tmp') if args.audio_loss or args.controller else None
+    def preload_path(path):
+        # ld.so splits on spaces. A private alias also works when the tested
+        # package starts from /tmp rather than this checkout's directory.
+        alias=Path(preload_aliases.name)/path.name;alias.symlink_to(path.resolve());return str(alias)
     if args.audio_loss:
         subprocess.run(['c++','-std=c++20','-shared','-fPIC','-I/home/linuxbrew/.linuxbrew/include/SDL2','tools/qa_audio_fault.cpp','-ldl','-L/home/linuxbrew/.linuxbrew/lib','-lSDL2','-Wl,-rpath,/home/linuxbrew/.linuxbrew/lib','-o',str(directory/'libaudio-fault.so')],cwd=ROOT,check=True)
-        # ld.so splits LD_PRELOAD on spaces, including spaces inside paths.
-        # Use a relative path without spaces and set the native working folder.
-        env.update(LD_PRELOAD=str((directory/'libaudio-fault.so').relative_to(ROOT)),BC_QA_AUDIO_FAULT_AFTER='45',BC_QA_AUDIO_OUTAGE='8',BC_QA_AUDIO_STARTUP_OUTAGE='3',BC_QA_AUDIO_FAULT_KIND=args.audio_loss)
+        env.update(LD_PRELOAD=preload_path(directory/'libaudio-fault.so'),BC_QA_AUDIO_FAULT_AFTER='45',BC_QA_AUDIO_OUTAGE='8',BC_QA_AUDIO_STARTUP_OUTAGE='3',BC_QA_AUDIO_FAULT_KIND=args.audio_loss)
     if args.controller:
         subprocess.run(['c++','-std=c++20','-shared','-fPIC','-I/home/linuxbrew/.linuxbrew/include/SDL2','tools/qa_controller.cpp','-ldl','-L/home/linuxbrew/.linuxbrew/lib','-lSDL2','-Wl,-rpath,/home/linuxbrew/.linuxbrew/lib','-o',str(directory/'libcontroller.so')],cwd=ROOT,check=True)
-        preload=str((directory/'libcontroller.so').relative_to(ROOT))
+        preload=preload_path(directory/'libcontroller.so')
         if env.get('LD_PRELOAD'):preload+=':'+env['LD_PRELOAD']
         env.update(LD_PRELOAD=preload,BC_QA_CONTROLLER=args.controller,BC_QA_INPUT_FILE=str(directory/'controller-input'))
     log=directory/'native.log'
@@ -55,7 +58,7 @@ def run(args):
     confirm='z'
     prompt_captured=False
     with log.open('w') as output:
-        process=subprocess.Popen([str(ROOT/'build/blastcorps-prototype'),'--rom',str(ROOT/'.local/rom.z64'),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale',str(args.scale),'--original-aspect' if args.original_aspect else '--wide','--refresh',str(args.refresh),'--texture',args.texture],cwd=ROOT,env=env,stdout=output,stderr=subprocess.STDOUT)
+        process=subprocess.Popen([str(args.executable.resolve()),'--rom',str(args.rom.resolve()),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale',str(args.scale),'--original-aspect' if args.original_aspect else '--wide','--refresh',str(args.refresh),'--texture',args.texture],cwd=args.launch_dir.resolve(),env=env,stdout=output,stderr=subprocess.STDOUT)
         def text():return log.read_text(errors='replace')
         def states():
             result=[]
@@ -286,6 +289,8 @@ def run(args):
             if args.controller:result['controller_actions']=check_controller_probe(log,args.controller)
             if args.instruction_glyphs:result['instruction_glyphs']=check_instruction_probe(log,args.controller)
             result['seconds_requested']=args.seconds
+            result['native_executable']=str(args.executable.resolve())
+            result['native_launch_directory']=str(args.launch_dir.resolve())
             result['graphics_requested']={'gpu_driver':args.gpu,'scale':args.scale,'wide':not args.original_aspect,'refresh':args.refresh,'texture':args.texture}
             result['motion_capture']=str(directory/'mission-motion.mp4') if args.capture_motion else None
             result['exercise_verified']=args.exercise
@@ -308,10 +313,14 @@ def run(args):
             print(json.dumps(result),flush=True)
         finally:
             if process.poll() is None:process.terminate();process.wait(timeout=10)
+            if preload_aliases:preload_aliases.cleanup()
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--seconds',type=int,default=180)
+    parser.add_argument('--executable',type=Path,default=ROOT/'build/blastcorps-prototype',help='Native executable or packaged launcher to test')
+    parser.add_argument('--rom',type=Path,default=ROOT/'.local/rom.z64',help='Private ROM input for the tested native executable')
+    parser.add_argument('--launch-dir',type=Path,default=ROOT,help='Native working directory; use /tmp to verify a clean package outside the checkout')
     parser.add_argument('--gpu',choices=('software','radv'),default='software',help='Select software Vulkan or the local Radeon GPU; target rates still depend on the private display')
     parser.add_argument('--scale',type=float,default=1,help='Internal rendering multiplier, 1..9; 9 requests a 2160-line target')
     parser.add_argument('--refresh',type=int,choices=(0,30,60,120),default=120)

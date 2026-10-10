@@ -1016,3 +1016,70 @@ and five-member privacy/hash audit passed in a disposable private staging area.
 No claim of whole-dependency license review or corresponding-source completion;
 ready_for_release and license_review_complete remain false. Existing archive
 predates these updates and remains diagnostic until rebuilt/tested.
+
+Task6 regenerated private archive at clean commitf883dbf: SHA256
+eefc2a5d5f422c8d44ece296d2227dba7388b2b19e6ffbe71236b8b0fffe6314,
+75 members/74 manifest payloads,63 unique non-JSON notices. Every payload hash
+verified after safe extraction into a path with spaces:
+.local/qa/clean package f883dbf 7y9gsa8p/blastcorps-private-linux-x86_64.
+Ready/license-review flags remain false. Native package acceptance now uses
+harness --executable/--launch-dir/--rom rather than a hardcoded checkout binary.
+Private preload libraries use space-free temporary aliases, so virtual controls
+and audio fault injection work from /tmp as well as the checkout. No physical
+input injected. Alias cleanup after the native process terminates.
+
+Actual package gameplay .local/qa/gameplay-qj4o7pql:180seconds, native launcher
+inside the extracted package, native working directory/tmp, internal1080p,
+virtual120Hz/RADV.10801VI/10491graphics/5399audio.14 complete mission windows/
+28.000060seconds pass119.495..120.004FPS with fractional/mapped render counts.
+Native Switch virtual help, keyboard handover, detach/reconnect held-input
+suppression, South confirm, actual vehicle movement and Start/Continue accepted.
+Four original instruction command sites observed by glyph checker; new captures
+still require visual review. Source EEPROM/Pak unchanged. Physical hardware
+remains untested. Full package test passed outside the source working directory;
+subsequent runtime corrections require a newly rebuilt archive and regression.
+
+4K linear-filter trial .local/qa/gameplay-a938ol7u:180seconds,10801VI/10490gfx/
+5399audio, movement/pause/Continue/Restart passed, source EEPROM/Pak unchanged.
+Effective settings log verifies linear textures; target120 gate failsVI3720/
+117.001FPS. Thus this option does not repair sustained4K120 performance, and
+no default quality downgrade was made. Queue diagnostics remain normal in this
+passing audio trial; intermittent loss in gameplay-ja976uzj remains open.
+
+Audio investigation found a definite startup omission: librecomp's normal
+startup calls ultramodern::set_message_queue_control(cfg.message_queue_control)
+before preinit. Blast Corps bypasses that path and never called the setter;
+SDK global retry bitset remained zero despite MessageQueueControl defaults for
+SP/DP/Timer/SI. RED actual pinned SDK mesgqueue.cpp test (no substitute queue
+model) saturates a one-message guest queue, enqueues SP completion, consumes the
+older message and pumps again: completion is lost. Failure reads critical
+completion survives a saturated queue. Earlier configure missing Threads::Threads
+was repaired separately and is not behavioral RED. New event_delivery startup
+service now applies the SDK's standard defaults before preinit; test also checks
+DP/Timer/SI ordering/exactly-once and that VI ticks do not build retry backlog.
+This fixes proven event loss; it does not yet prove the previously observed
+audio stop was caused by that specific loss. Native long regression pending.
+
+Event delivery GREEN: actual SDK queue test passes SP/DP/Timer/SI retries,
+occupied-queue preservation, older-before-retry ordering, exactly-once and
+non-retried VI ticks. Main now calls initialization immediately before preinit,
+matching normal SDK startup; SDK references remain unmodified.28 native/62
+Python tests passed. Native cold-cache diagnostic .local/qa/gameplay-r7zq5ne6
+currently live (handle37360),360seconds requested,4K120/three_point,
+MESA_SHADER_CACHE_DISABLE=true only in private test process hierarchy. Movement,
+pause/Continue/Restart plus bounded audio states enabled; last sampled VI8400/
+audio4198 advanced normally, no stuck reply/head. Explicit poll confirms running;
+retain this handle across continuations rather than restarting on timeout.
+Do not claim the intermittent audio stop fixed until native regression evidence
+against the actual condition warrants it. Existing f883dbf archive predates
+this startup correction and requires rebuilding and regression before RC use.
+
+Package help/tutorial rendered captures reviewed: Switch Help shows SouthB
+for ACCEL/OK, EastA for BACK/REVERSE and Plus for Pause; keyboard-active original
+tutorial shows Enter label/keycap. Last active device is consistent with
+input sequence (keyboard tutorial precedes Guide handover to Switch). The close
+intro camera shows the bulldozer from underneath; an original-rate comparison
+is still needed before judging the open underside/parts layout as correct
+through that camera transition. Static/command review cannot certify all
+interpolation discontinuities. Broader vehicle, destruction and objective
+completion acceptance remains pending.

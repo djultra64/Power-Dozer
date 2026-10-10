@@ -17,6 +17,7 @@ struct PakFile {PakKey key;bool occupied=false;std::vector<uint8_t> data;};
 class PakImage {
  std::array<std::optional<PakFile>,16> files_;
  friend class PakStore;
+ friend class PakSession;
 public:
  int free_bytes() const;
  int find(const PakKey&,int& index) const;
@@ -28,11 +29,12 @@ public:
 };
 class PakStore {
  std::filesystem::path path_;
+ bool (*accept_)(const PakImage&)=nullptr;
  static std::vector<uint8_t> encode(const PakImage&);
  static PakImage decode(std::span<const uint8_t>);
- static bool read_valid(const std::filesystem::path&,PakImage&);
+ bool read_valid(const std::filesystem::path&,PakImage&) const;
 public:
- explicit PakStore(std::filesystem::path path):path_(std::move(path)){}
+ explicit PakStore(std::filesystem::path path,bool (*accept)(const PakImage&)=nullptr):path_(std::move(path)),accept_(accept){}
  PakImage load() const;
  void save(const PakImage&) const;
 };

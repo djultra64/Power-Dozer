@@ -1,4 +1,5 @@
 #include "save_migration.h"
+#include "blast_save_format.h"
 #include <algorithm>
 #include <cstring>
 #include <stdexcept>
@@ -13,6 +14,13 @@ uint8_t controller_crc(const uint8_t* data){
  }
  return crc;
 }
+void packet_checksum(std::span<uint8_t> packet){
+ std::fill(packet.end()-4,packet.end(),0);
+ std::array<uint8_t,4> lanes{};
+ for(size_t block=0;block<packet.size()/32;block++)lanes[block%4]+=controller_crc(packet.data()+block*32);
+ std::copy(lanes.begin(),lanes.end(),packet.end()-4);
+}
+bool excluded(unsigned level){return level==38||level==47||level==49;}
 }
 bool import_eeprom_player(PakImage& image,const SaveStore::Image& source){
  if(image.free_bytes()!=123*256||source[0]==0||std::memcmp(source.data(),"NEW GAME",9)==0)return false;
@@ -22,13 +30,34 @@ bool import_eeprom_player(PakImage& image,const SaveStore::Image& source){
  std::array<uint8_t,4> checksum{};
  for(unsigned block=0;block<8;block++)checksum[block%4]+=controller_crc(packet.data()+block*32);
  if(!std::equal(checksum.begin(),checksum.end(),source.begin()+252))throw std::runtime_error("Legacy EEPROM game checksum is invalid; restore a valid save before importing");
- constexpr std::array<uint8_t,8> marker={0x87,0x56,0x9A,0xB6,0xCD,0x07,0x6A,0xEC};
- if(!std::equal(marker.begin(),marker.end(),source.begin()+504))throw std::runtime_error("Legacy EEPROM completion marker is invalid; restore a valid save before importing");
- PakKey key;key.company=0x3031;key.game=0x4E424345;
- key.name={0x1B,0x25,0x1A,0x2C,0x2D,0x1C,0x28,0x2B,0x29,0x2C,0x0F,0x20,0x1A,0x26,0x1E,0};key.extension[0]=0x11;
+ if(!std::equal(blast_save_complete.begin(),blast_save_complete.end(),source.begin()+504))throw std::runtime_error("Legacy EEPROM completion marker is invalid; restore a valid save before importing");
  auto candidate=image;int index;
- if(candidate.allocate(key,3584,index)!=0||candidate.write(index,0,std::span(source.data(),256))!=0)throw std::runtime_error("Cannot import EEPROM player into Controller Pak");
- std::array<uint8_t,32> tail{};std::copy(marker.begin(),marker.end(),tail.begin());
+ if(candidate.allocate(blast_pak_key,3584,index)!=0||candidate.write(index,0,std::span(source.data(),256))!=0)throw std::runtime_error("Cannot import EEPROM player into Controller Pak");
+ // EEPROM has one time per level and no building-state records. Reconstruct
+ // the same Pak records as the ROM's EEPROM restore path (80201E80), including
+ // its sentinel used by stats_perm to recreate a completed demolition mission.
+ unsigned demolition_index=0;
+ for(unsigned level=0;level<60;level++){
+  if(excluded(level))continue;
+  const bool demolition=blast_level_types[level]==1;
+  const auto medal=source[0x18+level];
+  if(medal>0&&medal<6){
+   auto vehicle=source[0x92+level];
+   if(vehicle>=blast_vehicle_time_slots.size()||blast_vehicle_time_slots[vehicle]>=14)throw std::runtime_error("Legacy EEPROM completed-level vehicle is invalid; restore a valid save before importing");
+   const auto offset=0x100+4*level;auto time=uint16_t(source[offset]<<8|source[offset+1]),inverse=uint16_t(source[offset+2]<<8|source[offset+3]);
+   if((time^0x55AA)!=inverse)throw std::runtime_error("Legacy EEPROM best-time checksum is invalid; restore a valid save before importing");
+   std::array<uint8_t,32> times{};auto slot=blast_vehicle_time_slots[vehicle]*2;
+   times[slot]=uint8_t(time>>8);times[slot+1]=uint8_t(time);packet_checksum(times);
+   if(candidate.write(index,0x100+32*level,times)!=0)throw std::runtime_error("Cannot import EEPROM best time");
+   if(demolition){
+    std::array<uint8_t,64> status{};constexpr std::array<uint8_t,8> sentinel={0x12,0x34,0x56,0x78,0x87,0x65,0x43,0x21};
+    std::copy(sentinel.begin(),sentinel.end(),status.begin());packet_checksum(status);
+    if(candidate.write(index,0x880+64*demolition_index,status)!=0)throw std::runtime_error("Cannot import EEPROM demolition state");
+   }
+  }
+  if(demolition)demolition_index++;
+ }
+ std::array<uint8_t,32> tail{};std::copy(blast_save_complete.begin(),blast_save_complete.end(),tail.begin());
  if(candidate.write(index,0xDE0,tail)!=0)throw std::runtime_error("Cannot import EEPROM completion marker");
  image=std::move(candidate);return true;
 }

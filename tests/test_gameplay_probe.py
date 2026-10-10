@@ -11,7 +11,7 @@ spec.loader.exec_module(probe)
 
 class GameplayAcceptance(unittest.TestCase):
     def log(self, extra='', frozen_graphics=False):
-        lines=['guest: game mode switch from 53 to 14','guest: game mode switch from 11 to 0',json.dumps({'event':'audio_signal','peak':12})]
+        lines=['guest: game mode switch from 53 to 14','guest: game mode switch from 11 to 0','guest: game mode switch from 13 to 2',json.dumps({'event':'audio_signal','peak':12})]
         for vi in (301,601,901,1201):
             lines.append(json.dumps({'event':'progress','vi':vi,'gfx':9 if frozen_graphics else vi,'audio':vi//2}))
         lines.append(json.dumps({'event':'probe_end','vi':1201,'gfx':9 if frozen_graphics else 1201,'audio':600}))
@@ -20,7 +20,7 @@ class GameplayAcceptance(unittest.TestCase):
     def inspect(self,text):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'game.log';path.write_text(text)
-            return probe.check(path,required_modes=(14,0))
+            return probe.check(path,required_modes=(14,2))
 
     def test_complete_map_and_gameplay_is_accepted(self):
         result=self.inspect(self.log());self.assertEqual(result['vi'],1201)
@@ -34,8 +34,12 @@ class GameplayAcceptance(unittest.TestCase):
             self.inspect(self.log(frozen_graphics=True))
 
     def test_missing_mission_transition_is_rejected(self):
-        with self.assertRaisesRegex(ValueError,'mode 0'):
-            self.inspect(self.log().replace('guest: game mode switch from 11 to 0',''))
+        with self.assertRaisesRegex(ValueError,'mode 2'):
+            self.inspect(self.log().replace('guest: game mode switch from 13 to 2',''))
+
+    def test_existing_completed_player_needs_no_new_game_introduction(self):
+        content=self.log().replace('guest: game mode switch from 11 to 0','guest: game mode switch from 14 to 7\nguest: game mode switch from 7 to 13')
+        self.assertEqual(self.inspect(content)['vi'],1201)
 
     def test_crash_text_rejects_even_complete_counters(self):
         with self.assertRaisesRegex(ValueError,'crash'):

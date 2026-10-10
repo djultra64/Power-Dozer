@@ -2,6 +2,7 @@
 #include "support.h"
 #include "pak_store.h"
 #include "save_store.h"
+#include "blast_save_format.h"
 #include <chrono>
 #include <filesystem>
 #include <stdexcept>
@@ -55,5 +56,25 @@ int main(){
  check(ctx.r2==0&&MEM_BU(0,a(buffer))=='O'&&MEM_BU(100,a(buffer))==0x55,"fresh upgrade imports the complete legacy player");
  legacy[100]^=1;bc::SaveStore(bc_data_directory/"eeprom.bin").save(legacy);bc_initialize_pak();bc_osPfsReadWriteFile(rdram,&ctx);
  check(ctx.r2==0&&MEM_BU(100,a(buffer))==0x55,"existing Pak never reimports a changed legacy source");
+ auto packet=[&](int offset,std::span<const uint8_t> bytes){
+  for(size_t i=0;i<bytes.size();i++)MEM_B(i,a(buffer))=bytes[i];
+  ctx.r4=a(pfs);ctx.r5=0;ctx.r6=1;ctx.r7=offset;MEM_W(16,a(stack))=bytes.size();MEM_W(20,a(stack))=a(buffer);bc_osPfsReadWriteFile(rdram,&ctx);
+ };
+ std::array<uint8_t,32> footer{};std::copy(bc::blast_save_in_progress.begin(),bc::blast_save_in_progress.end(),footer.begin());
+ packet(0xDE0,footer);check(ctx.r2==0,"guest begins a save transaction");
+ std::array<uint8_t,32> progress{};progress.fill(0xAA);packet(96,progress);check(ctx.r2==0,"guest stages a new progress packet");
+ auto persisted=bc::PakStore(bc_data_directory/"controller-pak.bin").load();
+ check(persisted.file(0)->data[100]==0x55&&persisted.file(0)->data[0xDE0]==0x87,"unfinished guest transaction leaves complete disk save intact");
+ bc_initialize_pak();ctx.r4=a(pfs);ctx.r5=0;ctx.r6=0;ctx.r7=96;MEM_W(16,a(stack))=32;MEM_W(20,a(stack))=a(buffer);bc_osPfsReadWriteFile(rdram,&ctx);
+ check(ctx.r2==0&&MEM_BU(4,a(buffer))==0x55,"restart during guest transaction restores the complete save");
+ packet(0xDE0,footer);packet(96,progress);
+ std::filesystem::remove(backup);std::filesystem::create_directory(backup);
+ std::copy(bc::blast_save_complete.begin(),bc::blast_save_complete.end(),footer.begin());packet(0xDE0,footer);
+ check(ctx.r2==4,"failed guest transaction commit reports a Pak error");
+ ctx.r4=a(pfs);ctx.r5=0;ctx.r6=0;ctx.r7=96;MEM_W(16,a(stack))=32;MEM_W(20,a(stack))=a(buffer);bc_osPfsReadWriteFile(rdram,&ctx);
+ check(ctx.r2==0&&MEM_BU(4,a(buffer))==0xAA,"failed transaction retains staged progress for retry");
+ std::filesystem::remove(backup);packet(0xDE0,footer);check(ctx.r2==0,"guest retries the complete marker successfully");
+ bc_initialize_pak();ctx.r4=a(pfs);ctx.r5=0;ctx.r6=0;ctx.r7=96;MEM_W(16,a(stack))=32;MEM_W(20,a(stack))=a(buffer);bc_osPfsReadWriteFile(rdram,&ctx);
+ check(ctx.r2==0&&MEM_BU(4,a(buffer))==0xAA,"successful transaction survives restart");
  puts("Controller Pak ABI passed");
 }

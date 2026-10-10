@@ -143,6 +143,13 @@ def main():
 def normalize(folder):
     # These hooks depend on the original pause layout and callable entries.
     rom=(ROOT/'.local/hd_code.bin').read_bytes()
+    layout=(ROOT/'include/blast_save_format.h').read_text()
+    for name,address,count,stride in [('blast_level_types',0x802E8F94,60,0x44),('blast_vehicle_time_slots',0x802E8C44,16,1)]:
+        encoded=re.search(r'\b'+name+r'=\{([^}]+)\}',layout,re.S)
+        expected=bytes(int(value,16) for value in re.findall(r'0x([0-9A-Fa-f]+)',encoded.group(1)))
+        actual=bytes(rom[address-0x802447C0+i*stride] for i in range(count))
+        if expected!=actual:
+            raise ValueError(f'Original EEPROM migration layout changed: {name}')
     for address,expected in (
         (0x802F8BDC,'010000d000200010f1000039000000000005001b001c001d00000000'),
         (0x8024BDA4,'27bdffd03c0e8036'),(0x8026BCE0,'3c0f80313c188037')):

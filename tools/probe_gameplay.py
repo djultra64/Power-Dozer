@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -78,6 +79,11 @@ def run(args):
             time.sleep(5);screenshot('map')
             print('Map reached; selecting Simian Acres',flush=True)
             key('z')
+            wait(lambda value:'game mode switch from 13 to 2' in value or 'game mode switch from 14 to 7' in value,30)
+            if 'game mode switch from 14 to 7' in text():
+                wait(lambda value:bool(states()) and states()[-1]['state_lo']==128 and states()[-1]['window']==15)
+                time.sleep(2);screenshot('completed-level-stats')
+                screenshot('completed-level-replay');key('z')
             wait(lambda value:'game mode switch from 13 to 2' in value,30)
             time.sleep(2);screenshot('mission-start')
             if args.exercise:
@@ -114,9 +120,13 @@ def run(args):
                 if states()[-1]['paused']:raise ValueError('Start did not resume the guest')
                 print('Guest position changed; pause and resume confirmed by guest state',flush=True)
                 if args.retry:
-                    key('Return');time.sleep(1)
-                    key('Down');screenshot('restart-focused');key('z');time.sleep(2);screenshot('restart-selected')
-                    wait(lambda value:'game mode switch from 8 to 13' in value)
+                    restart_at=len(text());key('Return');time.sleep(1)
+                    key('Down')
+                    # View Stats is enabled for previously completed missions;
+                    # a fresh mission skips that row and reaches Restart first.
+                    if 'game mode switch from 14 to 7' in text():key('Down')
+                    screenshot('restart-focused');key('z');time.sleep(2);screenshot('restart-selected')
+                    wait(lambda value:re.search(r'game mode switch from (?:2|8) to 13',value[restart_at:]))
                     key('z');time.sleep(3);screenshot('restarted')
                     key('z');time.sleep(1)
                     print('Restart selected; transition and capture require review',flush=True)
@@ -133,7 +143,9 @@ def run(args):
                     screenshot('mission-failure');print('Mission failure confirmed by guest state',flush=True)
             process.wait(timeout=args.seconds+15)
             if process.returncode!=0:raise ValueError(f'Native process exited {process.returncode}')
-            result=check(log,required_modes=(14,0,2))
+            # Mode 0 is the new-player introduction. Existing completed players
+            # legitimately go map (14) → statistics (7) → mission (2) instead.
+            result=check(log,required_modes=(14,2))
             result['seconds_requested']=args.seconds
             result['exercise_verified']=args.exercise
             result['options_verified']=args.options
@@ -142,6 +154,7 @@ def run(args):
             result['seed_save_unchanged']=not args.seed_save or hashlib.sha256(args.seed_save.read_bytes()).hexdigest()==source_hash
             result['seed_pak_unchanged']=not args.seed_pak or hashlib.sha256(args.seed_pak.read_bytes()).hexdigest()==pak_hash
             result['existing_player_loaded']=args.require_existing_player
+            result['completed_level_replayed']='game mode switch from 14 to 7' in text() and 'game mode switch from 7 to 13' in text()
             if (data/'controller-pak.bin').exists():result['pak']=check_pak(data/'controller-pak.bin')
             if not result['seed_save_unchanged']:raise ValueError('Source save changed during isolated test')
             if not result['seed_pak_unchanged']:raise ValueError('Source Pak changed during isolated test')

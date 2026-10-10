@@ -216,3 +216,51 @@ Also group the game's in-progress→complete marker save sequence into a durable
 transaction: atomic storage of each individual Pfs write alone cannot guarantee
 that an interrupted multi-write game save restores its last complete version.
 These are required before the release gate, alongside objective completion.
+
+
+Progress transaction hardening: `PakSession` now stages the ROM's explicit
+in-progress marker and following writes, committing the complete player file
+only on the original completion marker. Other players' pending data must not
+leak into that commit. Tests cover interruption/reload, write failure with
+retry, concurrent player saves, unrelated writes and deletion. The guest ABI
+suite repeats interruption/failure/retry through actual O32 Pfs calls. Older
+checked images carrying the explicit in-progress marker recover a complete
+backup; without one, startup refuses the image and preserves it. The backup
+written after recovery must remain complete. RED→GREEN observed for transaction
+and old-image recovery tests; 13/13 native tests pass.
+
+Native transaction flow: `.local/qa/gameplay-0cs2gidt` passed 180 seconds,
+10,801 VI / 10,492 graphics / 5,398 audio tasks. Four original files created,
+new AAA player named, map and mission reached, movement/pause/resume verified.
+The name-save sequence logged two staged writes followed by one durable
+complete write. Checked image inspected; software Vulkan/dummy audio only.
+
+Completed legacy conversion now reconstructs original per-vehicle time packets
+with their game checksum, validates EEPROM time/XOR pairs, and supplies the
+original demolition reconstruction sentinel with its checksum. Preserve the
+entire player packet and exclude original special levels 38/47/49. The level
+and vehicle slot tables are checked against ROM bytes during normalization.
+An independently encoded synthetic fixture covers early/later demolition and
+a race time in different vehicle slots; invalid time pairs/completion marker
+must refuse import without mutating the candidate. RED→GREEN observed.
+
+Completed-player native harness diagnosis: `.local/qa/gameplay-1746cgpc`
+recognized the converted player, read time 1234 and reconstructed its status,
+but timed out because the test expected a new-level load instead of mode 7
+statistics. `.local/qa/gameplay-zd58mlnm` additionally replayed that level and
+passed movement/pause/resume; its restart attempt selected View Stats, a row
+that is disabled for new levels. Neither is accepted as a complete regression.
+The harness now follows the original statistics/GO path, skips the enabled
+View Stats row before Restart, and accepts the actual pause transition for
+both mission states. Acceptance requires map mode 14 and mission mode 2;
+mode 0 is only a new-player introduction, not a mission. A checker regression
+explicitly rejects missing mission mode 2 and accepts existing-player flows
+without mode 0. Current Python suite: 26/26 passed. Full rerun pending.
+
+Completed-player regression: `.local/qa/gameplay-1wvhvmie` passed 180 seconds,
+10,801 VI / 10,919 graphics / 5,399 audio tasks. QA DONE recognized without
+name entry, original time 1234 read successfully, demolition status rebuilt,
+statistics/GO (14→7→13→2), movement/pause/resume and Restart (2→13→2) verified.
+Captures reviewed. The synthetic EEPROM seed and original user EEPROM stayed
+unchanged. This establishes migrated completed-progress acceptance; it does
+not establish completing a new objective during gameplay, still pending.

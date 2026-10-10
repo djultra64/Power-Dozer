@@ -63,16 +63,17 @@ PakImage PakStore::decode(std::span<const uint8_t> bytes){
  }
  if(r.pos!=bytes.size())throw std::runtime_error("Unexpected Pak trailing bytes");return image;
 }
-bool PakStore::read_valid(const std::filesystem::path& path,PakImage& out){
+bool PakStore::read_valid(const std::filesystem::path& path,PakImage& out) const{
  std::ifstream file(path,std::ios::binary);if(!file)return false;
  std::vector<uint8_t> bytes(limit+1);file.read(reinterpret_cast<char*>(bytes.data()),bytes.size());if(file.bad())return false;bytes.resize(file.gcount());
- try{out=decode(bytes);return true;}catch(const std::runtime_error&){return false;}
+ try{out=decode(bytes);return !accept_||accept_(out);}catch(const std::runtime_error&){return false;}
 }
 PakImage PakStore::load() const{
  PakImage image;if(read_valid(path_,image)||read_valid(path_.string()+".bak",image))return image;
  if(std::filesystem::exists(path_)||std::filesystem::exists(path_.string()+".bak"))throw std::runtime_error("Controller Pak and backup are invalid; restore a valid Pak save");return {};
 }
 void PakStore::save(const PakImage& image) const{
+ if(accept_&&!accept_(image))throw std::runtime_error("Refusing to persist an unfinished Controller Pak save");
  auto previous=load();auto directory=path_.parent_path();if(directory.empty())directory=".";std::filesystem::create_directories(directory);
  if(std::filesystem::exists(path_)||std::filesystem::exists(path_.string()+".bak"))atomic_write_file(path_.string()+".bak",encode(previous));
  atomic_write_file(path_,encode(image));

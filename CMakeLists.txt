@@ -22,7 +22,7 @@ list(APPEND BC_UM_SOURCES "${CMAKE_BINARY_DIR}/blastcorps-events.cpp")
 set_property(TARGET ultramodern PROPERTY SOURCES "${BC_UM_SOURCES}")
 file(GLOB GUEST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/.local/generated/functions/funcs_*.c")
 set_source_files_properties(${GUEST} PROPERTIES LANGUAGE CXX COMPILE_OPTIONS "-w;-O1")
-add_executable(blastcorps-prototype src/main.cpp src/runtime.cpp src/renderer.cpp src/input.cpp src/l3d.cpp src/save_store.cpp src/pak_store.cpp src/pak_runtime.cpp src/save_migration.cpp src/atomic_file.cpp src/settings.cpp src/settings_menu.cpp src/pc_options.cpp
+add_executable(blastcorps-prototype src/main.cpp src/runtime.cpp src/renderer.cpp src/input.cpp src/l3d.cpp src/save_store.cpp src/pak_store.cpp src/pak_runtime.cpp src/pak_session.cpp src/save_migration.cpp src/atomic_file.cpp src/settings.cpp src/settings_menu.cpp src/pc_options.cpp
  "${CMAKE_SOURCE_DIR}/.local/generated/fallbacks.cpp"
  "${CMAKE_SOURCE_DIR}/.local/audio-rsp.cpp"
  "${RUNTIME}/librecomp/src/ultra_translation.cpp"
@@ -86,7 +86,7 @@ add_test(NAME pc_options_guest_bridge COMMAND pc_options_test)
 add_executable(pak_store_test tests/pak_store.cpp src/pak_store.cpp src/atomic_file.cpp)
 target_include_directories(pak_store_test PRIVATE include)
 add_test(NAME controller_pak_files_and_recovery COMMAND pak_store_test)
-add_executable(pak_runtime_test tests/pak_runtime.cpp src/pak_runtime.cpp src/pak_store.cpp src/save_migration.cpp src/save_store.cpp src/atomic_file.cpp)
+add_executable(pak_runtime_test tests/pak_runtime.cpp src/pak_runtime.cpp src/pak_session.cpp src/pak_store.cpp src/save_migration.cpp src/save_store.cpp src/atomic_file.cpp)
 target_include_directories(pak_runtime_test PRIVATE include .local/generated/functions
  "${RUNTIME}/N64Recomp/include" "${RUNTIME}/ultramodern/include"
  "${RUNTIME}/librecomp/include" "${RUNTIME}/librecomp/include/librecomp" "${RUNTIME}/thirdparty")
@@ -94,3 +94,6 @@ add_test(NAME controller_pak_guest_abi COMMAND pak_runtime_test)
 add_executable(save_migration_test tests/save_migration.cpp src/save_migration.cpp src/pak_store.cpp src/atomic_file.cpp)
 target_include_directories(save_migration_test PRIVATE include)
 add_test(NAME preserve_legacy_player_on_pak_upgrade COMMAND save_migration_test)
+add_executable(pak_session_test tests/pak_session.cpp src/pak_session.cpp src/pak_store.cpp src/atomic_file.cpp)
+target_include_directories(pak_session_test PRIVATE include)
+add_test(NAME complete_pak_transactions_survive_interruptions COMMAND pak_session_test)

@@ -73,7 +73,7 @@ void bc_guest_translucent_mode(uint8_t* rdram,recomp_context* ctx,unsigned phase
 void bc_guest_state(uint8_t* rdram) {
  if(!std::getenv("BC_TRACE_GAMEPLAY"))return;
  static uint64_t next=0;auto vi=bc_vis.load();if(vi<next)return;next=vi+15;
- fprintf(stderr,"{\"event\":\"guest_state\",\"vi\":%llu,\"level\":%d,\"state_hi\":%u,\"state_lo\":%u,\"paused\":%u,\"failed\":%u,\"complete\":%u,\"window\":%d,\"x\":%d,\"y\":%d,\"z\":%d}\n",(unsigned long long)vi,MEM_W(0,S32(0x802E8BDC)),uint32_t(MEM_W(0,S32(0x80364A90))),uint32_t(MEM_W(0,S32(0x80364A94))),MEM_BU(0,S32(0x802E8BD0)),MEM_BU(0,S32(0x803643D6)),MEM_BU(0,S32(0x803643D7)),MEM_H(0,S32(0x8036BB18)),MEM_W(0,S32(0x803643E0)),MEM_W(0,S32(0x803643E4)),MEM_W(0,S32(0x803643E8)));
+ fprintf(stderr,"{\"event\":\"guest_state\",\"vi\":%llu,\"level\":%d,\"state_hi\":%u,\"state_lo\":%u,\"paused\":%u,\"failed\":%u,\"complete\":%u,\"window\":%d,\"x\":%d,\"y\":%d,\"z\":%d,\"money\":%u,\"buildings_destroyed\":%u,\"rdus_found\":%u}\n",(unsigned long long)vi,MEM_W(0,S32(0x802E8BDC)),uint32_t(MEM_W(0,S32(0x80364A90))),uint32_t(MEM_W(0,S32(0x80364A94))),MEM_BU(0,S32(0x802E8BD0)),MEM_BU(0,S32(0x803643D6)),MEM_BU(0,S32(0x803643D7)),MEM_H(0,S32(0x8036BB18)),MEM_W(0,S32(0x803643E0)),MEM_W(0,S32(0x803643E4)),MEM_W(0,S32(0x803643E8)),uint32_t(MEM_W(0,S32(0x8036EA70))),MEM_BU(0,S32(0x8036EA78)),MEM_HU(0,S32(0x8036EA7C)));
 }
 void bc_guest_render_mode(uint8_t* rdram,recomp_context* ctx) {
  fprintf(stderr,"{\"event\":\"guest_render_mode_fault\",\"pc\":\"80278D38\",\"mode\":\"%08X\",\"source\":\"%08X\",\"index\":%d,\"level\":%d,\"vi\":%llu}\n",uint32_t(MEM_W(0x28,ctx->r29)),uint32_t(MEM_W(0x40,ctx->r29)),MEM_W(0x2C,ctx->r29),MEM_W(0,S32(0x802E8BDC)),(unsigned long long)bc_vis.load());

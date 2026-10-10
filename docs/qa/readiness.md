@@ -9,7 +9,8 @@ Linux package, durable EEPROM/Pak/settings/remaps, original-style options/help,
 keyboard and three virtual controller families, stereo audio recovery, Alt+Enter
 and playable Simian Acres with movement/pause/Continue/Restart/failure. Corrected
 interpolated presentation passes measured 720p/1080p120 on a virtual120Hz output;
-4K120 sustained performance remains under investigation. New objective
+4K120 sustained performance and intermittent native startup freezes remain
+under investigation. New objective
 completion, broader missions, physical controls/output audio, complete licenses
 and final package/independent review remain pending. Detailed chronological
 evidence below retains each earlier checkpoint and its scope.
@@ -1083,3 +1084,45 @@ is still needed before judging the open underside/parts layout as correct
 through that camera transition. Static/command review cannot certify all
 interpolation discontinuities. Broader vehicle, destruction and objective
 completion acceptance remains pending.
+
+Cold-cache event-delivery regression reached terminal exit0: private directory
+.local/qa/gameplay-r7zq5ne6,360seconds,21601VI/21295gfx/10799audio. Movement,
+pause/Continue/Restart passed and source EEPROM/Pak remained unchanged. Bounded
+audio queues continued normally through the session. This regression passes;
+it does not establish the intermittent earlier loss's cause. No live native
+handle remains from this trial.
+
+Gameplay trace now reads original g_statsNew money/buildingsDestroyed/rdusFound
+at8036EA70/+8/+C, from the pinned USARev1 stats_perm.h/symbol mapping. Read-only
+telemetry is gated by BC_TRACE_GAMEPLAY; no guest counters are patched. Private
+probe adds bounded exploratory keyboard acceleration/left steering before normal
+movement/pause checks. Exploration is not an objective-completion acceptance.
+
+Demolition acceptance checker RED stub rejected the positive new-destruction
+case; GREEN checks increasing original money AND buildingsDestroyed in the
+same active mission episode (state_hi0/state_lo4), excluding pause/failure/
+completion/menu and level transitions. Existing statistics, damage alone,
+counter resets and invalid trace counters/time are rejected.7 tests passed;
+69 total Python tests passed plus28 native tests after trace rebuild.
+Exploratory route .local/qa/gameplay-n7xmsras reached terminal exit0 at150seconds,
+9002VI/8701gfx/4499audio; movement/pause/Continue and source preservation passed.
+Maximum original damage30, buildingsDestroyed0: NOT destruction acceptance.
+Reviewed private capture shows moving bulldozer/terrain/HUD; route steered
+away from target buildings. Next actual-key route holds Up during acceleration.
+
+Second route .local/qa/gameplay-sfru9ccc FAILED before driving, native transition
+timeout at~38seconds: graphics/audio/polls stop968/488/762 byVI~988 while
+VI continues2263. Last bounded scheduler audio stateVI960 still looked normal;
+no subsequent scheduler receives. Explicit handle29490 poll returned exit1.
+This is a real startup freeze after the retry-initialization fix, so the earlier
+intermittent failure is not closed. Probe now offers optional private gdb host
+thread backtraces on failed transitions, before its existing cleanup; diagnostic
+failure never converts the gameplay failure into acceptance.
+
+Private debugger setup verified against a disposable sleep process: parent-only
+PR_SET_PTRACER authorization permits the QA parent's gdb descendant to attach
+and capture/detach, exit0, evidence private-debugger-permission.txt. No global
+ptrace/Yama setting changed. This option runs only for --capture-hang native
+QA children. A newly authorized future trial is needed for an actual frozen
+native backtrace; current .local/qa/gameplay-tq46ltb6 started before this permit
+was added and reached Simian Acres normally.

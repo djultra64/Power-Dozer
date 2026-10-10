@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run native keyboard gameplay in an isolated display and private data folder."""
 import argparse
+import ctypes
 import hashlib
 import json
 import os
@@ -16,6 +17,7 @@ from check_audio_recovery import check as check_audio_recovery
 from check_controller_probe import check as check_controller_probe
 from check_instruction_probe import check as check_instruction_probe
 from check_render_probe import check as check_render_probe
+from check_demolition_probe import check as check_demolition_probe
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -57,8 +59,15 @@ def run(args):
     print(f'Private test directory: {directory}',flush=True)
     confirm='z'
     prompt_captured=False
+    def permit_private_debugger():
+        # Yama may otherwise reject a debugger sibling of the native process.
+        # Allow only this QA parent and its descendants for this one child.
+        libc=ctypes.CDLL(None,use_errno=True)
+        if libc.prctl(0x59616D61,os.getppid(),0,0,0)!=0:
+            raise OSError(ctypes.get_errno(),'Cannot authorize private QA debugger')
+    debugger_setup=permit_private_debugger if args.capture_hang and os.uname().sysname=='Linux' else None
     with log.open('w') as output:
-        process=subprocess.Popen([str(args.executable.resolve()),'--rom',str(args.rom.resolve()),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale',str(args.scale),'--original-aspect' if args.original_aspect else '--wide','--refresh',str(args.refresh),'--texture',args.texture],cwd=args.launch_dir.resolve(),env=env,stdout=output,stderr=subprocess.STDOUT)
+        process=subprocess.Popen([str(args.executable.resolve()),'--rom',str(args.rom.resolve()),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale',str(args.scale),'--original-aspect' if args.original_aspect else '--wide','--refresh',str(args.refresh),'--texture',args.texture],cwd=args.launch_dir.resolve(),env=env,stdout=output,stderr=subprocess.STDOUT,preexec_fn=debugger_setup)
         def text():return log.read_text(errors='replace')
         def states():
             result=[]
@@ -84,6 +93,14 @@ def run(args):
                 if condition(value):return
                 if process.poll() is not None:raise ValueError(f'Native process exited {process.returncode}')
                 time.sleep(.1)
+            if args.capture_hang:
+                debugger=shutil.which('gdb')
+                with (directory/'native-hang.txt').open('w') as dump:
+                    if debugger:
+                        try:
+                            subprocess.run([debugger,'--batch','-ex','set pagination off','-ex','thread apply all bt 12','-p',str(process.pid)],stdout=dump,stderr=subprocess.STDOUT,timeout=25,check=False)
+                        except subprocess.TimeoutExpired:dump.write('Debugger timed out; native transition still failed\n')
+                    else:dump.write('gdb unavailable; native transition still failed\n')
             raise ValueError('Native transition timed out: '+text()[-1800:])
         def control_view(content,title,first=None):
             for line in reversed(content.splitlines()):
@@ -140,6 +157,25 @@ def run(args):
             time.sleep(2);screenshot('mission-start')
             if args.exercise:
                 key(confirm);time.sleep(1);screenshot('briefing-dismissed')
+                if args.drive_seconds:
+                    # Private exploration through physical keys only. Trace reads
+                    # original damage counters; no guest position/stat writes.
+                    if args.steer_seconds:key('Left',args.steer_seconds)
+                    if args.drive_direction:command('keydown',args.drive_direction)
+                    command('keydown',confirm)
+                    try:
+                        deadline=time.monotonic()+args.drive_seconds
+                        while time.monotonic()<deadline:
+                            if process.poll() is not None:raise ValueError('Native process exited during driving')
+                            current=states()[-1]
+                            if current['failed'] or current['complete']:break
+                            if current['paused'] and current['window']>=70:
+                                command('keyup',confirm);key(confirm);command('keydown',confirm)
+                            time.sleep(.2)
+                    finally:
+                        command('keyup',confirm)
+                        if args.drive_direction:command('keyup',args.drive_direction)
+                    screenshot('demolition-drive')
                 before=states()[-1]
                 if args.capture_motion:
                     with (directory/'motion-capture.log').open('w') as capture_log:
@@ -284,6 +320,7 @@ def run(args):
             # Mode 0 is the new-player introduction. Existing completed players
             # legitimately go map (14) → statistics (7) → mission (2) instead.
             result=check(log,required_modes=(14,2))
+            if args.verify_demolition:result['demolition_acceptance']=check_demolition_probe(log)
             if args.verify_render:result['render_submission_acceptance']=check_render_probe(log,args.refresh)
             if args.audio_loss:result['audio_recovery']=check_audio_recovery(log)
             if args.controller:result['controller_actions']=check_controller_probe(log,args.controller)
@@ -293,6 +330,7 @@ def run(args):
             result['native_launch_directory']=str(args.launch_dir.resolve())
             result['graphics_requested']={'gpu_driver':args.gpu,'scale':args.scale,'wide':not args.original_aspect,'refresh':args.refresh,'texture':args.texture}
             result['motion_capture']=str(directory/'mission-motion.mp4') if args.capture_motion else None
+            result['exploratory_drive_requested']={'seconds':args.drive_seconds,'left_steer_seconds':args.steer_seconds,'held_direction':args.drive_direction}
             result['exercise_verified']=args.exercise
             result['options_verified']=args.options
             result['controls_verified']=args.controls
@@ -332,6 +370,11 @@ if __name__=='__main__':
     parser.add_argument('--seed-pak',type=Path)
     parser.add_argument('--require-existing-player',action='store_true')
     parser.add_argument('--exercise',action='store_true')
+    parser.add_argument('--capture-hang',action='store_true',help='On a failed transition, capture private native thread backtraces with gdb before terminating; never turns failure into acceptance')
+    parser.add_argument('--verify-demolition',action='store_true',help='Require new original damage and building destruction counters during active gameplay; does not certify objective completion')
+    parser.add_argument('--drive-seconds',type=float,default=0,help='Private exploratory acceleration before the normal exercise; does not certify mission completion')
+    parser.add_argument('--drive-direction',choices=('Up','Down','Left','Right'),help='Hold a physical direction during private exploratory acceleration')
+    parser.add_argument('--steer-seconds',type=float,default=0,help='Private left steering before exploratory driving')
     parser.add_argument('--retry',action='store_true')
     parser.add_argument('--options',action='store_true')
     parser.add_argument('--controls',action='store_true')
@@ -345,6 +388,11 @@ if __name__=='__main__':
     if args.seconds<90:parser.error('At least 90 seconds are required for the mission transition')
     if not 1<=args.scale<=9:parser.error('Scale must be finite and between 1 and 9')
     if args.verify_render and args.refresh not in (60,120):parser.error('Render interpolation acceptance requires --refresh 60 or 120')
+    if not 0<=args.drive_seconds<=120 or not 0<=args.steer_seconds<=3:parser.error('Exploratory driving requires 0..120 seconds and steering 0..3 seconds')
+    if args.drive_seconds and not args.exercise:parser.error('Driving requires --exercise')
+    if args.verify_demolition and not args.drive_seconds:parser.error('Demolition acceptance requires exploratory driving')
+    if args.drive_direction and not args.drive_seconds:parser.error('Driving direction requires --drive-seconds')
+    if args.steer_seconds and not args.drive_seconds:parser.error('Steering requires --drive-seconds')
     if args.capture_motion and not args.exercise:parser.error('Motion capture requires --exercise')
     if (args.retry or args.wait_failure or args.options or args.controls or args.glyphs or args.controller or args.instruction_glyphs) and not args.exercise:parser.error('Retry/failure/options/controls/glyphs/controller/instruction-glyphs needs --exercise')
     if args.controller and args.glyphs:parser.error('Virtual device detection and manual-family rendering need separate runs')

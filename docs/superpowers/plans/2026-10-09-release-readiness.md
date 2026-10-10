@@ -147,3 +147,25 @@ audio mutex. Verify unavailable startup, mid-buffer loss, failed enqueue,
 retry throttling, queued-budget continuity, fractional frame timing and sample
 rate changes using a deterministic fake backend, then the real SDL bridge and
 native gameplay. Actual speaker/device changes require separate acceptance.
+
+Task 4 original-instruction glyph design finding: `80259EC4` lays out text into
+CPU character/vertex queues; it does not return a display-list pointer. Do not
+append RDP commands at that entry. `80259824` flushes the queued characters to
+`Gfx**` (arg0), with FrameContext in arg1; `80259BD4`/`80259C24` call it for
+window/HUD text. A safe approach is to record exact known instruction sites
+at the existing text hook, then append bounded glyph commands after that
+flush using the verified main-DL range and existing state-preserving backend.
+Reset pending annotations at original `80259450` (per-frame font reset), and
+consume them on the relevant flush, so blink/hidden lines cannot retain icons.
+The three direct HUD addresses 8030821C/80308228/80308240 use screen coordinates
+in entry SP+14 (float x), +18 (int y), +20 (height); justification is SP+10.
+Window text uses local coordinates offset by half the current window size;
+when original phase=2, screen x/y are local x/y + window x/y + half size.
+Opening/closing windows rotate/scale in yoshi.c, so suppress new icons during
+those phases as the existing PC glyph bridge does. Alpha comes from the same
+font arguments. Multi-action instructions need both resolved glyphs, without
+changing guest vertex/texture allocation. Verify ROM entry/return instructions
+and layout before inserting any new normalizer hooks; test bounds, queue
+reset/consumption, exact-string matching, blinking, alpha and two-action sites
+before native keyboard/controller captures. This design has not yet been
+implemented or accepted.

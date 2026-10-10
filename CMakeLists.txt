@@ -21,13 +21,21 @@ file(WRITE "${CMAKE_BINARY_DIR}/blastcorps-events.cpp" "#include <cstdint>\nexte
 get_target_property(BC_UM_SOURCES ultramodern SOURCES)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
  "${CMAKE_SOURCE_DIR}/tools/prepare_timer_runtime.py"
- "${RUNTIME}/ultramodern/src/timer.cpp")
+ "${RUNTIME}/ultramodern/src/timer.cpp"
+ "${CMAKE_SOURCE_DIR}/tools/prepare_threadqueue_runtime.py"
+ "${RUNTIME}/ultramodern/src/threadqueue.cpp")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/prepare_timer_runtime.py" "${RUNTIME}" "${CMAKE_BINARY_DIR}" RESULT_VARIABLE BC_TIMER_RESULT)
 if(NOT BC_TIMER_RESULT EQUAL 0)
  message(FATAL_ERROR "Cannot prepare validated immutable SDK timer scheduling")
 endif()
 list(REMOVE_ITEM BC_UM_SOURCES "${RUNTIME}/ultramodern/src/timer.cpp")
 list(APPEND BC_UM_SOURCES "${CMAKE_BINARY_DIR}/blastcorps-timer.cpp")
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/prepare_threadqueue_runtime.py" "${RUNTIME}" "${CMAKE_BINARY_DIR}" RESULT_VARIABLE BC_THREADQUEUE_RESULT)
+if(NOT BC_THREADQUEUE_RESULT EQUAL 0)
+ message(FATAL_ERROR "Cannot prepare validated SDK thread queue removal")
+endif()
+list(REMOVE_ITEM BC_UM_SOURCES "${RUNTIME}/ultramodern/src/threadqueue.cpp")
+list(APPEND BC_UM_SOURCES "${CMAKE_BINARY_DIR}/blastcorps-threadqueue.cpp")
 list(REMOVE_ITEM BC_UM_SOURCES "${RUNTIME}/ultramodern/src/events.cpp")
 list(APPEND BC_UM_SOURCES "${CMAKE_BINARY_DIR}/blastcorps-events.cpp")
 set_property(TARGET ultramodern PROPERTY SOURCES "${BC_UM_SOURCES}")
@@ -205,3 +213,16 @@ target_include_directories(game_prompt_glyphs_test PRIVATE include .local/genera
  "${RUNTIME}/N64Recomp/include" "${RUNTIME}/ultramodern/include" "${RUNTIME}/librecomp/include" "${RUNTIME}/librecomp/include/librecomp" "${RUNTIME}/thirdparty/json" /home/linuxbrew/.linuxbrew/include/SDL2)
 target_link_libraries(game_prompt_glyphs_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
 add_test(NAME original_instruction_glyph_queue_and_bounds COMMAND game_prompt_glyphs_test)
+
+add_executable(threadqueue_runtime_test tests/threadqueue_runtime.cpp
+ "${CMAKE_BINARY_DIR}/blastcorps-threadqueue.cpp"
+ "${RUNTIME}/ultramodern/src/threads.cpp")
+target_include_directories(threadqueue_runtime_test PRIVATE "${RUNTIME}/ultramodern/include"
+ "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/concurrentqueue")
+target_compile_options(threadqueue_runtime_test PRIVATE -ffunction-sections -fdata-sections)
+target_link_options(threadqueue_runtime_test PRIVATE -Wl,--gc-sections)
+target_link_libraries(threadqueue_runtime_test PRIVATE Threads::Threads)
+foreach(BC_THREADQUEUE_CASE nonhead missing running empty destroy)
+ add_test(NAME sdk_threadqueue_${BC_THREADQUEUE_CASE} COMMAND threadqueue_runtime_test ${BC_THREADQUEUE_CASE})
+ set_tests_properties(sdk_threadqueue_${BC_THREADQUEUE_CASE} PROPERTIES TIMEOUT 5)
+endforeach()

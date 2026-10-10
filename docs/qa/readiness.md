@@ -554,3 +554,31 @@ Reviewed active-help capture: actual A/B/Start controls and closed LT/RB map
 cells match labels. Source EEPROM/Pak remained unchanged. All three prioritized
 controller families now have native original-map glyph evidence; physical
 presses and wider vehicle/tutorial coverage remain separately pending.
+
+Task 6 isolated native ROM service (not yet connected to shipping main):
+include/rom_input.h and src/rom_input.cpp bound reads to 32 MiB, ZIP directory
+work to 128 entries and extraction to a single exactly 8-MiB ROM. ZIP paths
+are never written to disk; encrypted/unsupported/ambiguous candidates fail.
+Canonical z64 and swapped v64/n64 normalize before full SHA-1 revision
+validation. The two executable overlays inflate into exact-size buffers from
+verified ROM slices, with size/CRC checks. Pinned runtime miniz is compiled
+locally; its export header is generated in our build directory, leaving the
+Tetrisphere reference untouched. No new runtime dependency or save write.
+
+Actual RED: the API stub failed the empty SHA-1 vector. An earlier missing
+miniz_export.h compile error was repaired and was not treated as behavioral
+RED. GREEN covers empty/abc/million-a and double-block-padding SHA-1 vectors,
+raw/swapped normalization, sizes/header/revision rejection, nested uppercase
+ZIP member with magic discovery, ambiguity, invalid archive/expanded size,
+missing files, input limit and no filesystem extraction.
+
+Private ZIP and raw acceptance both match the existing preparation's code
+831,136 bytes and frontend 171,664 bytes exactly. Real private swapped v64 and
+n64 copies also pass full validation and exact-overlay comparisons, stored in
+.local/qa/rom-input-* only. Evidence: .local/evidence/rom-input-private-{zip,raw,
+v64,n64}.log. EEPROM SHA256 remains
+1bb5b014be69e0a38a76d24d78c953ca51f492f93aff40d4d5fda62ab4bae26b.
+Full native suite passed 24 tests; after adding the padding-boundary assertion,
+the affected native loader test passed again. Previous 44 Python tests remain
+unchanged. Cache recovery, progress migration, GUI selection and clean-package
+launch are not yet implemented/accepted; main still uses the legacy asset paths.

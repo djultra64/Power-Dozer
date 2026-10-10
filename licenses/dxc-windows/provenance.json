@@ -1,0 +1,35 @@
+{
+  "binary_commit": "cc15e715ee378a4f675b335bd1071ff105873fc8",
+  "binary_repository": "https://github.com/rt64/dxc-bin",
+  "complete_dependency_license_review": false,
+  "dependency": "DirectXShaderCompiler",
+  "files": {
+    "LICENSE.TXT": {
+      "bytes": 29241,
+      "sha256": "27a49e35d1da96eba18fba54bc882667ff0ff8c0254f16f2b6e165d605ba7df8",
+      "url": "https://raw.githubusercontent.com/microsoft/DirectXShaderCompiler/0dc8d9060df41901dbfa5ad7190da03e33d09518/LICENSE.TXT"
+    },
+    "ThirdPartyNotices.txt": {
+      "bytes": 11256,
+      "sha256": "19512a5d0a015ef16d167272c164da49a604614a786206212a80ad486ed0be6d",
+      "url": "https://raw.githubusercontent.com/microsoft/DirectXShaderCompiler/0dc8d9060df41901dbfa5ad7190da03e33d09518/ThirdPartyNotices.txt"
+    }
+  },
+  "inputs": {
+    "rt64/src/contrib/dxc/bin/x64/dxcompiler.dll": {
+      "bytes": 20484608,
+      "sha256": "15304a82c8a61db615a83961d8967a5c468ae7ce77b86d8e9b3dec60f7ae2166"
+    },
+    "rt64/src/contrib/dxc/bin/x64/dxil.dll": {
+      "bytes": 1370000,
+      "sha256": "2c70d034d38b06c6a1161efb9246cce296be248ff52eff6c1b587ce150e5f36d"
+    }
+  },
+  "platform": "windows-x86_64",
+  "schema": 1,
+  "source_attribution_scope": "Compiler reports the recorded source revision; the validator accompanies it in the pinned binary checkout. Full validator build provenance is not independently attested. These Windows notices are independent of the Linux DXC 1.8 notice bundle.",
+  "source_commit": "0dc8d9060df41901dbfa5ad7190da03e33d09518",
+  "source_repository": "https://github.com/microsoft/DirectXShaderCompiler",
+  "source_revision_resolution": "Official Microsoft GitHub commit API resolves the source identifier 0dc8d9060 to the full source commit.",
+  "version_evidence": "Pinned Windows dxc.exe --version measured on the native Windows SDK: dxcompiler.dll: 1.7.0.4147 (0dc8d9060); dxil.dll: 1.7 (101.7.2212.14). Both DLL hashes also match the inspected pinned source checkout."
+}

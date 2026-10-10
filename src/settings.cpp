@@ -45,8 +45,8 @@ bool read_valid(const std::filesystem::path& path,Json& out){
 }
 Json recover(const std::filesystem::path& path){
  Json value;
- if(read_valid(path,value)||read_valid(path.string()+".bak",value))return value;
- if(std::filesystem::exists(path)||std::filesystem::exists(path.string()+".bak"))throw std::runtime_error("Settings and backup are invalid; restore a valid settings.json");
+ if(read_valid(path,value)||read_valid(std::filesystem::path(path).concat(".bak"),value))return value;
+ if(std::filesystem::exists(path)||std::filesystem::exists(std::filesystem::path(path).concat(".bak")))throw std::runtime_error("Settings and backup are invalid; restore a valid settings.json");
  return Json::object();
 }
 void write(const std::filesystem::path& path,const Json& value){auto text=value.dump(2)+'\n';if(text.size()>65536)throw std::runtime_error("Settings exceed the 64 KiB limit");atomic_write_file(path,{reinterpret_cast<const uint8_t*>(text.data()),text.size()});}
@@ -56,7 +56,7 @@ void SettingsStore::save(const Settings& s) const {
  validate(s);auto previous=recover(path_);auto value=previous;
  value["schema"]=1;value["scale"]=s.scale;value["wide"]=s.wide;value["fullscreen"]=s.fullscreen;value["mute"]=s.mute;
  value["refresh"]=s.refresh;value["msaa"]=s.msaa;value["volume"]=s.volume;value["presentation"]=s.presentation;value["texture"]=s.texture;value["family"]=s.family;
- if(std::filesystem::exists(path_)||std::filesystem::exists(path_.string()+".bak"))write(path_.string()+".bak",previous);
+ if(std::filesystem::exists(path_)||std::filesystem::exists(std::filesystem::path(path_).concat(".bak")))write(std::filesystem::path(path_).concat(".bak"),previous);
  write(path_,value);
 }
 }

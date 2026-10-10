@@ -29,7 +29,7 @@
     "distribution_authorization": {
       "confirmed_on": "2026-10-10",
       "confirmed_by": "Project owner in this conversation",
-      "scope": "Public djultra64/Power-Dozer repository and v0.8 runtime/source release"
+      "scope": "Public djultra64/Power-Dozer repository and v0.8 and v0.81 runtime/source releases"
     }
   },
   "extraction": {

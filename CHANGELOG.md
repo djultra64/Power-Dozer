@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.81 — 2026-10-10
+
+- English repository documentation, including installation, rebuild, audio and
+  feasibility guides, with historical evidence and outstanding limits preserved.
+- Comprehensive project and dependency acknowledgments in `CREDITS.md`, included
+  with the Linux and Windows package notices and in the source archive.
+- Native Windows x64 build and portable Windows packaging with pinned SDL/DXC DLLs.
+- Windows atomic saves and progress import, including backups in Unicode paths.
+- Correct Windows startup diagnostics to avoid an invalid UCRT buffer size.
+- Updated runtime/source package identities and archive roots to v0.81.
+- Project author and committer identities standardized on `djultra64`.
+
+The reported thin black ground line is no longer visible to the reporter and
+was not reproduced in recent local captures; no speculative patch was applied.
+Intermittent audio loss, broad mission coverage,
+physical controllers and sustained 120 fps retain their existing testing limits.
+Source and license review flags remain false.
+
 ## v0.8 — 2026-10-10
 
 First Power Dozer prerelease for Linux x86-64, based on Blast Corps USA Rev 1.

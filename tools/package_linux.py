@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create an audited Power Dozer v0.8 Linux archive without certifying release readiness."""
+"""Create an audited Power Dozer v0.81 Linux archive without certifying release readiness."""
 import argparse
 import gzip
 import hashlib
@@ -14,8 +14,8 @@ import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
 PRODUCT='Power Dozer'
-VERSION='0.8'
-PACKAGE_ROOT='power-dozer-v0.8-linux-x86_64'
+VERSION='0.81'
+PACKAGE_ROOT='power-dozer-v0.81-linux-x86_64'
 EXECUTABLE='power-dozer'
 LAUNCHER='Run Power Dozer.sh'
 
@@ -105,7 +105,7 @@ def launcher_text():
             'exec "$package_dir/power-dozer" "$@"\n')
 
 def runtime_readme():
-    return """Power Dozer v0.8 — experimental Linux beta.
+    return """Power Dozer v0.81 — experimental Linux beta.
 Extract the complete archive into a writable directory, then run:
   ./"Run Power Dozer.sh"
 Or select your own ROM explicitly:
@@ -131,6 +131,7 @@ Physical-controller checks, sustained 4K/120-Hz presentation and broad mission
 coverage remain manual. Complete license/source review remains unresolved;
 BUILD.json preserves ready_for_release=false and license_review_complete=false.
 Third-party notices and their recorded provenance are in licenses.
+Project and dependency acknowledgments are in licenses/Power-Dozer/CREDITS.md.
 """
 
 def build(args):
@@ -163,7 +164,7 @@ def build(args):
         shutil.copyfile(controller,stage/'gamecontrollerdb.txt')
         shutil.copytree(tetra/'licenses/controller-db',stage/'licenses/controller-db')
         own_notices=stage/'licenses/Power-Dozer';own_notices.mkdir()
-        for name in ('LICENSE','NOTICE'):
+        for name in ('LICENSE','NOTICE','CREDITS.md'):
             source=ROOT/name
             if source.is_symlink() or not source.is_file():raise ValueError('Missing host notice: '+name)
             shutil.copyfile(source,own_notices/name)

@@ -15,8 +15,17 @@
 #include "audio_dispatch.h"
 #include "save_store.h"
 #include "translucent_mode.h"
+#ifndef _WIN32
 #include <execinfo.h>
 #include <dlfcn.h>
+#endif
+#ifdef _WIN32
+// Windows binds these four wrappers explicitly to renamed SDK translations.
+#define __wrap_osCreateThread_recomp osCreateThread_recomp
+#define __wrap_osStartThread_recomp osStartThread_recomp
+#define __wrap_osSetThreadPri_recomp osSetThreadPri_recomp
+#define __wrap_osRecvMesg_recomp osRecvMesg_recomp
+#endif
 
 std::vector<uint8_t> bc_rom;
 std::atomic<uint64_t> bc_vis{0},bc_gfx{0},bc_audio{0},bc_polls{0};
@@ -88,10 +97,12 @@ void bc_guest_window_trace(uint8_t* rdram,recomp_context* ctx,bool draw) {
  const uint16_t pending=MEM_HU(0,S32(0x8036BB14));
  if(draw&&!pending)return;
  fprintf(stderr,"{\"event\":\"guest_window\",\"draw\":%s,\"demand\":%u,\"pending\":%u,\"frame\":%u,\"state_hi\":%u,\"state_lo\":%u}\n",draw?"true":"false",uint16_t(ctx->r4),pending,uint32_t(MEM_W(0,S32(0x80358060))),uint32_t(MEM_W(0,S32(0x80364A90))),uint32_t(MEM_W(0,S32(0x80364A94))));
+ #ifndef _WIN32
  if(!draw&&pending){
   void* frames[12];int size=backtrace(frames,12);
   for(int i=0;i<size;i++){Dl_info info{};if(dladdr(frames[i],&info)&&info.dli_fbase)fprintf(stderr,"window_stack[%d] module_offset=%zx\n",i,size_t(reinterpret_cast<uintptr_t>(frames[i])-reinterpret_cast<uintptr_t>(info.dli_fbase)));}
  }
+ #endif
 }
 void bc_trace(uint32_t address) { static std::atomic<uint32_t> count=0; if(++count<300) {fprintf(stderr,"{\"event\":\"call\",\"vram\":\"0x%08X\"}\n",address);fflush(stderr);} }
 void recomp_syscall_handler(uint8_t*,recomp_context*,int32_t address) { bc_fatal("mips_syscall",address); }

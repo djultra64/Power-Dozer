@@ -86,7 +86,7 @@ void bc_input_init(const std::string& family){
   model=bc::ControlsStore(mappings).load();model.manual_family(parse_family(family));
  }catch(const std::exception& error){fprintf(stderr,"Controls: %s\n",error.what());bc_fatal("invalid_action_remap");}
  auto* base=SDL_GetBasePath();
- if(base){auto database=std::filesystem::u8path(base)/"gamecontrollerdb.txt";SDL_free(base);SDL_GameControllerAddMappingsFromFile(database.string().c_str());}
+ if(base){auto database=std::filesystem::u8path(base)/"gamecontrollerdb.txt";SDL_free(base);const auto utf8=database.u8string();SDL_GameControllerAddMappingsFromFile(reinterpret_cast<const char*>(utf8.c_str()));}
  connect();
 }
 bc::InputPrompt bc_input_prompt(bc::InputAction action){std::lock_guard lock(input_mutex);return model.prompt(action);}
@@ -135,7 +135,7 @@ void bc_input_update(SDL_Window* window){
   capture.update(current);finish_capture(current);
   for(size_t i=1;i<focus_keys.size();i++)if(focus_keys[i]&&current.keys[i])model.consume({bc::BindingKind::Key,int(i)});
   frame=model.sample(current);if(capture.active())frame={};previous=current;log_device();
-  title="Power Dozer v0.8 | Confirm: "+model.prompt(bc::InputAction::Confirm).label+" | Back: "+model.prompt(bc::InputAction::Back).label+" | "+active_name()+" | Alt+Enter: Fullscreen";
+  title="Power Dozer v0.81 | Confirm: "+model.prompt(bc::InputAction::Confirm).label+" | Back: "+model.prompt(bc::InputAction::Back).label+" | "+active_name()+" | Alt+Enter: Fullscreen";
   if(std::getenv("BC_TRACE_INPUT")){
    static bc::InputFrame before;
    if(frame.buttons!=before.buttons||frame.x!=before.x||frame.y!=before.y){fprintf(stderr,"{\"event\":\"input\",\"buttons\":%u,\"stick_x\":%.3f,\"stick_y\":%.3f}\n",frame.buttons,frame.x,frame.y);before=frame;}

@@ -56,8 +56,8 @@ bool read_valid(const std::filesystem::path& path,Document& out){
  try{auto value=Json::parse(text);decode(value);out={std::move(value),std::move(text)};return true;}catch(const std::exception&){return false;}
 }
 Document recover(const std::filesystem::path& path){
- Document value;if(read_valid(path,value)||read_valid(path.string()+".bak",value))return value;
- if(std::filesystem::exists(path)||std::filesystem::exists(path.string()+".bak"))throw std::runtime_error("Controls and backup are invalid; restore a valid controls.json");return {};
+ Document value;if(read_valid(path,value)||read_valid(std::filesystem::path(path).concat(".bak"),value))return value;
+ if(std::filesystem::exists(path)||std::filesystem::exists(std::filesystem::path(path).concat(".bak")))throw std::runtime_error("Controls and backup are invalid; restore a valid controls.json");return {};
 }
 Json encode(InputBinding binding){
  InputModel::validate(binding);const char* name=nullptr;const char* field=nullptr;
@@ -77,7 +77,7 @@ void ControlsStore::save(const InputModel& model) const{
   for(auto binding:model.bindings(InputAction(i)))entry[binding.kind==BindingKind::Key?"keyboard":"controller"].push_back(encode(binding));
  }
  auto text=value.dump(2)+'\n';if(text.size()>65536)throw std::runtime_error("Controls exceed the 64 KiB limit");decode(value);
- if(std::filesystem::exists(path_)||std::filesystem::exists(path_.string()+".bak"))write(path_.string()+".bak",previous.text);
+ if(std::filesystem::exists(path_)||std::filesystem::exists(std::filesystem::path(path_).concat(".bak")))write(std::filesystem::path(path_).concat(".bak"),previous.text);
  write(path_,text);
 }
 }

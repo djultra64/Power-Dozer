@@ -4,6 +4,10 @@
 #include "settings.h"
 #include "pc_options.h"
 #include "render_observer.h"
+#ifdef _WIN32
+#include <objbase.h>
+#include <objidl.h>
+#endif
 #include "hle/rt64_application.h"
 #include "hle/rt64_workload_queue.h"
 #include "ultramodern/ultramodern.hpp"

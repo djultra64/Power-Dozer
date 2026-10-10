@@ -8,8 +8,14 @@
 #include <array>
 #include <fstream>
 #include <vector>
+#ifdef _WIN32
+#include <windows.h>
+#include <chrono>
+#include <atomic>
+#else
 #include <fcntl.h>
 #include <unistd.h>
+#endif
 #include <stdexcept>
 namespace bc {
 void import_data(const std::filesystem::path& source,const std::filesystem::path& destination){
@@ -17,15 +23,27 @@ void import_data(const std::filesystem::path& source,const std::filesystem::path
  if(fs::is_symlink(source)||!fs::is_directory(source))throw std::runtime_error("Import source must be an existing data directory");
  if(fs::is_symlink(destination)||(fs::exists(destination)&&(!fs::is_directory(destination)||!fs::is_empty(destination))))throw std::runtime_error("Import destination must be new or empty; existing progress cannot be merged");
  const auto parent=destination.parent_path().empty()?fs::path("."):destination.parent_path();fs::create_directories(parent);
+ fs::path stage;
+#ifdef _WIN32
+ static std::atomic<uint64_t> sequence{};
+ bool created=false;
+ for(unsigned attempt=0;attempt<128;++attempt){
+  stage=parent/destination.filename();stage+=L".importing-"+std::to_wstring(GetCurrentProcessId())+L"-"+std::to_wstring(std::chrono::steady_clock::now().time_since_epoch().count())+L"-"+std::to_wstring(sequence.fetch_add(1));
+  if(CreateDirectoryW(stage.c_str(),nullptr)){created=true;break;}
+  if(GetLastError()!=ERROR_ALREADY_EXISTS)break;
+ }
+ if(!created)throw std::runtime_error("Cannot create private import staging directory");
+#else
  std::string pattern=(parent/(destination.filename().string()+".importing-XXXXXX")).string();std::vector<char> name(pattern.begin(),pattern.end());name.push_back(0);
- auto* created=mkdtemp(name.data());if(!created)throw std::runtime_error("Cannot create private import staging directory");fs::path stage=created;
+ auto* created=mkdtemp(name.data());if(!created)throw std::runtime_error("Cannot create private import staging directory");stage=created;
+#endif
  try{
   size_t copied=0;
   for(auto key:{"eeprom.bin","controller-pak.bin","settings.json","controls.json"}){
    auto input=source/key;
-   if(std::string_view(key)=="controls.json"&&source.filename()==".local"&&!fs::exists(input)&&!fs::exists(input.string()+".bak"))input=source.parent_path()/"config/controls.json";
+   if(std::string_view(key)=="controls.json"&&source.filename()==".local"&&!fs::exists(input)&&!fs::exists(std::filesystem::path(input).concat(".bak")))input=source.parent_path()/"config/controls.json";
    for(auto suffix:{"",".bak"}){
-    fs::path path=input.string()+suffix;
+    fs::path path=input;path+=suffix;
     if(fs::is_symlink(path))throw std::runtime_error("Symlinked import files are not supported");
     if(!fs::exists(path))continue;
     if(!fs::is_regular_file(path))throw std::runtime_error("Import input must be a regular file");
@@ -41,9 +59,23 @@ void import_data(const std::filesystem::path& source,const std::filesystem::path
   SaveStore(stage/"eeprom.bin").load();SettingsStore(stage/"settings.json").load();ControlsStore(stage/"controls.json").load();PakStore(stage/"controller-pak.bin",blast_pak_committed).load();
   // POSIX rename replaces an empty directory atomically; no partial snapshot
   // ever becomes the live destination. Nonempty competing destinations fail.
+#ifdef _WIN32
+  // Windows does not atomically replace an existing empty directory. Remove
+  // only an empty destination; the move never replaces competing contents.
+  bool removed_empty=false;
+  if(fs::exists(destination)){
+   if(!fs::is_directory(destination)||!fs::is_empty(destination)||!fs::remove(destination))throw std::runtime_error("Import destination changed during copy");
+   removed_empty=true;
+  }
+  if(!MoveFileExW(stage.c_str(),destination.c_str(),MOVEFILE_WRITE_THROUGH)){
+   if(removed_empty){std::error_code ignored;fs::create_directory(destination,ignored);}
+   throw std::runtime_error("Cannot commit imported directory");
+  }
+#else
   fs::rename(stage,destination);
   int fd=open(parent.c_str(),O_RDONLY|O_DIRECTORY);if(fd<0)throw std::runtime_error("Cannot open import parent for synchronization");
   bool synced=fsync(fd)==0;int closed=close(fd);if(!synced||closed!=0)throw std::runtime_error("Cannot synchronize imported directory");
+#endif
  }catch(...){std::error_code ignored;fs::remove_all(stage,ignored);throw;}
 }
 }

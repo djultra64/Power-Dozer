@@ -69,13 +69,13 @@ bool PakStore::read_valid(const std::filesystem::path& path,PakImage& out) const
  try{out=decode(bytes);return !accept_||accept_(out);}catch(const std::runtime_error&){return false;}
 }
 PakImage PakStore::load() const{
- PakImage image;if(read_valid(path_,image)||read_valid(path_.string()+".bak",image))return image;
- if(std::filesystem::exists(path_)||std::filesystem::exists(path_.string()+".bak"))throw std::runtime_error("Controller Pak and backup are invalid; restore a valid Pak save");return {};
+ PakImage image;if(read_valid(path_,image)||read_valid(std::filesystem::path(path_).concat(".bak"),image))return image;
+ if(std::filesystem::exists(path_)||std::filesystem::exists(std::filesystem::path(path_).concat(".bak")))throw std::runtime_error("Controller Pak and backup are invalid; restore a valid Pak save");return {};
 }
 void PakStore::save(const PakImage& image) const{
  if(accept_&&!accept_(image))throw std::runtime_error("Refusing to persist an unfinished Controller Pak save");
  auto previous=load();auto directory=path_.parent_path();if(directory.empty())directory=".";std::filesystem::create_directories(directory);
- if(std::filesystem::exists(path_)||std::filesystem::exists(path_.string()+".bak"))atomic_write_file(path_.string()+".bak",encode(previous));
+ if(std::filesystem::exists(path_)||std::filesystem::exists(std::filesystem::path(path_).concat(".bak")))atomic_write_file(std::filesystem::path(path_).concat(".bak"),encode(previous));
  atomic_write_file(path_,encode(image));
 }
 }

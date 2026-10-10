@@ -38,15 +38,15 @@ CheckedImage encode(const SaveStore::Image& image){
 }
 SaveStore::Image SaveStore::load() const {
  Image image{};
- if(read_valid(path_,image)||read_valid(path_.string()+".bak",image))return image;
- if(fs::exists(path_)||fs::exists(path_.string()+".bak"))throw std::runtime_error("Progress and backup are invalid; restore a valid EEPROM save");
+ if(read_valid(path_,image)||read_valid(std::filesystem::path(path_).concat(".bak"),image))return image;
+ if(fs::exists(path_)||fs::exists(std::filesystem::path(path_).concat(".bak")))throw std::runtime_error("Progress and backup are invalid; restore a valid EEPROM save");
  return {};
 }
 void SaveStore::save(const Image& image) const {
  const auto previous=load(); // Validate recovery before touching either copy.
  auto directory=path_.parent_path();if(directory.empty())directory=".";
  fs::create_directories(directory);
- if(fs::exists(path_)||fs::exists(path_.string()+".bak"))atomic_write_file(path_.string()+".bak",encode(previous));
+ if(fs::exists(path_)||fs::exists(std::filesystem::path(path_).concat(".bak")))atomic_write_file(std::filesystem::path(path_).concat(".bak"),encode(previous));
  atomic_write_file(path_,encode(image));
 }
 }

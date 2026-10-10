@@ -1,6 +1,6 @@
 # Release readiness ledger
 
-Actualización posterior: los defectos concretos de HUD, ticker, sprites del mapa, cielo y fundido reportados en los videos reabren ese alcance gráfico; la aceptación previa del terreno se conserva. El ejecutable de desarrollo ya incorpora las correcciones y un guard de despacho de audio. Véase [el seguimiento y sus límites](graphics-audio-followup-2026-10-10.md). Los paquetes citados abajo conservan el checkpoint anterior.
+Later update: the specific HUD, ticker, map sprite, sky and fade defects reported in the videos reopen that graphics scope; the earlier terrain acceptance remains valid. The development executable already includes the corrections and an audio dispatch guard. See [the follow-up and its limits](graphics-audio-followup-2026-10-10.md). The packages cited below retain the earlier checkpoint.
 
 Reference inspected: Tetrisphere options-beta checkout, Blocksphere 1.0.1 Linux
 package instructions and in-game PC options design. Its Windows and physical

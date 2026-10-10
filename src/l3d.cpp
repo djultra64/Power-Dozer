@@ -3,6 +3,10 @@
 #include "carrier_arrow.h"
 #include "input_glyph.h"
 #include "prototype.h"
+#ifdef _WIN32
+#include <objbase.h>
+#include <objidl.h>
+#endif
 #include "hle/rt64_interpreter.h"
 #include "gbi/rt64_gbi_f3d.h"
 #include "gbi/rt64_gbi_rdp.h"

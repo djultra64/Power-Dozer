@@ -2,6 +2,16 @@
   "complete_dependency_license_review": false,
   "dependency": "header and vendored source notices",
   "extractions": {
+    "ares-rsp-notice.txt": {
+      "byte_ranges": [
+        [
+          0,
+          1128
+        ]
+      ],
+      "input": "N64ModernRuntime/librecomp/include/librecomp/rsp_vu.hpp",
+      "method": "Verbatim byte slice of the original Ares attribution and permission notice; the same notice is present in rsp_vu_impl.hpp."
+    },
     "blockingconcurrentqueue-notice.txt": {
       "byte_ranges": [
         [
@@ -82,6 +92,10 @@
     }
   },
   "files": {
+    "ares-rsp-notice.txt": {
+      "bytes": 1128,
+      "sha256": "46ec966e0c6b550fcae3a1659cd87acf2cc43a507077782cab8b32e5cc1d3d91"
+    },
     "blockingconcurrentqueue-notice.txt": {
       "bytes": 415,
       "sha256": "55939afd2fefae8cd3d1a510e4adf2358041e5ed9a652eb1df9be555895287fe"
@@ -110,6 +124,14 @@
     }
   },
   "inputs": {
+    "N64ModernRuntime/librecomp/include/librecomp/rsp_vu.hpp": {
+      "bytes": 10249,
+      "sha256": "18534c9c9fc66f0d2185d87de7cf1dd271ac1f5d4cb8791654c1eab7d8fc4e98"
+    },
+    "N64ModernRuntime/librecomp/include/librecomp/rsp_vu_impl.hpp": {
+      "bytes": 49335,
+      "sha256": "0e1afe4b3782dd177eb41c10cd34947cc060497a80750418b4b889d0b867ad0c"
+    },
     "N64ModernRuntime/thirdparty/concurrentqueue/blockingconcurrentqueue.h": {
       "bytes": 21516,
       "sha256": "27ce49dfbfe01f0db9e505e55772418afb90ac2466caa99bde8b3fe63ea2f936"

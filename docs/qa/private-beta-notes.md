@@ -1,69 +1,69 @@
-# Beta local de Blast Corps para Linux
+# Local Blast Corps beta for Linux
 
-Actualización posterior: los defectos concretos de HUD, ticker, sprites del mapa, cielo y fundido reportados en los videos reabren ese alcance gráfico; la aceptación previa del terreno se conserva. El ejecutable de desarrollo ya incorpora las correcciones y un guard de despacho de audio. Véase [el seguimiento y sus límites](graphics-audio-followup-2026-10-10.md). Los paquetes citados abajo conservan el checkpoint anterior.
+Later update: the specific HUD, ticker, map sprite, sky and fade defects reported in the videos reopen that graphics scope; the earlier terrain acceptance remains valid. The development executable already includes the corrections and an audio dispatch guard. See [the follow-up and its limits](graphics-audio-followup-2026-10-10.md). The packages cited below retain the earlier checkpoint.
 
-Checkpoint `99bb524`, 10 de octubre de 2026. Los gráficos actuales están
-aceptados por el usuario. **Puede dejar de procesarse el audio de forma
-intermitente mientras la imagen continúa.** Hubo sesiones posteriores de tres
-y seis minutos correctas con el mismo ejecutable; el fallo anterior sigue abierto.
+Checkpoint `99bb524`, October 10, 2026. The current graphics are
+accepted by the user. **Audio processing may stop intermittently while
+the picture continues.** Subsequent three- and six-minute sessions passed
+with the same executable; the earlier failure remains open.
 
-## Archivos
+## Files
 
-Disponibles en `.local/packages/` del proyecto:
+Available in the project's `.local/packages/`:
 
-| Archivo | SHA-256 |
+| File | SHA-256 |
 | --- | --- |
 | `blastcorps-private-linux-x86_64.tar.gz` | `0b6824931902aafcdb679540c7bc0b87b57275cf069a1308654f40b366dbdfa2` |
 | `blastcorps-private-source-review.tar.gz` | `b06a3394b05ee00eb076b58fb20042af54c402dc9fc954815984559b6bc398d0` |
 
-Cada archivo tiene su `.sha256`. El runtime incluye bibliotecas y 77 textos de
-licencia; la fuente incluye scripts, patches, configuración y procedencia.
-No incluyen ROM, progreso privado ni capturas. La reconstrucción con SDK
-independiente está comprobada; su receta está en [source-rebuild.md](source-rebuild.md).
-El snapshot de fuente no está certificado como fuente correspondiente y la
-revisión completa de licencias sigue pendiente. Son artefactos privados de beta.
+Each archive has its own `.sha256`. The runtime includes libraries and 77 license
+texts; the source includes scripts, patches, configuration and provenance.
+They include no ROM, private progress or captures. The independent SDK rebuild
+has been verified; its recipe is in [source-rebuild.md](source-rebuild.md).
+The source snapshot is not certified as corresponding source, and the full
+license review remains pending. These are private beta artifacts.
 
-## Abrir e importar datos
+## Launching and importing data
 
-Requiere Linux x86-64 con SSSE3/SSE4.1, glibc 2.38, `GLIBCXX_3.4.31`, zlib,
-controlador Vulkan y escritorio X11/XWayland. Extraer en una carpeta escribible:
+Requires Linux x86-64 with SSSE3/SSE4.1, glibc 2.38, `GLIBCXX_3.4.31`, zlib,
+a Vulkan driver and an X11/XWayland desktop. Extract into a writable folder:
 
 ```bash
 sha256sum -c blastcorps-private-linux-x86_64.tar.gz.sha256
 tar -xzf blastcorps-private-linux-x86_64.tar.gz
 cd blastcorps-private-linux-x86_64
 ./'Run Blast Corps.sh'
-# También puede indicarse la ROM directamente:
-./'Run Blast Corps.sh' --rom '/ruta/Blast Corps.zip'
+# You can also specify the ROM directly:
+./'Run Blast Corps.sh' --rom '/path/Blast Corps.zip'
 ```
 
-El selector solicita una ROM propia **USA Rev 1**: z64/v64/n64 o ZIP con una
-sola ROM válida. SHA-1 normalizado: `483f7161aea39de8b45c9fbc70a2c3883c4dea8c`.
-La sesión continúa hasta cerrar la ventana. ROM instalada, partidas, Pak y
-preferencias quedan en `data` junto al ejecutable; `--data-dir` elige otra carpeta.
+The picker requests your own **USA Rev 1** ROM: z64/v64/n64 or a ZIP containing
+one valid ROM. Normalized SHA-1: `483f7161aea39de8b45c9fbc70a2c3883c4dea8c`.
+The session continues until you close the window. The installed ROM, saves, Pak
+and preferences remain in `data` next to the executable; `--data-dir` selects another folder.
 
-Cerrar la instalación anterior y copiar su progreso hacia una carpeta nueva o
-vacía, conservando el origen:
+Close the previous installation and copy its progress into a new or empty
+folder, preserving the source:
 
 ```bash
-./'Run Blast Corps.sh' --data-dir '/ruta/datos-nuevos' \
-  --import-data '/ruta/instalacion-anterior/data' --rom '/ruta/Blast Corps.zip'
+./'Run Blast Corps.sh' --data-dir '/path/new-data' \
+  --import-data '/path/previous-installation/data' --rom '/path/Blast Corps.zip'
 ```
 
-La importación copia partidas, Pak, preferencias y remapeos. La ROM se importa
-por separado; los datos existentes del destino no se mezclan ni sobrescriben.
+Import copies saves, Pak, preferences and remappings. The ROM is imported
+separately; existing destination data is neither merged nor overwritten.
 
-## Controles
+## Controls
 
-Teclado predeterminado: flechas para mover/dirigir, **Z** para acción primaria y
-confirmar, **X** para secundaria y volver, **Enter** para pausa/Start,
-**Shift** para frenar/salir, **I/J/K/L** para cámara y **Q/E** para bocina.
-**Alt+Enter** alterna pantalla completa.
+Default keyboard: arrow keys to move/steer, **Z** for the primary action and
+confirm, **X** for the secondary action and back, **Enter** for pause/Start,
+**Shift** to brake/exit, **I/J/K/L** for the camera and **Q/E** for the horn.
+**Alt+Enter** toggles fullscreen.
 
-En mando, gatillo derecho acelera/confirma y el izquierdo frena/sale. Los
-prompts siguen la acción y el último dispositivo activo, con nombres/glifos
-Xbox, PlayStation o Switch; en Switch las posiciones sur/este/oeste/norte
-son **B/A/Y/X**. El menú PC permite remapear por acción y seleccionar la familia
-manualmente si la detección es ambigua (`--family xbox|playstation|switch`).
-La comprobación con mandos físicos, pantalla/audio reales, 120 fps sostenidos
-y cobertura amplia de misiones queda en [manual-testing.md](manual-testing.md).
+On a controller, the right trigger accelerates/confirms and the left trigger
+brakes/exits. Prompts follow the action and the last active device, with Xbox,
+PlayStation or Switch names/glyphs; Switch south/east/west/north positions
+are **B/A/Y/X**. The PC menu supports remapping by action and manual family
+selection when detection is ambiguous (`--family xbox|playstation|switch`).
+Physical controller, real display/audio, sustained 120 fps and broad mission
+coverage checks are listed in [manual-testing.md](manual-testing.md).

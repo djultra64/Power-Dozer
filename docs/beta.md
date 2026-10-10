@@ -1,69 +1,73 @@
-# Power Dozer v0.8 — beta para probar
+# Power Dozer v0.81 — beta for testing
 
-Abrir `Run Power Dozer.sh` en este equipo (también sirve el launcher anterior). Permanece abierto hasta cerrar
-la ventana; usa escala 3 (720p interno), perfil 16:9, audio estéreo y objetivo
-de interpolación de 120. RT64 limita ese objetivo al refresco disponible.
-La beta todavía necesita validar el recorrido completo de menús y misiones.
-Las preferencias se leen de `settings.json` en la carpeta de datos; los
-argumentos cambian esta ejecución. Añadir `--save-settings` conserva los cambios.
-Alt+Enter conserva el modo de ventana. El menú gráfico dentro del juego sigue
-pendiente.
+Open `Run Power Dozer.sh` on this machine (the earlier launcher also works). It stays open until you close
+the window; it uses scale 3 (internal 720p), a 16:9 profile, stereo audio and an
+interpolation target of 120. RT64 caps that target at the available refresh rate.
+The beta still needs validation of the complete menu and mission flow.
+Preferences are read from `settings.json` in the data folder;
+arguments change the current run. Add `--save-settings` to retain changes.
+Alt+Enter preserves the window mode. The PC menu provides graphics, audio,
+help and per-action remapping.
 
-`--data-dir PATH` permite usar una carpeta independiente para progreso y
-remapeos. El progreso anterior de 512 bytes sigue siendo compatible; al guardar
-se escribe una imagen con versión y checksum, conservando una copia recuperable.
-Las pruebas de desarrollo usan carpetas aisladas para proteger la partida real.
+`--data-dir PATH` allows an independent folder for progress and
+remaps. Earlier 512-byte progress remains compatible; saving
+writes a versioned image with a checksum, retaining a recoverable backup.
+Development tests use isolated folders to protect the real save.
 
-Se corrigió el cierre al cargar el mapa: el frontend usa `L3D_BC`, que la
-revisión local de RT64 identifica pero deja como `Unknown`. Se añadió un
-adaptador específico, con comprobación de las huellas del microcódigo, para
-sus comandos F3D y líneas. Las líneas se convierten en quads delgados; todavía
-falta comparar su rasterización y recorte con una N64. Los microcódigos
-desconocidos se rechazan antes de interpretar la lista gráfica.
+The crash when loading the map was fixed: the frontend uses `L3D_BC`, which the
+local RT64 revision identifies but leaves as `Unknown`. A
+specific adapter was added, with microcode fingerprint checks, for
+its F3D commands and lines. Lines are converted to thin quads; their
+rasterization and clipping still need comparison with an N64. Unknown
+microcodes are rejected before interpreting the graphics list.
 
-La regresión aislada completó 110 segundos: entrada al frontend, mapa y carga
-de Simian Acres, con 6.601 VI, 6.350 tareas gráficas y 3.299 tareas de audio,
-sin cierre. Alt+Enter mantenido no envió Start ni repitió la solicitud. Esta
-prueba usó llvmpipe y audio dummy; no verifica la jugabilidad de toda la misión.
+The isolated regression completed 110 seconds: frontend entry, map and
+Simian Acres loading, with 6,601 VI, 6,350 graphics tasks and 3,299 audio tasks,
+without crashing. Holding Alt+Enter did not send Start or repeat the request. This
+test used llvmpipe and dummy audio; it does not verify playability of the whole mission.
 
-| Tecla | Acción / botón N64 |
+| Key | Action / N64 button |
 |---|---|
-| Alt+Enter | Alternar pantalla completa; no activa Start. |
-| Flechas | Caminar, dirigir vehículos y navegar menús. |
-| Enter | Start: iniciar o pausar según el juego. |
-| Z | Acelerar / confirmar, botón N64 A. |
-| X | Retroceder con el vehículo / volver, botón N64 B. |
-| Shift izquierdo | Detenerse / salir del vehículo, gatillo N64 Z. |
-| I / J / K / L | C arriba / izquierda / abajo / derecha. |
-| Q / E | Botones N64 L / R. |
+| Alt+Enter | Toggle fullscreen; does not activate Start. |
+| Arrow keys | Walk, steer vehicles and navigate menus. |
+| Enter | Start: start or pause according to the game. |
+| Z | Accelerate / confirm, N64 A button. |
+| X | Reverse vehicle / back, N64 B button. |
+| Left Shift | Stop / exit vehicle, N64 Z trigger. |
+| I / J / K / L | C up / left / down / right. |
+| Q / E | N64 L / R buttons. |
 
-Los mandos se conectan con SDL. La ayuda y las instrucciones adaptadas siguen
-el último dispositivo activo: teclado, Xbox, PlayStation o Switch, con nombres
-e iconos. Switch conserva sus posiciones reales (sur=B, este=A, oeste=Y, norte=X).
-`--family xbox|playstation|switch` permite selección manual; el menú PC ofrece
-remapeo por acción y guarda `controls.json` en la carpeta de datos. Se verificó
-con mandos SDL virtuales; la aceptación con botones de mandos físicos y todos
-los tutoriales/vehículos permanece pendiente.
+Controllers connect through SDL. Help and adapted instructions follow
+the last active device: keyboard, Xbox, PlayStation or Switch, with names
+and icons. Switch retains its actual positions (south=B, east=A, west=Y, north=X).
+`--family xbox|playstation|switch` allows manual selection; the PC menu offers
+per-action remapping and saves `controls.json` in the data folder. It was verified
+with virtual SDL controllers; acceptance with physical controller buttons and all
+tutorials/vehicles remains pending.
 
-La interpolación genera cuadros adicionales entre los del juego original.
-Falta verificar su corrección en cámaras, vehículos, partículas y demolición.
-Solicitar 120 no acredita 120 fps sostenidos; el objetivo efectivo aparece
-en el registro `rt64_metrics`. Pantalla completa no cambia el modo de refresco
-del escritorio.
+Interpolation generates extra frames between those of the original game.
+Its correctness in cameras, vehicles, particles and demolition still needs verification.
+Requesting 120 does not establish sustained 120 fps; the effective target appears
+in the `rt64_metrics` log. Fullscreen does not change the desktop's
+refresh mode.
 
-La GPU disponible es AMD Ryzen Z1 Extreme (RADV PHOENIX). En la pantalla
-principal configurada a 60 Hz se observó objetivo efectivo 60 y tasa original
-30 en las escenas 3D. Es evidencia de configuración y generación de cuadros,
-no una medición de 120 fps sostenidos.
+The available GPU is AMD Ryzen Z1 Extreme (RADV PHOENIX). On the main
+screen configured at 60 Hz, an effective target of 60 and original rate of
+30 were observed in 3D scenes. This is evidence of configuration and frame generation,
+not a measurement of sustained 120 fps.
 
 ```bash
-./'Run Blast Corps Beta.sh'
-./'Run Blast Corps Beta.sh' --scale 9 # Perfil 4K, más exigente.
-./'Run Blast Corps Beta.sh' --refresh 0 # Comparar con presentación original.
-./'Run Blast Corps Beta.sh' --scale 9 --msaa 4 --save-settings
-./'Run Blast Corps Beta.sh' --volume 50 --mute # Silencia la salida; el RSP sigue activo.
+./'Run Power Dozer.sh'
+./'Run Power Dozer.sh' --scale 9 # 4K profile, more demanding.
+./'Run Power Dozer.sh' --refresh 0 # Compare with original presentation.
+./'Run Power Dozer.sh' --scale 9 --msaa 4 --save-settings
+./'Run Power Dozer.sh' --volume 50 --mute # Mutes output; the RSP stays active.
 ```
 
-Los glifos del teclado y Xbox/PlayStation/Switch usan los recortes del atlas
-suministrado, con transparencia y tamaño proporcional al HUD. Las teclas
-sin dibujo específico conservan su nombre junto a una tecla vacía.
+Keyboard and Xbox/PlayStation/Switch glyphs use crops from the
+supplied atlas, with transparency and size proportional to the HUD. Keys
+without a specific drawing retain their name beside a blank keycap.
+
+The reported thin black ground line is not currently reproducible: the reporter
+and recent local captures no longer show it. No speculative patch was applied. The public release includes Linux and Windows
+runtime archives; see [install.md](install.md) for their requirements.

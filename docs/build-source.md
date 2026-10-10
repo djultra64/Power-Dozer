@@ -1,59 +1,81 @@
-# Reconstruir Power Dozer v0.8
+# Rebuild Power Dozer v0.81
 
-`power-dozer-v0.8-source.tar.gz` contiene el host, scripts de adaptación,
-configuración, pruebas y avisos, junto con fuentes fijadas de N64Recomp,
-N64ModernRuntime, RT64 y spimdisasm y los tres inputs de mapa/símbolos.
-`SOURCES.json` registra repositorios, commits recursivos y SHA-256/tamaño de
-cada archivo. El snapshot excluye ROM, overlays, código CPU/RSP generado de
-ROM, progreso privado, capturas, evidencia y binarios precompilados.
-El fixture de progreso incluido en las pruebas es sintético.
+`power-dozer-v0.81-source.tar.gz` contains the host, adaptation scripts,
+configuration, tests and notices, along with pinned sources for N64Recomp,
+N64ModernRuntime, RT64 and spimdisasm and the three mapping/symbol inputs.
+`SOURCES.json` records repositories, recursive commits and SHA-256/size for
+each file. The snapshot excludes the ROM, overlays, CPU/RSP code generated from
+the ROM, private progress, captures, evidence and prebuilt binaries.
+The progress fixture included in the tests is synthetic.
 
-Requisitos de reconstrucción: Linux x86-64, Git/Python, compilador C/C++20,
-CMake, Ninja, pkg-config, SDL2 y DBus de desarrollo, headers X11/protocolos Xorg,
-zlib, headers del Python usado, venv/pip y conexión para descargar inputs fijados.
-Si SDL está fuera de los prefijos estándar, configurar `PKG_CONFIG_PATH` y
-`CMAKE_PREFIX_PATH` con su prefijo instalado.
+Rebuild requirements: Linux x86-64, Git/Python, a C/C++20 compiler,
+CMake, Ninja, pkg-config, SDL2 and DBus development files, X11/Xorg protocol headers,
+zlib, headers for the Python in use, venv/pip and a connection to download pinned inputs.
+If SDL is outside standard prefixes, set `PKG_CONFIG_PATH` and
+`CMAKE_PREFIX_PATH` to its installed prefix.
 
 ```bash
-sha256sum -c power-dozer-v0.8-source.tar.gz.sha256
-tar -xzf power-dozer-v0.8-source.tar.gz
-cd power-dozer-v0.8-source/host
+sha256sum -c power-dozer-v0.81-source.tar.gz.sha256
+tar -xzf power-dozer-v0.81-source.tar.gz
+cd power-dozer-v0.81-source/host
 
-# Verificar hashes y mostrar la receta sin descargar ni compilar:
+# Verify hashes and display the recipe without downloading or compiling:
 python3 tools/bootstrap_sdk.py --sources ../vendor --sdk-root ../sdk --plan
 
-# Preparar herramientas, RT64 y entorno de análisis en un SDK nuevo o vacío:
+# Prepare tools, RT64 and the analysis environment in a new or empty SDK:
 python3 tools/bootstrap_sdk.py --sources ../vendor --sdk-root ../sdk --jobs 2
 
-# Regenerar y compilar usando una ROM propia USA Rev 1:
-python3 tools/build.py '/ruta/Blast Corps USA Rev 1.zip' \
+# Regenerate and build using your own USA Rev 1 ROM:
+python3 tools/build.py '/path/Blast Corps USA Rev 1.zip' \
   --sdk-root ../sdk --mapping-source ../mapping --build-dir build
 ```
 
-Las fuentes exportadas y los inputs DXC/PyYAML/Rabbitizer/base de mandos se
-validan antes de usarse. Los transforms del runtime y RT64 producen copias
-locales a partir de las fuentes fijadas, sin modificar los originales.
-No se necesita acceso al checkout privado usado para preparar el snapshot.
-`include/control_atlas_data.h` contiene los sprites ya extraídos: compilar no
-requiere los PNG originales del usuario ni ejecutar el extractor del atlas.
-Su procedencia y revisión de derechos independiente están en
-`config/control-atlas.json` y `NOTICE`.
+Exported sources and DXC/PyYAML/Rabbitizer/controller database inputs are
+validated before use. Runtime and RT64 transforms produce
+local copies from the pinned sources without modifying the originals.
+Access to the private checkout used to prepare the snapshot is not required.
+`include/control_atlas_data.h` contains the already extracted sprites: building does not
+require the user's original PNGs or running the atlas extractor.
+Their provenance and separate rights review are in
+`config/control-atlas.json` and `NOTICE`.
 
 ```bash
 ctest --test-dir build --output-on-failure
 BC_SDK_ROOT=../sdk python3 -m unittest discover -s tests
 ```
 
-El ejecutable de desarrollo conserva el nombre de target
-`build/blastcorps-prototype`. Los paquetes de distribución lo renombran a
-`power-dozer`. El archivo de fuente es determinista para el mismo snapshot;
-esto no afirma igualdad bit a bit del ejecutable. La compilación aislada del
-método se ha comprobado en checkpoints anteriores; el manifiesto del snapshot
-actual conserva sus indicadores de certificación en falso.
+The development executable retains the target name
+`build/blastcorps-prototype`. Distribution packages rename it to
+`power-dozer`. The source archive is deterministic for the same snapshot;
+this does not claim bit-for-bit equality of the executable. An isolated build
+using this method was checked at earlier checkpoints; the current snapshot's
+manifest keeps its certification flags false.
 
-`LICENSE` describe el código propio y `NOTICE` delimita dependencias y assets.
-La revisión del mapa upstream y del alcance de CPU/RSP generado a partir de la
-ROM sigue pendiente. Entregar scripts de regeneración e inputs fijados no
-certifica por sí solo una entrega completa de fuente correspondiente GPL.
+`LICENSE` describes project code and `NOTICE` defines the scope of dependencies and assets.
+Review of the upstream mapping and the scope of CPU/RSP code generated from the
+ROM is still pending. Providing regeneration scripts and pinned inputs does not
+by itself certify delivery of complete GPL corresponding source.
 `license_review_complete`, `corresponding_source_verified`,
-`clean_rebuild_verified` y `ready_for_release` permanecen en falso.
+`clean_rebuild_verified` and `ready_for_release` remain false.
+
+
+## Native Windows build
+
+`tools/build_windows.ps1` configures a native x64 build with Visual Studio 2022,
+builds RT64 and the host, copies the pinned Windows SDL/DXC DLLs and runs the
+Windows save/import test. Provide CMake, Python and a prepared SDK containing
+`deps/N64ModernRuntime` and `deps/rt64`. Regenerate `.local/generated` and
+`.local/audio-rsp.cpp` privately from your own ROM before invoking the script.
+The Linux SDK bootstrap is not a complete Windows bootstrap; the release test
+used the same prepared SDK sources and privately generated inputs on both hosts.
+
+```powershell
+.\tools\build_windows.ps1 -SdkRoot 'C:\PowerDozer\sdk' `
+  -CMakeExe 'C:\Tools\CMake\bin\cmake.exe' `
+  -PythonExe 'C:\Tools\Python\python.exe' -Jobs 4
+```
+
+The native executable is `build-windows/Release/blastcorps-prototype.exe`.
+`WINDOWS-BUILD.json` records its hash and compile/test evidence; its GPU flag
+remains false until a separate interactive runtime test has been performed.
+The public source archive excludes privately generated game code and the ROM.

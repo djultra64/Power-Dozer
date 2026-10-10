@@ -35,7 +35,7 @@ template<class F>int mutation(F&& call,const char* operation,int index=-1){
 void bc_initialize_pak(){
  std::lock_guard lock(mutex);try{
   const auto path=bc_data_directory/"controller-pak.bin";
-  const bool fresh=!std::filesystem::exists(path)&&!std::filesystem::exists(path.string()+".bak");
+  const bool fresh=!std::filesystem::exists(path)&&!std::filesystem::exists(std::filesystem::path(path).concat(".bak"));
   auto candidate=store().load();
   if(fresh&&bc::import_eeprom_player(candidate,bc::SaveStore(bc_data_directory/"eeprom.bin").load())){
    store().save(candidate);fprintf(stderr,"{\"event\":\"legacy_progress_imported\",\"source\":\"eeprom\",\"slot\":0}\n");

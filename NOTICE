@@ -1,4 +1,4 @@
-Power Dozer v0.8
+Power Dozer v0.81
 A community native port of Blast Corps USA Rev 1.
 
 Original host code and project-specific modifications are distributed under
@@ -19,8 +19,8 @@ include/control_atlas_data.h contains the extracted control artwork.
 The host-code GPL notice does not relicense this supplied artwork; its
 original author/license has not been identified. On 2026-10-10 the project
 owner explicitly confirmed permission to redistribute this supplied artwork
-in the public Power Dozer repository and v0.8 packages.
+in the public Power Dozer repository and its public runtime/source releases, including v0.8 and v0.81.
 
-The v0.8 release is a prerelease for testing. Runtime/source manifests retain
+The v0.81 release is a prerelease for testing. Runtime/source manifests retain
 their audit flags: they do not certify a completed source/license audit,
 bit-for-bit reconstruction, or full-game/platform acceptance.

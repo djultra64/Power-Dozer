@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage deterministic Power Dozer v0.8 sources; never certify licensing."""
+"""Stage deterministic Power Dozer v0.81 sources; never certify licensing."""
 import argparse
 import gzip
 import hashlib
@@ -11,13 +11,13 @@ import tarfile
 
 ROOT=Path(__file__).resolve().parents[1]
 PRODUCT='Power Dozer'
-VERSION='0.8'
-PACKAGE_ROOT='power-dozer-v0.8-source'
+VERSION='0.81'
+PACKAGE_ROOT='power-dozer-v0.81-source'
 SUFFIXES={'.h','.hpp','.hh','.c','.cpp','.cc','.cxx','.s','.asm','.hlsl','.hlsli','.glsl','.vert','.frag','.comp','.py','.sh','.bat','.ps1','.toml','.json','.txt','.md','.yml','.yaml','.natvis','.rc','.manifest','.def','.inc','.map','.csv','.xml','.html','.rst','.fbs','.mk','.cfg','.sln','.vcxproj','.props','.filters','.in','.cmake'}
 NAMES={'LICENSE','COPYING','COPYRIGHT','NOTICE','Makefile','meson.build','.gitignore','.gitmodules','.gitattributes'}
 SUFFIXES.update({'.inl','.ipp','.tpp'})
 HOST_DIRS={'include','src','tools','tests','config','licenses','docs'}
-HOST_FILES={'LICENSE','NOTICE','CHANGELOG.md','CMakeLists.txt','README.md','.gitignore','Run Blast Corps.sh','Run Blast Corps Beta.sh','Run Power Dozer.sh','Run Power Dozer Beta.sh'}
+HOST_FILES={'LICENSE','NOTICE','CREDITS.md','CHANGELOG.md','CMakeLists.txt','README.md','.gitignore','Run Blast Corps.sh','Run Blast Corps Beta.sh','Run Power Dozer.sh','Run Power Dozer Beta.sh'}
 SOURCE_FIXTURES={'tests/fixtures/legacy-completed.hex'}
 ROM_MAGIC={bytes.fromhex(s) for s in ('80371240','37804012','40123780')}
 

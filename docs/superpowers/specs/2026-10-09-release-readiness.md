@@ -54,6 +54,19 @@ findings. Package privately for review. Keep a readiness ledger distinguishing
 implemented, tested, physically tested, and pending; unknown coverage cannot be
 converted into a passing claim.
 
+## Original prompt integration decision
+
+Resolve the ROM's thirteen known instruction-string addresses through the same
+logical action model as actual input. Match both address and original text;
+leave narrative prose and modified guest strings intact. Normalize a hook at
+the core font-layout entry, validating its original instructions and all text
+bytes before generation. CPU-only replacement slots are consumed synchronously
+by the original font code; its normal geometry remains in guest RSP memory.
+Longer names reduce glyph width to preserve the original line's space. Switch
+Start uses the written name PLUS because the original font omits the + sign.
+This stage supplies device names; actual controller glyph drawing and native
+captures for the other tutorial pages remain required.
+
 ## Settings menu implementation decision
 
 Reuse the original pause window's fonts, animation and selection behavior.

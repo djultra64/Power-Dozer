@@ -85,7 +85,7 @@ InputPrompt InputModel::prompt(InputAction action) const{
   constexpr std::array<InputGlyph,4> positions={InputGlyph::South,InputGlyph::East,InputGlyph::West,InputGlyph::North},shapes={InputGlyph::Cross,InputGlyph::Circle,InputGlyph::Square,InputGlyph::Triangle};
   return {(f==ControllerFamily::Xbox?xbox:f==ControllerFamily::Switch?sw:f==ControllerFamily::PlayStation?ps:unknown)[code],f==ControllerFamily::PlayStation?shapes[code]:positions[code],source_};
  }
- if(code==SDL_CONTROLLER_BUTTON_START)return {f==ControllerFamily::Switch?"+":f==ControllerFamily::PlayStation?"OPTIONS":"MENU",InputGlyph::Menu,source_};
+ if(code==SDL_CONTROLLER_BUTTON_START)return {f==ControllerFamily::Switch?"PLUS":f==ControllerFamily::PlayStation?"OPTIONS":"MENU",InputGlyph::Menu,source_};
  if(code==SDL_CONTROLLER_BUTTON_BACK)return {f==ControllerFamily::Switch?"-":f==ControllerFamily::PlayStation?"SHARE":"VIEW",InputGlyph::Menu,source_};
  if(code==SDL_CONTROLLER_BUTTON_LEFTSHOULDER||code==SDL_CONTROLLER_BUTTON_RIGHTSHOULDER){bool left=code==SDL_CONTROLLER_BUTTON_LEFTSHOULDER;return {f==ControllerFamily::Switch?(left?"L":"R"):f==ControllerFamily::PlayStation?(left?"L1":"R1"):(left?"LB":"RB"),InputGlyph::Shoulder,source_};}
  if(code>=SDL_CONTROLLER_BUTTON_DPAD_UP&&code<=SDL_CONTROLLER_BUTTON_DPAD_RIGHT){constexpr std::array<const char*,4> labels={"DPAD UP","DPAD DOWN","DPAD LEFT","DPAD RIGHT"};return {labels[code-SDL_CONTROLLER_BUTTON_DPAD_UP],InputGlyph::Dpad,source_};}

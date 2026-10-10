@@ -143,6 +143,11 @@ def main():
 def normalize(folder):
     # These hooks depend on the original pause layout and callable entries.
     rom=(ROOT/'.local/hd_code.bin').read_bytes()
+    prompt_layout=(ROOT/'include/game_prompts.h').read_text()
+    for encoded,text in re.findall(r'\{0x([0-9A-F]{8}),"([^"]+)"\}',prompt_layout):
+        at=int(encoded,16)-0x802447C0
+        if rom[at:at+len(text)+1]!=text.encode('ascii')+b'\0':
+            raise ValueError(f'Original game prompt changed at {encoded}')
     layout=(ROOT/'include/blast_save_format.h').read_text()
     for name,address,count,stride in [('blast_level_types',0x802E8F94,60,0x44),('blast_vehicle_time_slots',0x802E8C44,16,1)]:
         encoded=re.search(r'\b'+name+r'=\{([^}]+)\}',layout,re.S)
@@ -152,7 +157,8 @@ def normalize(folder):
             raise ValueError(f'Original EEPROM migration layout changed: {name}')
     for address,expected in (
         (0x802F8BDC,'010000d000200010f1000039000000000005001b001c001d00000000'),
-        (0x8024BDA4,'27bdffd03c0e8036'),(0x8026BCE0,'3c0f80313c188037')):
+        (0x8024BDA4,'27bdffd03c0e8036'),(0x8026BCE0,'3c0f80313c188037'),
+        (0x80259EC4,'27bdffc0afa500448fae0044')):
         at=address-0x802447C0
         if rom[at:at+len(expected)//2].hex()!=expected:
             raise ValueError(f'Original PC options hook layout changed at {address:08X}')
@@ -190,6 +196,8 @@ def normalize(folder):
                 body=body[:at]+f'    bc_guest_window_trace(rdram,ctx,{draw});\n'+body[at:]
         if body.startswith('RECOMP_FUNC void func_8026BCE0(') and 'bc_pc_options_draw' not in body:
             at=body.index('\n')+1;body=body[:at]+'    bc_pc_options_draw(rdram);\n'+body[at:]
+        if body.startswith('RECOMP_FUNC void func_80259EC4(') and 'bc_game_prompt_text' not in body:
+            at=body.index('\n')+1;body=body[:at]+'    bc_game_prompt_text(rdram,ctx);\n'+body[at:]
         if body.startswith('RECOMP_FUNC void func_8024BDA4(') and 'bc_pc_options_selection' not in body:
             at=body.index('\n')+1;body=body[:at]+'    if(bc_pc_options_selection(rdram,ctx))return;\n'+body[at:]
         if body.startswith('RECOMP_FUNC void func_8026BCE0(') and 'bc_original_window_off' not in body:

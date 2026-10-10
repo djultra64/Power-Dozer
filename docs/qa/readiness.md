@@ -326,3 +326,23 @@ unclassified assertions. Keyboard screenshot confirms Back is white/available.
 The selected row follows the original blink animation. User EEPROM SHA-256
 remains `1bb5b014be69e0a38a76d24d78c953ca51f492f93aff40d4d5fda62ab4bae26b`.
 Both runs use software Vulkan and dummy audio; physical output remains pending.
+
+Original prompts: implemented a ROM-validated core font hook for thirteen
+original string addresses (eleven distinct instructions), resolving pause,
+thrust, dive, skid, launch, vehicle exit and map/page controls through the live
+action model. Exact address+text matching preserves ordinary prose and original
+ROM strings. Tests exercise keyboard/Xbox/PlayStation/Switch, remapping,
+unbound actions, every known address, unrelated/modified guest strings,
+CPU-only text bounds and longer-name width. Switch PLUS naming fixes an observed
+font limitation: + has no original glyph. 19 native / 26 Python tests pass.
+
+Native regression after regeneration: `.local/qa/gameplay-i50dfc9f` passed
+180 seconds, 10,801 VI / 10,469 graphics / 5,399 audio tasks, covering the editor,
+cancel/help, changed-key driving, pause/resume and Restart. The guest font hook
+executed PRESS START→PRESS ENTER during the mission introduction.
+`.local/qa/gameplay-0mn243uj` passed 100 seconds, 6,001 VI / 5,673 graphics /
+2,999 audio tasks, explicitly capturing that instruction plus movement and
+pause/resume. `mission-action-prompt-next.png` reviewed: PRESS ENTER is visible
+and fits the original location. Both sources remained unchanged; software
+Vulkan/dummy audio only. Other tutorial lines have guest-memory test coverage,
+but their native screenshots and actual device glyph rendering are pending.

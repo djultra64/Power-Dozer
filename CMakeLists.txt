@@ -23,6 +23,7 @@ set_property(TARGET ultramodern PROPERTY SOURCES "${BC_UM_SOURCES}")
 file(GLOB GUEST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/.local/generated/functions/funcs_*.c")
 set_source_files_properties(${GUEST} PROPERTIES LANGUAGE CXX COMPILE_OPTIONS "-w;-O1")
 add_executable(blastcorps-prototype src/main.cpp src/runtime.cpp src/renderer.cpp src/input.cpp src/input_model.cpp src/input_capture.cpp src/controls_store.cpp src/atomic_file.cpp src/l3d.cpp src/save_store.cpp src/pak_store.cpp src/pak_runtime.cpp src/pak_session.cpp src/save_migration.cpp src/settings.cpp src/settings_menu.cpp src/pc_options.cpp src/controls_menu.cpp
+ src/game_prompts.cpp src/game_prompt_runtime.cpp
  "${CMAKE_SOURCE_DIR}/.local/generated/fallbacks.cpp"
  "${CMAKE_SOURCE_DIR}/.local/audio-rsp.cpp"
  "${RUNTIME}/librecomp/src/ultra_translation.cpp"
@@ -86,6 +87,13 @@ add_test(NAME pc_options_guest_bridge COMMAND pc_options_test)
 target_sources(pc_options_test PRIVATE src/controls_menu.cpp src/input_model.cpp)
 target_include_directories(pc_options_test PRIVATE /home/linuxbrew/.linuxbrew/include/SDL2)
 target_link_libraries(pc_options_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+add_executable(game_prompts_test tests/game_prompts.cpp src/game_prompts.cpp src/game_prompt_runtime.cpp src/input_model.cpp)
+target_include_directories(game_prompts_test PRIVATE include .local/generated/functions
+ "${RUNTIME}/N64Recomp/include" "${RUNTIME}/ultramodern/include"
+ "${RUNTIME}/librecomp/include" "${RUNTIME}/librecomp/include/librecomp"
+ "${RUNTIME}/thirdparty/json" /home/linuxbrew/.linuxbrew/include/SDL2)
+target_link_libraries(game_prompts_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+add_test(NAME original_game_prompts_follow_actions COMMAND game_prompts_test)
 add_executable(pak_store_test tests/pak_store.cpp src/pak_store.cpp src/atomic_file.cpp)
 target_include_directories(pak_store_test PRIVATE include)
 add_test(NAME controller_pak_files_and_recovery COMMAND pak_store_test)

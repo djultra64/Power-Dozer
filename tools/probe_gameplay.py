@@ -33,6 +33,7 @@ def run(args):
     log=directory/'native.log'
     print(f'Private test directory: {directory}',flush=True)
     confirm='z'
+    prompt_captured=False
     with log.open('w') as output:
         process=subprocess.Popen([str(ROOT/'build/blastcorps-prototype'),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale','1','--wide','--refresh','120'],env=env,stdout=output,stderr=subprocess.STDOUT)
         def text():return log.read_text(errors='replace')
@@ -44,9 +45,19 @@ def run(args):
                 if isinstance(event,dict) and event.get('event')=='guest_state':result.append(event)
             return result
         def wait(condition,timeout=20):
+            nonlocal prompt_captured
             deadline=time.monotonic()+timeout
             while time.monotonic()<deadline:
                 value=text()
+                if args.prompts and not prompt_captured:
+                    for line in value.splitlines():
+                        try:event=json.loads(line)
+                        except json.JSONDecodeError:continue
+                        if isinstance(event,dict) and event.get('event')=='game_action_prompt' and event.get('original')=='PRESS START' and event.get('text')=='PRESS ENTER':
+                            time.sleep(.25);screenshot('mission-action-prompt')
+                            time.sleep(.25);screenshot('mission-action-prompt-next')
+                            prompt_captured=True
+                            break
                 if condition(value):return
                 if process.poll() is not None:raise ValueError(f'Native process exited {process.returncode}')
                 time.sleep(.1)
@@ -67,7 +78,7 @@ def run(args):
             window=subprocess.check_output(['xdotool','search','--pid',str(process.pid),'--name','Blast Corps'],env=env,text=True).split()[-1]
             command('windowfocus',window)
             wait(lambda value:'game mode switch from 4 to 5' in value)
-            time.sleep(1);key('Return')
+            time.sleep(1);screenshot('title-controls');key('Return')
             wait(lambda value:'game mode switch from 58 to 1' in value)
             time.sleep(4)
             for attempt in range(12):
@@ -181,6 +192,8 @@ def run(args):
             result['exercise_verified']=args.exercise
             result['options_verified']=args.options
             result['controls_verified']=args.controls
+            result['prompt_captured']=prompt_captured
+            if args.prompts and not prompt_captured:raise ValueError('Original mission prompt was not adapted and captured')
             result['restart_verified']=args.retry
             result['failure_verified']=args.wait_failure
             result['seed_save_unchanged']=not args.seed_save or hashlib.sha256(args.seed_save.read_bytes()).hexdigest()==source_hash
@@ -205,6 +218,7 @@ if __name__=='__main__':
     parser.add_argument('--retry',action='store_true')
     parser.add_argument('--options',action='store_true')
     parser.add_argument('--controls',action='store_true')
+    parser.add_argument('--prompts',action='store_true')
     parser.add_argument('--wait-failure',action='store_true')
     args=parser.parse_args()
     if args.seconds<90:parser.error('At least 90 seconds are required for the mission transition')

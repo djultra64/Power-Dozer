@@ -9,10 +9,11 @@ Linux package, durable EEPROM/Pak/settings/remaps, original-style options/help,
 keyboard and three virtual controller families, stereo audio recovery, Alt+Enter
 and playable Simian Acres with movement/pause/Continue/Restart/failure. Corrected
 interpolated presentation passes measured 720p/1080p120 on a virtual120Hz output;
-4K120 sustained performance and intermittent native startup freezes remain
-under investigation. New Simian Acres objective completion and cold save/reload
-are verified; broader missions, physical controls/output audio, complete licenses
-and final package/independent review remain pending. Detailed chronological
+Known scene polygons/track appearance discrepancies and intermittent native startup
+freezes remain release blockers. Sustained 120 fps, broader missions and physical
+output acceptance are deferred to manual testing. New Simian Acres objective
+completion and cold save/reload are verified; complete dependency review,
+independent source rebuild is verified at the CPU/build stage; final package and native runtime acceptance remain pending. Detailed chronological
 evidence below retains each earlier checkpoint and its scope.
 
 Ruling: execute local design/plan stages without renewed approvals — the user
@@ -1501,3 +1502,100 @@ SHA7398a4ef2bf6ba333b5405f654f49534912dbe0b2752c45a21a8e3de2519dfcd,
 Extraction into a separate/tmp directory with spaces verified all74 hashes.
 Native package runtime acceptance remains pending. No reference emulator,ROM,
 private saves,captures or shadow-isolation variant is in the archive.
+
+
+## Parallel preparation and graphics isolation, October 10
+
+User explicitly requested additional agents. Work is divided into native
+stability, graphics source diagnostics, and Linux package/source reconstruction.
+Sustained 120 fps and broad coverage remain manual acceptance items.
+
+The actual SDK thread-removal correction at `85b45ba` passes 35 native cases
+and 88 Python cases. A subsequent private read-only framebuffer tracer still
+reproduced a startup freeze in `gameplay-dn_rgo2e`: graphics/audio/polls stopped
+at 969/486/765 while host VI advanced from 1202 through 1502. Its logging gate
+was VI >= 2500, so no tracer logging had occurred. Live GDB capture shows idle
+thread 1 in external-message dequeue while scheduler/main/audio/frontend wait;
+none is executing the corrected thread-removal function. The historical freeze
+is therefore still open. See [stability-investigation.md](stability-investigation.md).
+
+The same tracer completed `gameplay-v73v379s` for 180 seconds, terminal exit 0:
+10801 VI / 10430 graphics / 5399 audio. Its route collided and did not reach
+any target building; this is startup/runtime evidence, not scene acceptance.
+Only legitimate shadow framebuffer ranges were matched, not main-framebuffer
+texture loads. This weakens the proposed main-framebuffer texture alias cause.
+
+Original-rate `gameplay-ifza76_e` completed 180 seconds, terminal exit 0:
+10801 VI / 10514 graphics / 5399 audio. Its third target was reached and the
+track appearance discrepancy remains visible without interpolation. Read-only
+RAM records motion-blur mode/count zero, normal 8–8.944-unit track widths and
+valid emitted triangle topology. Geometry size alone is not proven defective:
+the matching original-emulator scene has not been synchronized frame by frame.
+
+Additional original-rate tracer `gameplay-zrmi0y9n` completed 180 seconds,
+terminal exit 0: 10802 VI / 10515 graphics / 5399 audio, reaching three targets.
+1024 vertex-load records between VI 4501 and 4775 show normal inherited
+transforms. The 886 vertex pairs wholly within the homogeneous frustum have
+median projected width 5.646 and maximum 7.649 pixels at 320x240. Very large
+projections come from vertices outside the frustum and do not establish visible
+rasterization faults. This tracer exhausted its limit before the third target.
+Original progress hashes remained unchanged in each private trial.
+
+The displaced-scene polygons still need effective attachment, blend and clear
+capture. RT64 raster MEMORY blending uses the current attachment at the same
+pixel, with no MEMORY texture UV path; the earlier texture-overlap hypothesis
+is not established. Full-scissor fills explicitly support widescreen expansion.
+Source findings and limitations: [graphics-source-investigation.md](graphics-source-investigation.md).
+
+Release preparation now includes exact notices/provenance for DXC and embedded
+headers, concrete Linux requirements, manual acceptance instructions and an
+independent source/bootstrap workflow. A source review archive is a private
+preparation artifact, not proof of complete corresponding-source licensing,
+clean final game rebuild or package runtime acceptance. See
+[launch-readiness.md](launch-readiness.md), [manual-testing.md](manual-testing.md)
+and [source-rebuild.md](source-rebuild.md). Final binary/package checks must
+follow the remaining graphics/stability changes; no release-ready claim is made.
+
+
+## Synchronous SDK thread destruction — 2026-10-10
+
+The pinned SDK's external osDestroyThread returned while its cancelled host
+thread could still read an OSThread slot that the game immediately reused.
+Actual SDK-thread fixtures reproduce this with ThreadSanitizer exit 66 before
+the source-copy transform. The prepared implementation joins the old host
+thread before returning; normal return/self-destruction retain the original
+cleaner. All four actual SDK fixtures pass 1,500 cycles each with no sanitizer
+report. Independent source/evidence review found no critical/important issue.
+The SDK's original threads.cpp remains unchanged.
+
+Production ELF SHA-256
+`6d2104d1c77f4a5f61b591b4d074d02f1ad558d00dfcdda321dc65203a02ba87`
+completed gameplay-178geavf, 180 seconds: 10,801 VI / 10,953 graphics / 5,398
+audio tasks, existing private player/level data, movement and pause/Continue.
+The helper did not request Restart, so this run does not establish Restart.
+Original EEPROM hash and both source seeds remained unchanged. These results
+verify the new regression case; they do not prove the historical rare freeze's
+causality closed. Fresh local suites: CTest 39/39 and Python 107/107, exit 0.
+
+Read-only draw tracing in gameplay-z934h0pt also completed 180 seconds, 10,801
+VI / 10,439 graphics / 5,397 audio tasks, original refresh and zero fractional
+renders. Its private waypoint route failed, with no building destroyed; this
+is not an objective-completion acceptance. Scene polygons already appear at
+mission start, before tracks. The 42 sampled main render passes have complete
+black clears within their actual 320x240 or 1920x1080 attachments. Matched HLE
+and renderer modes/combiner agree. This weakens incomplete main clearing;
+shadow conversion, texture sampling and precise offending draw remain under
+investigation. Logging changes timing, and caps end before later route views.
+No graphics workaround is inferred from this capture.
+
+
+Independent host runtime — 2026-10-10: the exported host and freshly built SDK
+produced ELF `537380aa960c9b52357542726d348ee5b070be06c468b085f486340413f12512`.
+It ran outside the checkout, with a launch directory containing spaces, and
+completed gameplay-nape2f8q, 180 seconds: 10,801 VI / 10,948 graphics / 5,397
+audio tasks, movement, pause/Continue and Restart, existing ALF data and completed
+level replay. The original seed EEPROM/Pak remained unchanged. Production
+also completed the explicit Restart regression gameplay-p8hcg277, 180 seconds:
+10,801 VI / 10,951 graphics / 5,399 audio tasks, exit 0. This is native runtime
+acceptance of the source reconstruction and new lifecycle regression, not a
+claim that broader graphics, physical audio/output or final release are complete.

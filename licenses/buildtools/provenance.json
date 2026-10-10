@@ -1,0 +1,20 @@
+{
+  "scope": "Python build tools; not runtime payload",
+  "sources": {
+    "PyYAML": {
+      "bytes": 130631,
+      "metadata": "https://pypi.org/pypi/PyYAML/6.0.2/json",
+      "sha256": "d584d9ec91ad65861cc08d42e834324ef890a082e591037abe114850ff7bbc3e",
+      "url": "https://files.pythonhosted.org/packages/54/ed/79a089b6be93607fa5cdaedf301d7dfb23af5f25c398d5ead2525b063e17/pyyaml-6.0.2.tar.gz",
+      "version": "6.0.2"
+    },
+    "rabbitizer": {
+      "bytes": 180503,
+      "metadata": "https://pypi.org/pypi/rabbitizer/1.16.2/json",
+      "selection": "Matches inspected reference analysis-venv rabbitizer-1.16.2.dist-info; satisfies pinned spimdisasm >=1.14.0,<2.0.0.",
+      "sha256": "29b624573bb57f3287eb4a88f18e5daf5616f22b19230f6c75a7ae3283cdd048",
+      "url": "https://files.pythonhosted.org/packages/11/bf/d9f65a5c788e79342135dce170128f46d201bf5cddd87f3080816ed9b365/rabbitizer-1.16.2.tar.gz",
+      "version": "1.16.2"
+    }
+  }
+}

@@ -4,12 +4,30 @@ find_package(Threads REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set(CMAKE_CXX_STANDARD 20)
 set(TETRISPHERE_ROOT "" CACHE PATH "Existing Tetrisphere checkout with verified toolchain and M1 libraries")
-set(DEPS "${TETRISPHERE_ROOT}/.local/deps")
+set(BC_SDK_ROOT "" CACHE PATH "Independent SDK with deps and freshly built RT64 libraries")
+if(BC_SDK_ROOT)
+ set(DEPS "${BC_SDK_ROOT}/deps")
+ set(BC_RT64_BUILD_DEFAULT "${BC_SDK_ROOT}/rt64-build")
+ find_package(PkgConfig REQUIRED)
+ pkg_check_modules(BC_SDL2 REQUIRED sdl2)
+ pkg_check_modules(BC_DBUS REQUIRED dbus-1)
+ pkg_check_modules(BC_X11 REQUIRED x11)
+ set(BC_SDL_INCLUDE ${BC_SDL2_INCLUDE_DIRS} ${BC_X11_INCLUDE_DIRS})
+ set(BC_SDL_LIBRARY ${BC_SDL2_LINK_LIBRARIES})
+ set(BC_DBUS_LIBRARY ${BC_DBUS_LINK_LIBRARIES})
+else()
+ set(DEPS "${TETRISPHERE_ROOT}/.local/deps")
+ set(BC_RT64_BUILD_DEFAULT "${TETRISPHERE_ROOT}/.local/m1/build-linux/rt64")
+ set(BC_SDL_INCLUDE /home/linuxbrew/.linuxbrew/include/SDL2)
+ set(BC_SDL_LIBRARY /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+ set(BC_DBUS_LIBRARY /home/linuxbrew/.linuxbrew/lib/libdbus-1.so)
+ set(BC_LEGACY_INCLUDE /home/linuxbrew/.linuxbrew/include /home/linuxbrew/.linuxbrew/opt/xorgproto/include)
+endif()
+set(BC_RT64_BUILD_ROOT "${BC_RT64_BUILD_DEFAULT}" CACHE PATH "Directory containing rt64.a and its static dependency libraries")
 set(RUNTIME "${DEPS}/N64ModernRuntime")
 set(RT64 "${DEPS}/rt64")
-set(PREBUILT "${TETRISPHERE_ROOT}/.local/m1/build-linux")
-if(NOT EXISTS "${PREBUILT}/rt64/rt64.a")
- message(FATAL_ERROR "Set TETRISPHERE_ROOT to the checkout used for the viability investigation")
+if(NOT EXISTS "${BC_RT64_BUILD_ROOT}/rt64.a")
+ message(FATAL_ERROR "Build the independent SDK with tools/bootstrap_sdk.py, or set TETRISPHERE_ROOT to the established reference checkout")
 endif()
 add_subdirectory("${RUNTIME}/ultramodern" "${CMAKE_BINARY_DIR}/ultramodern")
 # Blast Corps submits several lists per frame. Only gDPFullSync generates DP.
@@ -23,7 +41,9 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
  "${CMAKE_SOURCE_DIR}/tools/prepare_timer_runtime.py"
  "${RUNTIME}/ultramodern/src/timer.cpp"
  "${CMAKE_SOURCE_DIR}/tools/prepare_threadqueue_runtime.py"
- "${RUNTIME}/ultramodern/src/threadqueue.cpp")
+ "${RUNTIME}/ultramodern/src/threadqueue.cpp"
+ "${CMAKE_SOURCE_DIR}/tools/prepare_thread_lifecycle_runtime.py"
+ "${RUNTIME}/ultramodern/src/threads.cpp")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/prepare_timer_runtime.py" "${RUNTIME}" "${CMAKE_BINARY_DIR}" RESULT_VARIABLE BC_TIMER_RESULT)
 if(NOT BC_TIMER_RESULT EQUAL 0)
  message(FATAL_ERROR "Cannot prepare validated immutable SDK timer scheduling")
@@ -36,6 +56,12 @@ if(NOT BC_THREADQUEUE_RESULT EQUAL 0)
 endif()
 list(REMOVE_ITEM BC_UM_SOURCES "${RUNTIME}/ultramodern/src/threadqueue.cpp")
 list(APPEND BC_UM_SOURCES "${CMAKE_BINARY_DIR}/blastcorps-threadqueue.cpp")
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/prepare_thread_lifecycle_runtime.py" "${RUNTIME}" "${CMAKE_BINARY_DIR}" RESULT_VARIABLE BC_LIFECYCLE_RESULT)
+if(NOT BC_LIFECYCLE_RESULT EQUAL 0)
+ message(FATAL_ERROR "Cannot prepare validated synchronous SDK thread destruction")
+endif()
+list(REMOVE_ITEM BC_UM_SOURCES "${RUNTIME}/ultramodern/src/threads.cpp")
+list(APPEND BC_UM_SOURCES "${CMAKE_BINARY_DIR}/blastcorps-threads.cpp")
 list(REMOVE_ITEM BC_UM_SOURCES "${RUNTIME}/ultramodern/src/events.cpp")
 list(APPEND BC_UM_SOURCES "${CMAKE_BINARY_DIR}/blastcorps-events.cpp")
 set_property(TARGET ultramodern PROPERTY SOURCES "${BC_UM_SOURCES}")
@@ -68,18 +94,22 @@ target_include_directories(blastcorps-prototype PRIVATE include .local/generated
  "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/concurrentqueue" "${RUNTIME}/thirdparty/json"
  "${RT64}/src/contrib/plume" "${RT64}/src/contrib/json" "${RT64}/src/contrib/volk" "${RT64}/src" "${RT64}/src/contrib" "${RT64}/src/contrib/hlslpp/include"
  "${RT64}/src/contrib/imgui" "${RT64}/src/contrib/mupen64plus-core/src/api"
- /home/linuxbrew/.linuxbrew/include/SDL2 /home/linuxbrew/.linuxbrew/include /home/linuxbrew/.linuxbrew/opt/xorgproto/include)
+ ${BC_SDL_INCLUDE} ${BC_DBUS_INCLUDE_DIRS} ${BC_LEGACY_INCLUDE})
 target_link_libraries(blastcorps-prototype PRIVATE
  ultramodern
- "${PREBUILT}/rt64/rt64.a"
- "${PREBUILT}/rt64/src/contrib/re-spirv/libre-spirv.a"
- "${PREBUILT}/rt64/src/contrib/nativefiledialog-extended/src/libnfd.a"
- "${PREBUILT}/rt64/src/contrib/zstd/build/cmake/lib/libzstd.a"
- "${PREBUILT}/rt64/src/contrib/plume/libplume.a"
- /home/linuxbrew/.linuxbrew/lib/libSDL2.so
- /home/linuxbrew/.linuxbrew/lib/libdbus-1.so
+ "${BC_RT64_BUILD_ROOT}/rt64.a"
+ "${BC_RT64_BUILD_ROOT}/src/contrib/re-spirv/libre-spirv.a"
+ "${BC_RT64_BUILD_ROOT}/src/contrib/nativefiledialog-extended/src/libnfd.a"
+ "${BC_RT64_BUILD_ROOT}/src/contrib/zstd/build/cmake/lib/libzstd.a"
+ "${BC_RT64_BUILD_ROOT}/src/contrib/plume/libplume.a"
+ ${BC_SDL_LIBRARY}
+ ${BC_DBUS_LIBRARY}
  pthread dl)
-set_target_properties(blastcorps-prototype PROPERTIES BUILD_RPATH "/home/linuxbrew/.linuxbrew/lib;${RT64}/src/contrib/dxc/lib/x64")
+if(BC_SDK_ROOT)
+ set_target_properties(blastcorps-prototype PROPERTIES BUILD_RPATH "${BC_SDL2_LIBRARY_DIRS};${BC_DBUS_LIBRARY_DIRS};${RT64}/src/contrib/dxc/lib/x64")
+else()
+ set_target_properties(blastcorps-prototype PROPERTIES BUILD_RPATH "/home/linuxbrew/.linuxbrew/lib;${RT64}/src/contrib/dxc/lib/x64")
+endif()
 set_target_properties(blastcorps-prototype PROPERTIES INSTALL_RPATH "$ORIGIN/lib")
 install(TARGETS blastcorps-prototype RUNTIME DESTINATION .)
 
@@ -93,8 +123,8 @@ add_executable(rom_selection_test tests/rom_selection.cpp src/rom_selection.cpp)
 target_include_directories(rom_selection_test PRIVATE include)
 add_test(NAME rom_selection_cancel_retry_and_cache COMMAND rom_selection_test)
 add_executable(data_import_test tests/data_import.cpp src/data_import.cpp src/save_store.cpp src/settings.cpp src/controls_store.cpp src/input_model.cpp src/pak_store.cpp src/pak_session.cpp src/atomic_file.cpp)
-target_include_directories(data_import_test PRIVATE include "${RUNTIME}/thirdparty/json" /home/linuxbrew/.linuxbrew/include/SDL2)
-target_link_libraries(data_import_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+target_include_directories(data_import_test PRIVATE include "${RUNTIME}/thirdparty/json" ${BC_SDL_INCLUDE})
+target_link_libraries(data_import_test PRIVATE ${BC_SDL_LIBRARY})
 add_test(NAME transactional_portable_data_import COMMAND data_import_test)
 set(BC_MINIZ "${RUNTIME}/thirdparty/miniz")
 add_library(bc_miniz STATIC "${BC_MINIZ}/miniz.c" "${BC_MINIZ}/miniz_tinfl.c" "${BC_MINIZ}/miniz_tdef.c" "${BC_MINIZ}/miniz_zip.c")
@@ -147,19 +177,19 @@ target_include_directories(pc_options_test PRIVATE include .local/generated/func
  "${RUNTIME}/librecomp/include" "${RUNTIME}/librecomp/include/librecomp" "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/json")
 add_test(NAME pc_options_guest_bridge COMMAND pc_options_test)
 target_sources(pc_options_test PRIVATE src/controls_menu.cpp src/input_model.cpp src/input_glyph.cpp)
-target_include_directories(pc_options_test PRIVATE /home/linuxbrew/.linuxbrew/include/SDL2)
-target_link_libraries(pc_options_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+target_include_directories(pc_options_test PRIVATE ${BC_SDL_INCLUDE})
+target_link_libraries(pc_options_test PRIVATE ${BC_SDL_LIBRARY})
 add_executable(game_prompts_test tests/game_prompts.cpp src/game_prompts.cpp src/game_prompt_runtime.cpp src/input_model.cpp)
 target_include_directories(game_prompts_test PRIVATE include .local/generated/functions
  "${RUNTIME}/N64Recomp/include" "${RUNTIME}/ultramodern/include"
  "${RUNTIME}/librecomp/include" "${RUNTIME}/librecomp/include/librecomp"
- "${RUNTIME}/thirdparty/json" /home/linuxbrew/.linuxbrew/include/SDL2)
-target_link_libraries(game_prompts_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+ "${RUNTIME}/thirdparty/json" ${BC_SDL_INCLUDE})
+target_link_libraries(game_prompts_test PRIVATE ${BC_SDL_LIBRARY})
 target_sources(game_prompts_test PRIVATE src/input_glyph.cpp)
 add_test(NAME original_game_prompts_follow_actions COMMAND game_prompts_test)
 add_executable(input_glyph_test tests/input_glyph.cpp src/input_glyph.cpp src/input_model.cpp)
-target_include_directories(input_glyph_test PRIVATE include /home/linuxbrew/.linuxbrew/include/SDL2)
-target_link_libraries(input_glyph_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+target_include_directories(input_glyph_test PRIVATE include ${BC_SDL_INCLUDE})
+target_link_libraries(input_glyph_test PRIVATE ${BC_SDL_LIBRARY})
 add_test(NAME device_glyphs_and_graphics_state_restoration COMMAND input_glyph_test)
 add_executable(pak_store_test tests/pak_store.cpp src/pak_store.cpp src/atomic_file.cpp)
 target_include_directories(pak_store_test PRIVATE include)
@@ -176,47 +206,47 @@ add_executable(pak_session_test tests/pak_session.cpp src/pak_session.cpp src/pa
 target_include_directories(pak_session_test PRIVATE include)
 add_test(NAME complete_pak_transactions_survive_interruptions COMMAND pak_session_test)
 add_executable(input_model_test tests/input_model.cpp src/input_model.cpp)
-target_include_directories(input_model_test PRIVATE include /home/linuxbrew/.linuxbrew/include/SDL2)
-target_link_libraries(input_model_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+target_include_directories(input_model_test PRIVATE include ${BC_SDL_INCLUDE})
+target_link_libraries(input_model_test PRIVATE ${BC_SDL_LIBRARY})
 add_test(NAME input_actions_families_and_focus COMMAND input_model_test)
 add_executable(input_sdl_test tests/input_sdl.cpp src/input.cpp src/input_model.cpp src/input_capture.cpp src/controls_store.cpp src/atomic_file.cpp)
 target_compile_definitions(input_sdl_test PRIVATE BC_ROOT="${CMAKE_SOURCE_DIR}")
-target_include_directories(input_sdl_test PRIVATE include /home/linuxbrew/.linuxbrew/include/SDL2 "${RUNTIME}/ultramodern/include" "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/json")
-target_link_libraries(input_sdl_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+target_include_directories(input_sdl_test PRIVATE include ${BC_SDL_INCLUDE} "${RUNTIME}/ultramodern/include" "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/json")
+target_link_libraries(input_sdl_test PRIVATE ${BC_SDL_LIBRARY})
 add_test(NAME virtual_sdl_actions_families_and_reconnect COMMAND input_sdl_test)
 set_tests_properties(virtual_sdl_actions_families_and_reconnect PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy")
 add_executable(controls_store_test tests/controls_store.cpp src/controls_store.cpp src/input_model.cpp src/atomic_file.cpp)
-target_include_directories(controls_store_test PRIVATE include /home/linuxbrew/.linuxbrew/include/SDL2 "${RUNTIME}/thirdparty/json")
-target_link_libraries(controls_store_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+target_include_directories(controls_store_test PRIVATE include ${BC_SDL_INCLUDE} "${RUNTIME}/thirdparty/json")
+target_link_libraries(controls_store_test PRIVATE ${BC_SDL_LIBRARY})
 add_test(NAME durable_validated_action_bindings COMMAND controls_store_test)
 add_executable(input_capture_test tests/input_capture.cpp src/input_capture.cpp)
-target_include_directories(input_capture_test PRIVATE include /home/linuxbrew/.linuxbrew/include/SDL2)
-target_link_libraries(input_capture_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+target_include_directories(input_capture_test PRIVATE include ${BC_SDL_INCLUDE})
+target_link_libraries(input_capture_test PRIVATE ${BC_SDL_LIBRARY})
 target_sources(input_capture_test PRIVATE src/input_model.cpp)
 add_test(NAME remap_capture_release_cancel_and_devices COMMAND input_capture_test)
 add_executable(controls_menu_test tests/controls_menu.cpp src/controls_menu.cpp src/input_model.cpp)
-target_include_directories(controls_menu_test PRIVATE include /home/linuxbrew/.linuxbrew/include/SDL2)
-target_link_libraries(controls_menu_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+target_include_directories(controls_menu_test PRIVATE include ${BC_SDL_INCLUDE})
+target_link_libraries(controls_menu_test PRIVATE ${BC_SDL_LIBRARY})
 add_test(NAME original_style_controls_help_and_editor COMMAND controls_menu_test)
 
 add_executable(audio_output_test tests/audio_output.cpp)
 target_include_directories(audio_output_test PRIVATE include)
 add_test(NAME audio_output_loss_timing_and_recovery COMMAND audio_output_test)
 add_executable(audio_sdl_test tests/audio_sdl.cpp src/audio_sdl.cpp)
-target_include_directories(audio_sdl_test PRIVATE include /home/linuxbrew/.linuxbrew/include/SDL2)
-target_link_libraries(audio_sdl_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+target_include_directories(audio_sdl_test PRIVATE include ${BC_SDL_INCLUDE})
+target_link_libraries(audio_sdl_test PRIVATE ${BC_SDL_LIBRARY})
 add_test(NAME real_sdl_audio_output_loss_and_recovery COMMAND audio_sdl_test)
 set_tests_properties(real_sdl_audio_output_loss_and_recovery PROPERTIES ENVIRONMENT "SDL_AUDIODRIVER=dummy")
 
 add_executable(game_prompt_glyphs_test tests/game_prompt_glyphs.cpp src/game_prompts.cpp src/game_prompt_runtime.cpp src/input_model.cpp src/input_glyph.cpp)
 target_include_directories(game_prompt_glyphs_test PRIVATE include .local/generated/functions
- "${RUNTIME}/N64Recomp/include" "${RUNTIME}/ultramodern/include" "${RUNTIME}/librecomp/include" "${RUNTIME}/librecomp/include/librecomp" "${RUNTIME}/thirdparty/json" /home/linuxbrew/.linuxbrew/include/SDL2)
-target_link_libraries(game_prompt_glyphs_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+ "${RUNTIME}/N64Recomp/include" "${RUNTIME}/ultramodern/include" "${RUNTIME}/librecomp/include" "${RUNTIME}/librecomp/include/librecomp" "${RUNTIME}/thirdparty/json" ${BC_SDL_INCLUDE})
+target_link_libraries(game_prompt_glyphs_test PRIVATE ${BC_SDL_LIBRARY})
 add_test(NAME original_instruction_glyph_queue_and_bounds COMMAND game_prompt_glyphs_test)
 
 add_executable(threadqueue_runtime_test tests/threadqueue_runtime.cpp
  "${CMAKE_BINARY_DIR}/blastcorps-threadqueue.cpp"
- "${RUNTIME}/ultramodern/src/threads.cpp")
+ "${CMAKE_BINARY_DIR}/blastcorps-threads.cpp")
 target_include_directories(threadqueue_runtime_test PRIVATE "${RUNTIME}/ultramodern/include"
  "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/concurrentqueue")
 target_compile_options(threadqueue_runtime_test PRIVATE -ffunction-sections -fdata-sections)
@@ -225,4 +255,17 @@ target_link_libraries(threadqueue_runtime_test PRIVATE Threads::Threads)
 foreach(BC_THREADQUEUE_CASE nonhead missing running empty destroy)
  add_test(NAME sdk_threadqueue_${BC_THREADQUEUE_CASE} COMMAND threadqueue_runtime_test ${BC_THREADQUEUE_CASE})
  set_tests_properties(sdk_threadqueue_${BC_THREADQUEUE_CASE} PROPERTIES TIMEOUT 5)
+endforeach()
+
+add_executable(thread_lifecycle_runtime_test tests/thread_lifecycle_runtime.cpp
+ "${CMAKE_BINARY_DIR}/blastcorps-threads.cpp"
+ "${CMAKE_BINARY_DIR}/blastcorps-threadqueue.cpp"
+ "${RUNTIME}/ultramodern/src/scheduling.cpp"
+ "${RUNTIME}/ultramodern/src/mesgqueue.cpp")
+target_include_directories(thread_lifecycle_runtime_test PRIVATE "${RUNTIME}/ultramodern/include"
+ "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/concurrentqueue")
+target_link_libraries(thread_lifecycle_runtime_test PRIVATE Threads::Threads)
+foreach(BC_LIFECYCLE_CASE unstarted blocked self return)
+ add_test(NAME sdk_thread_lifecycle_${BC_LIFECYCLE_CASE} COMMAND thread_lifecycle_runtime_test ${BC_LIFECYCLE_CASE})
+ set_tests_properties(sdk_thread_lifecycle_${BC_LIFECYCLE_CASE} PROPERTIES TIMEOUT 15)
 endforeach()

@@ -18,6 +18,34 @@ class PackagePrivacy(unittest.TestCase):
             self.assertEqual(package.verified_licenses(source,target),1)
             self.assertEqual((target/'LICENSE').read_bytes(),(source/'LICENSE').read_bytes())
             self.assertEqual((target/'provenance.json').read_bytes(),(source/'provenance.json').read_bytes())
+    def test_license_bundle_checks_exact_linked_input_before_copy(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);source,target,manifest=self.fixture_licenses(root)
+            deps=root/'deps';(deps/'vendor').mkdir(parents=True);binary=deps/'vendor/library.so';binary.write_bytes(b'original')
+            manifest['inputs']={'vendor/library.so':{'bytes':8,'sha256':hashlib.sha256(b'original').hexdigest()}}
+            (source/'provenance.json').write_text(json.dumps(manifest))
+            self.assertEqual(package.verified_licenses(source,target,inputs_root=deps),1)
+            for path in target.iterdir():path.unlink()
+            target.rmdir();binary.write_bytes(b'modified')
+            with self.assertRaisesRegex(ValueError,'input provenance mismatch'):
+                package.verified_licenses(source,target,inputs_root=deps)
+            self.assertFalse(target.exists())
+    def test_license_bundle_rejects_input_traversal(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);source,target,manifest=self.fixture_licenses(root)
+            manifest['inputs']={'../outside':{'bytes':8,'sha256':'ignored'}}
+            (source/'provenance.json').write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError,'path'):
+                package.verified_licenses(source,target,inputs_root=root)
+            self.assertFalse(target.exists())
+    def test_vendor_notices_include_license_directory_and_third_party_notices(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);source=root/'vendor';target=root/'out'
+            texts={'LICENSES/Apache-2.0.txt':b'Apache text','LICENSES/MIT.txt':b'MIT text','ThirdPartyNotices.txt':b'third party text','NOTICE':b'notice text','src/game.c':b'private source'}
+            for name,data in texts.items():
+                path=source/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(data)
+            package.copy_vendor_notices(source,target)
+            self.assertEqual({p.relative_to(target).as_posix():p.read_bytes() for p in target.rglob('*') if p.is_file()}, {name:data for name,data in texts.items() if name!='src/game.c'})
     def test_changed_license_is_rejected_before_any_copy(self):
         with tempfile.TemporaryDirectory() as d:
             source,target,_=self.fixture_licenses(Path(d));(source/'LICENSE').write_bytes(b'changed')

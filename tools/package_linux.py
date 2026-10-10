@@ -19,18 +19,30 @@ PRIVATE={'.z64','.v64','.n64','.rom','.eep','.pak','.state','.wav','.png','.jpg'
 
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 
-def verified_licenses(source,destination):
+def checked_relative(name):
+    relative=PurePosixPath(name)
+    if relative.is_absolute() or not relative.parts or '..' in relative.parts or str(relative)!=name or '\\' in name or ':' in name:
+        raise ValueError('Unsafe license path: '+name)
+    return relative
+
+def verified_licenses(source,destination,inputs_root=None):
     source,destination=Path(source),Path(destination)
     provenance=source/'provenance.json'
     if source.is_symlink() or provenance.is_symlink():raise ValueError('License source/provenance symlink')
     manifest=json.loads(provenance.read_text())
     files=manifest.get('files')
     if not isinstance(files,dict) or not 1<=len(files)<=32:raise ValueError('Invalid license inventory')
+    inputs=manifest.get('inputs',{})
+    if not isinstance(inputs,dict) or len(inputs)>32 or (inputs and inputs_root is None):raise ValueError('Invalid license input inventory')
+    for name,entry in inputs.items():
+        relative=checked_relative(name);base=Path(inputs_root);path=base.joinpath(*relative.parts)
+        if base.is_symlink() or any(base.joinpath(*relative.parts[:i]).is_symlink() for i in range(1,len(relative.parts)+1)):
+            raise ValueError('License input symlink: '+name)
+        if not path.is_file() or path.stat().st_size!=entry.get('bytes') or digest(path)!=entry.get('sha256'):
+            raise ValueError('License input provenance mismatch: '+name)
     verified=[]
     for name,entry in files.items():
-        relative=PurePosixPath(name)
-        if relative.is_absolute() or not relative.parts or '..' in relative.parts or str(relative)!=name or '\\' in name or ':' in name:
-            raise ValueError('Unsafe license path: '+name)
+        relative=checked_relative(name)
         path=source.joinpath(*relative.parts)
         if any(source.joinpath(*relative.parts[:i]).is_symlink() for i in range(1,len(relative.parts)+1)):
             raise ValueError('License symlink: '+name)
@@ -44,6 +56,17 @@ def verified_licenses(source,destination):
         shutil.copyfile(source.joinpath(*relative.parts),target)
     shutil.copyfile(provenance,destination/'provenance.json')
     return len(verified)
+
+def copy_vendor_notices(source,destination):
+    source,destination=Path(source),Path(destination)
+    for path in sorted(source.rglob('*')):
+        relative=path.relative_to(source)
+        if not path.is_file() or '.git' in relative.parts:continue
+        name=path.name.lower()
+        if not (name.startswith(('license','copying','notice','thirdpartynotice')) or name=='copyright' or 'LICENSES' in relative.parts):continue
+        if path.is_symlink() or any(source.joinpath(*relative.parts[:i]).is_symlink() for i in range(1,len(relative.parts)+1)):
+            raise ValueError('Vendor notice symlink: '+str(relative))
+        target=destination/relative;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(path,target)
 
 def audit(stage):
     inventory={}
@@ -85,14 +108,12 @@ def build(args):
         for name in ('sdl2-compat','sdl3','dbus'):
             vendors[name]=(Path('/home/linuxbrew/.linuxbrew/opt')/name).resolve()
         for vendor,base in vendors.items():
-            for source in sorted(base.rglob('*')):
-                if not source.is_file() or '.git' in source.parts:continue
-                name=source.name.lower()
-                if not (name.startswith('license') or name.startswith('copying') or name=='copyright'):continue
-                target=stage/'licenses'/vendor/source.relative_to(base);target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source,target)
+            copy_vendor_notices(base,stage/'licenses'/vendor)
         # Homebrew's DBus notice points to texts omitted from its installed
         # bottle. Include the exact upstream version with verified provenance.
         verified_licenses(ROOT/'licenses/dbus',stage/'licenses/dbus')
+        for vendor in ('dxc','embedded'):
+            verified_licenses(ROOT/'licenses'/vendor,stage/'licenses'/vendor,inputs_root=deps)
         controller=tetra/'assets/controllers/gamecontrollerdb.txt'
         provenance=json.loads((tetra/'licenses/controller-db/provenance.json').read_text())
         for name,source in {'gamecontrollerdb.txt':controller,'LICENSE':tetra/'licenses/controller-db/LICENSE'}.items():
@@ -103,7 +124,7 @@ def build(args):
         license_count=sum(1 for path in (stage/'licenses').rglob('*') if path.is_file() and path.suffix.lower()!='.json')
         launcher=stage/'Run Blast Corps.sh'
         launcher.write_text('#!/usr/bin/env bash\nset -euo pipefail\npackage_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"\nexport LD_LIBRARY_PATH="$package_dir/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\nexec "$package_dir/blastcorps" "$@"\n');launcher.chmod(0o755)
-        (stage/'README.txt').write_text('Blast Corps private experimental beta; release acceptance is incomplete.\nRun: ./Run Blast Corps.sh\nSupply your own unmodified USA Rev 1 ROM when prompted, or use --rom PATH.\nProgress and private ROM cache live in data beside the executable.\n--import-data OLD_DIRECTORY copies progress/preferences into a new or empty data folder.\nLinux x86-64, Vulkan drivers, X11/Wayland, standard C/C++ runtime and a desktop file chooser are required.\nThis archive has not verified other Linux distributions or Windows.\n4K performance, 120-Hz presentation, interpolation quality and mission completion remain under test.\nNo ROM, extracted overlays, progress or screenshots are included.\n')
+        (stage/'README.txt').write_text('Blast Corps private experimental beta; release acceptance is incomplete.\nRun: ./Run Blast Corps.sh\nSupply your own unmodified USA Rev 1 ROM when prompted, or use --rom PATH.\nProgress and private ROM cache live in data beside the executable.\n--import-data OLD_DIRECTORY copies progress/preferences into a new or empty data folder.\nLinux x86-64 with SSSE3/SSE4.1, glibc >= 2.38, a C++ runtime providing GLIBCXX_3.4.31, zlib (libz.so.1), Vulkan drivers, X11 or XWayland, and a desktop file chooser are required.\nThis archive has not verified other Linux distributions or Windows.\n4K/120-Hz performance, physical presentation and broad mission/vehicle coverage require manual testing.\nKnown graphics/stability defects and final source/license review still block release.\nAlt+Enter toggles fullscreen. Default keyboard: arrows move, Z primary/confirm, X secondary/back, Enter Start.\nUse in-game PC options for graphics, audio, help and action remapping.\nNo ROM, extracted overlays, progress or screenshots are included.\n')
         manifest={'schema':1,'ready_for_release':False,'license_review_complete':False,'platform':'linux-x86_64','commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'worktree_dirty':bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),'dependencies':json.loads((ROOT/'config/dependencies.json').read_text()),'controller_database':provenance,'license_files':license_count,'files':audit(stage)}
         (stage/'BUILD.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n');audit(stage)
         with output.open('wb') as raw,gzip.GzipFile(fileobj=raw,mode='wb',mtime=0,filename='') as zipped,tarfile.open(fileobj=zipped,mode='w') as archive:

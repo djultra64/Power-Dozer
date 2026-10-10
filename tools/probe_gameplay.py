@@ -20,6 +20,7 @@ from check_render_probe import check as check_render_probe
 from check_demolition_probe import check as check_demolition_probe
 from probe_health import stalled_progress
 from waypoint_input import axes as waypoint_axes, relative_axes
+from native_hang_capture import capture as capture_native_hang
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -79,19 +80,7 @@ def run(args):
             debugger=shutil.which('gdb')
             with (directory/'native-hang.txt').open('w') as dump:
                 if debugger:
-                    try:
-                        subprocess.run([debugger,'--batch','-ex','set pagination off','-ex','thread apply all bt 12',
-                                        '-ex','p/x events_context.rdram',
-                                        '-ex','x/6wx events_context.rdram+0x315440',
-                                        '-ex','x/6wx events_context.rdram+0x368238',
-                                        '-ex','x/6wx events_context.rdram+0x368270',
-                                        '-ex','x/9wx events_context.rdram+0x3156a4',
-                                        '-ex','p rsp_scheduler',
-                                        '-ex','p dp_status',
-                                        '-ex','p pending_gfx',
-                                        '-ex','p bc_dp_sync',
-                                        '-p',str(process.pid)],stdout=dump,stderr=subprocess.STDOUT,timeout=25,check=False)
-                    except subprocess.TimeoutExpired:dump.write('Debugger timed out; native transition still failed\n')
+                    capture_native_hang(debugger, process.pid, dump)
                 else:dump.write('gdb unavailable; native transition still failed\n')
         def check_health(value):
             if args.capture_hang and (reason:=stalled_progress(value)):

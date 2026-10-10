@@ -1,0 +1,141 @@
+{
+  "complete_dependency_license_review": false,
+  "dependency": "header and vendored source notices",
+  "extractions": {
+    "blockingconcurrentqueue-notice.txt": {
+      "byte_ranges": [
+        [
+          0,
+          414
+        ]
+      ],
+      "input": "N64ModernRuntime/thirdparty/concurrentqueue/blockingconcurrentqueue.h",
+      "method": "Verbatim byte slices; blank line separates independently retained notices."
+    },
+    "concurrentqueue-BSD.txt": {
+      "byte_ranges": [
+        [
+          377,
+          1765
+        ]
+      ],
+      "input": "N64ModernRuntime/thirdparty/concurrentqueue/concurrentqueue.h",
+      "method": "Verbatim byte slices; blank line separates independently retained notices."
+    },
+    "json-SPDX-notices.txt": {
+      "byte_ranges": [
+        [
+          189,
+          263
+        ],
+        [
+          264,
+          295
+        ],
+        [
+          11323,
+          11395
+        ],
+        [
+          155966,
+          156016
+        ],
+        [
+          657279,
+          657356
+        ],
+        [
+          658164,
+          658242
+        ]
+      ],
+      "input": "N64ModernRuntime/thirdparty/json/json.hpp",
+      "method": "Unique verbatim SPDX copyright and license lines from the pinned JSON header; preserves embedded Hedley and Abseil attribution."
+    },
+    "lightweightsemaphore-Zlib.txt": {
+      "byte_ranges": [
+        [
+          1777,
+          2677
+        ]
+      ],
+      "input": "N64ModernRuntime/thirdparty/concurrentqueue/lightweightsemaphore.h",
+      "method": "Verbatim byte slices; blank line separates independently retained notices."
+    },
+    "rt64-miniz-notices.txt": {
+      "byte_ranges": [
+        [
+          19,
+          1398
+        ],
+        [
+          23178,
+          24434
+        ],
+        [
+          133235,
+          134646
+        ]
+      ],
+      "input": "rt64/src/contrib/miniz/miniz.c",
+      "method": "Verbatim byte slices; blank line separates independently retained notices."
+    }
+  },
+  "files": {
+    "blockingconcurrentqueue-notice.txt": {
+      "bytes": 415,
+      "sha256": "55939afd2fefae8cd3d1a510e4adf2358041e5ed9a652eb1df9be555895287fe"
+    },
+    "concurrentqueue-BSD.txt": {
+      "bytes": 1389,
+      "sha256": "5bd2a6ce930298b0b14ad8af85461a600afcdd03eb314a28387ec0060dd588b6"
+    },
+    "json-LICENSE.MIT": {
+      "bytes": 1076,
+      "commit": "55f93686c01528224f448c19128836e7df245f72",
+      "sha256": "46a65cffd1ea955132d95a8dd921640714a8d6b537d2e4e482d31145ae95b603",
+      "url": "https://raw.githubusercontent.com/nlohmann/json/55f93686c01528224f448c19128836e7df245f72/LICENSE.MIT"
+    },
+    "json-SPDX-notices.txt": {
+      "bytes": 388,
+      "sha256": "aebb86e8b663c10cc7ac12d001ac714a6a6d4e0d93a177b09a832fec4c0079cf"
+    },
+    "lightweightsemaphore-Zlib.txt": {
+      "bytes": 901,
+      "sha256": "3930e843f04ed7bc7a754b5c367469cbe5a08366d9afc54743b836c400147117"
+    },
+    "rt64-miniz-notices.txt": {
+      "bytes": 4051,
+      "sha256": "f072a10288fe0ed2d6ae3b9bc8f674846735e5d22cf7f9f60a618fbc670de714"
+    }
+  },
+  "inputs": {
+    "N64ModernRuntime/thirdparty/concurrentqueue/blockingconcurrentqueue.h": {
+      "bytes": 21516,
+      "sha256": "27ce49dfbfe01f0db9e505e55772418afb90ac2466caa99bde8b3fe63ea2f936"
+    },
+    "N64ModernRuntime/thirdparty/concurrentqueue/concurrentqueue.h": {
+      "bytes": 152836,
+      "sha256": "606b52adbf6d2d6d3e2cdefe2cf9981063b15567d3fd35c3920f153670314cd9"
+    },
+    "N64ModernRuntime/thirdparty/concurrentqueue/lightweightsemaphore.h": {
+      "bytes": 11756,
+      "sha256": "13ebb5b1b9516f539de3e3e3cdcac13186e2991b379609c9b9fc667415a01e2f"
+    },
+    "N64ModernRuntime/thirdparty/json/json.hpp": {
+      "bytes": 953436,
+      "sha256": "aaf127c04cb31c406e5b04a63f1ae89369fccde6d8fa7cdda1ed4f32dfc5de63"
+    },
+    "rt64/src/contrib/json/json.hpp": {
+      "bytes": 953436,
+      "sha256": "aaf127c04cb31c406e5b04a63f1ae89369fccde6d8fa7cdda1ed4f32dfc5de63"
+    },
+    "rt64/src/contrib/miniz/miniz.c": {
+      "bytes": 322636,
+      "sha256": "65f7536e47a3101e426e4b77fc641472caf13c18914eeda8f25af9eade850872"
+    }
+  },
+  "rt64_commit": "43373749dac9bbc1b653e6a02aed40a9e1783bed",
+  "runtime_commit": "cdf5abbd5026fef5c364c676e4667c45e42b6863",
+  "schema": 1
+}

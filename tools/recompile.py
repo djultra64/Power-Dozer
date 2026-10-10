@@ -7,23 +7,28 @@ import re
 import struct
 import subprocess
 import sys
+from sdk_paths import sdk_paths
 
 ROOT = Path(__file__).resolve().parents[1]
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--tetrisphere', type=Path, required=True)
+    sdk=parser.add_mutually_exclusive_group(required=True)
+    sdk.add_argument('--tetrisphere',type=Path)
+    sdk.add_argument('--sdk-root',type=Path)
+    parser.add_argument('--mapping-source',type=Path)
     args = parser.parse_args()
-    tetra = args.tetrisphere.resolve()
-    deps = tetra / '.local/deps'
+    paths=sdk_paths(sdk_root=args.sdk_root,tetrisphere=args.tetrisphere)
+    deps = paths['deps']
     sys.path.insert(0, str(deps / 'spimdisasm'))
-    sys.path.insert(0, str(tetra / '.local/m1/analysis-venv/lib/python3.14/site-packages'))
+    for packages in sorted(paths['analysis_venv'].glob('lib/python*/site-packages')):
+        sys.path.insert(0,str(packages))
     import yaml
     from spimdisasm import common, mips
     common.GlobalConfig.COMPILER = common.Compiler.IDO
     common.GlobalConfig.QUIET = True
     common.GlobalConfig.ASM_COMMENT = False
-    upstream = ROOT / '.local/upstream/blastcorps'
+    upstream=(args.mapping_source or ROOT/'.local/upstream/blastcorps').resolve()
     spec = yaml.safe_load((upstream / 'game/game.us.v11.yaml').read_text())
     meta = json.loads((ROOT / '.local/sections.json').read_text())
     image = (ROOT / '.local/code.bin').read_bytes()
@@ -117,7 +122,7 @@ def main():
         'recomp_include = "#include \\\"support.h\\\""\n[patches]\nignored = '+json.dumps(sorted(bindings))+'\n')
     count = sum(len(s['functions']) for s in sections)
     print(json.dumps(dict(event='symbols_analyzed', functions=count, bindings=len(bindings))), flush=True)
-    tool = tetra / '.local/m1/toolchain/n64recomp-build/N64Recomp'
+    tool = paths['tools']/'N64Recomp'
     for stale in (out / 'functions').glob('funcs*'):
         stale.unlink()
     result = subprocess.run([str(tool), str(out / 'recomp.toml')])

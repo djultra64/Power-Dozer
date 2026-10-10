@@ -1,0 +1,106 @@
+{
+  "clean_rebuild_verified": false,
+  "controller_database": {
+    "commit": "c1d5289a1f713b30a2c121e9fe6529d39360be0f",
+    "commit_date": "2026-10-02T17:06:31Z",
+    "files": {
+      "LICENSE": {
+        "bytes": 884,
+        "sha256": "97f35b302b361680ec1e891e95d2d52097bb95abff361434916d99dc1305f127",
+        "url": "https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/c1d5289a1f713b30a2c121e9fe6529d39360be0f/LICENSE"
+      },
+      "README.md": {
+        "bytes": 3487,
+        "sha256": "f9afb3a920cec920b1f6e1183dab21808ea5b8933af600878391f7c7cc7612c2",
+        "url": "https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/c1d5289a1f713b30a2c121e9fe6529d39360be0f/README.md"
+      },
+      "gamecontrollerdb.txt": {
+        "bytes": 609830,
+        "sha256": "e606134678e6b3fdbdec9081289a1f0ba3e25d53b59b2aa3cdfe69bf491ad18f",
+        "url": "https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/c1d5289a1f713b30a2c121e9fe6529d39360be0f/gamecontrollerdb.txt"
+      }
+    },
+    "repository": "https://github.com/mdqinc/SDL_GameControllerDB"
+  },
+  "dependencies": {
+    "N64ModernRuntime": {
+      "commit": "cdf5abbd5026fef5c364c676e4667c45e42b6863",
+      "repository": "https://github.com/N64Recomp/N64ModernRuntime"
+    },
+    "N64Recomp": {
+      "commit": "ffb39cdad1da5de07eaaa48bd1db4a89a7986771",
+      "repository": "https://github.com/N64Recomp/N64Recomp"
+    },
+    "rt64": {
+      "commit": "43373749dac9bbc1b653e6a02aed40a9e1783bed",
+      "repository": "https://github.com/rt64/rt64"
+    },
+    "spimdisasm": {
+      "commit": "4b5d4c68eeb9f9eae14b3bb713971433ae2c3c43",
+      "repository": "https://github.com/Decompollaborate/spimdisasm"
+    }
+  },
+  "dxc_build_inputs": {
+    "bin/x64/dxc-linux": {
+      "bytes": 771496,
+      "sha256": "4e6f4e52989aca69739880b40b9f988357f15d10ca03284377b81f1502463ff5",
+      "url": "https://raw.githubusercontent.com/rt64/dxc-bin/cc15e715ee378a4f675b335bd1071ff105873fc8/bin/x64/dxc-linux"
+    },
+    "lib/x64/libdxcompiler.so": {
+      "bytes": 29324584,
+      "sha256": "f875d0a52f4e69e9de999b7f749414bdc529aa04e9b1bc75802453f81fcd20df",
+      "url": "https://raw.githubusercontent.com/rt64/dxc-bin/cc15e715ee378a4f675b335bd1071ff105873fc8/lib/x64/libdxcompiler.so"
+    },
+    "lib/x64/libdxil.so": {
+      "bytes": 4791432,
+      "sha256": "27bed3596bebd053dd56c5542233e83b87820ccb531fbf5438d54de1d9952acd",
+      "url": "https://raw.githubusercontent.com/rt64/dxc-bin/cc15e715ee378a4f675b335bd1071ff105873fc8/lib/x64/libdxil.so"
+    }
+  },
+  "mapping": {
+    "commit": "1ab6616edb6c16b642c229ab6d55c3c8687c7945",
+    "files": {
+      "game/game.us.v11.yaml": {
+        "bytes": 54205,
+        "sha256": "b69e10fa7e1d2abc0de5b408ab32892cd533a3e0508a6db6a3fb72154280af0e"
+      },
+      "game/symbol_addrs.hd_code.us.v11.txt": {
+        "bytes": 24403,
+        "sha256": "ee18bc5120c93c3c43878536a243a9870cc545ba3373c8c59b169ea7ecf3d1f1"
+      },
+      "game/symbol_addrs.us.v11.txt": {
+        "bytes": 6471,
+        "sha256": "f7782ee0e53aa805fac073c1497dd471b7b8593e4215af9eb0b22c5df0e7a963"
+      }
+    },
+    "inputs": [
+      "game/game.us.v11.yaml",
+      "game/symbol_addrs.us.v11.txt",
+      "game/symbol_addrs.hd_code.us.v11.txt"
+    ],
+    "licensing_review_complete": false,
+    "url": "https://github.com/SlaveOfIDO/blastcorps"
+  },
+  "python": {
+    "PyYAML": "6.0.2"
+  },
+  "python_source_inputs": {
+    "PyYAML": {
+      "bytes": 130631,
+      "metadata": "https://pypi.org/pypi/PyYAML/6.0.2/json",
+      "sha256": "d584d9ec91ad65861cc08d42e834324ef890a082e591037abe114850ff7bbc3e",
+      "url": "https://files.pythonhosted.org/packages/54/ed/79a089b6be93607fa5cdaedf301d7dfb23af5f25c398d5ead2525b063e17/pyyaml-6.0.2.tar.gz",
+      "version": "6.0.2"
+    },
+    "rabbitizer": {
+      "bytes": 180503,
+      "metadata": "https://pypi.org/pypi/rabbitizer/1.16.2/json",
+      "selection": "Matches inspected reference analysis-venv rabbitizer-1.16.2.dist-info; satisfies pinned spimdisasm >=1.14.0,<2.0.0.",
+      "sha256": "29b624573bb57f3287eb4a88f18e5daf5616f22b19230f6c75a7ae3283cdd048",
+      "url": "https://files.pythonhosted.org/packages/11/bf/d9f65a5c788e79342135dce170128f46d201bf5cddd87f3080816ed9b365/rabbitizer-1.16.2.tar.gz",
+      "version": "1.16.2"
+    }
+  },
+  "rt64_cmake_sha256": "4d6cb49be103302c019405794995aac6b526b759f257f4786a7a2a00d4de3fa2",
+  "schema": 1
+}

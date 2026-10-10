@@ -1,0 +1,33 @@
+{
+  "binary_commit": "cc15e715ee378a4f675b335bd1071ff105873fc8",
+  "binary_repository": "https://github.com/rt64/dxc-bin",
+  "complete_dependency_license_review": false,
+  "dependency": "DirectXShaderCompiler",
+  "files": {
+    "LICENSE.TXT": {
+      "bytes": 29241,
+      "sha256": "27a49e35d1da96eba18fba54bc882667ff0ff8c0254f16f2b6e165d605ba7df8",
+      "url": "https://raw.githubusercontent.com/microsoft/DirectXShaderCompiler/11e1318c3ed77aa08326e16eaf52598ad6430546/LICENSE.TXT"
+    },
+    "ThirdPartyNotices.txt": {
+      "bytes": 11256,
+      "sha256": "19512a5d0a015ef16d167272c164da49a604614a786206212a80ad486ed0be6d",
+      "url": "https://raw.githubusercontent.com/microsoft/DirectXShaderCompiler/11e1318c3ed77aa08326e16eaf52598ad6430546/ThirdPartyNotices.txt"
+    }
+  },
+  "inputs": {
+    "rt64/src/contrib/dxc/lib/x64/libdxcompiler.so": {
+      "bytes": 29324584,
+      "sha256": "f875d0a52f4e69e9de999b7f749414bdc529aa04e9b1bc75802453f81fcd20df"
+    },
+    "rt64/src/contrib/dxc/lib/x64/libdxil.so": {
+      "bytes": 4791432,
+      "sha256": "27bed3596bebd053dd56c5542233e83b87820ccb531fbf5438d54de1d9952acd"
+    }
+  },
+  "schema": 1,
+  "source_attribution_scope": "Compiler identifies its source revision; validator accompanies it in the pinned binary checkout. Full validator build provenance is not independently attested.",
+  "source_commit": "11e1318c3ed77aa08326e16eaf52598ad6430546",
+  "source_repository": "https://github.com/microsoft/DirectXShaderCompiler",
+  "version_evidence": "Pinned dxc-linux --version: libdxcompiler.so: 1.8(dev;4461-11e1318c); libdxil.so: 1.8"
+}

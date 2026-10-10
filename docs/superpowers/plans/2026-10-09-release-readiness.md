@@ -133,3 +133,16 @@ licenses, build manifest, checksums and distribution instructions.
 - [ ] Resolve material findings with regression tests and produce a private RC
   archive plus checksums, release notes, limitations and acceptance report.
 - [ ] Mark ready only when the release gate is supported by evidence.
+
+Audio recovery implementation detail (authorized Task 5): the current bridge
+exits on open/queue failure and ignores SDL output-device removal. Extract a
+small audio-output state machine with a backend and monotonic clock. When an
+output disappears, retain the remaining byte budget and consume it at the
+N64 sample rate in silence; do not reset the guest's two-buffer AI accounting.
+Retry default output at one-second intervals. On recovery, pad only the
+remaining budget with silence before accepting new PCM, preventing replay of
+old effects or a jump in AI remaining length. SDL stays behind the existing
+audio mutex. Verify unavailable startup, mid-buffer loss, failed enqueue,
+retry throttling, queued-budget continuity, fractional frame timing and sample
+rate changes using a deterministic fake backend, then the real SDL bridge and
+native gameplay. Actual speaker/device changes require separate acceptance.

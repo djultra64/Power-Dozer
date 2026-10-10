@@ -22,7 +22,7 @@ list(APPEND BC_UM_SOURCES "${CMAKE_BINARY_DIR}/blastcorps-events.cpp")
 set_property(TARGET ultramodern PROPERTY SOURCES "${BC_UM_SOURCES}")
 file(GLOB GUEST CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/.local/generated/functions/funcs_*.c")
 set_source_files_properties(${GUEST} PROPERTIES LANGUAGE CXX COMPILE_OPTIONS "-w;-O1")
-add_executable(blastcorps-prototype src/main.cpp src/runtime.cpp src/renderer.cpp src/input.cpp src/input_model.cpp src/input_capture.cpp src/controls_store.cpp src/atomic_file.cpp src/l3d.cpp src/save_store.cpp src/pak_store.cpp src/pak_runtime.cpp src/pak_session.cpp src/save_migration.cpp src/settings.cpp src/settings_menu.cpp src/pc_options.cpp src/controls_menu.cpp
+add_executable(blastcorps-prototype src/main.cpp src/audio_sdl.cpp src/runtime.cpp src/renderer.cpp src/input.cpp src/input_model.cpp src/input_capture.cpp src/controls_store.cpp src/atomic_file.cpp src/l3d.cpp src/save_store.cpp src/pak_store.cpp src/pak_runtime.cpp src/pak_session.cpp src/save_migration.cpp src/settings.cpp src/settings_menu.cpp src/pc_options.cpp src/controls_menu.cpp
  src/game_prompts.cpp src/game_prompt_runtime.cpp src/input_glyph.cpp
  "${CMAKE_SOURCE_DIR}/.local/generated/fallbacks.cpp"
  "${CMAKE_SOURCE_DIR}/.local/audio-rsp.cpp"
@@ -135,3 +135,12 @@ add_executable(controls_menu_test tests/controls_menu.cpp src/controls_menu.cpp 
 target_include_directories(controls_menu_test PRIVATE include /home/linuxbrew/.linuxbrew/include/SDL2)
 target_link_libraries(controls_menu_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
 add_test(NAME original_style_controls_help_and_editor COMMAND controls_menu_test)
+
+add_executable(audio_output_test tests/audio_output.cpp)
+target_include_directories(audio_output_test PRIVATE include)
+add_test(NAME audio_output_loss_timing_and_recovery COMMAND audio_output_test)
+add_executable(audio_sdl_test tests/audio_sdl.cpp src/audio_sdl.cpp)
+target_include_directories(audio_sdl_test PRIVATE include /home/linuxbrew/.linuxbrew/include/SDL2)
+target_link_libraries(audio_sdl_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+add_test(NAME real_sdl_audio_output_loss_and_recovery COMMAND audio_sdl_test)
+set_tests_properties(real_sdl_audio_output_loss_and_recovery PROPERTIES ENVIRONMENT "SDL_AUDIODRIVER=dummy")

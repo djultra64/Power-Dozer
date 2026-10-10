@@ -412,3 +412,52 @@ and exercises keyboard handover, focus release, disconnect/reconnect and
 durable remapping. This verifies the SDL adapter, not physical hardware
 presses or a rendered native controller handover; those acceptance gates
 remain open.
+
+Audio output recovery implementation: `AudioOutput` retains the pending AI
+byte budget when the sink is unavailable and consumes whole stereo frames at
+the guest sample rate using a monotonic clock with fractional frame carry.
+A failed initial open, failed enqueue, stopped backend or removal of the
+current output device no longer terminates the game. The existing audio mutex
+serializes SDL access and the AI FIFO remains intact through loss. Default
+output retries once per second. Recovery pads only the remaining budget with
+silence and then accepts new PCM, preventing old sound effects from replaying
+or the guest's remaining-buffer count jumping. Rate changes reset both clocks
+as before. Output availability changes are recorded in diagnostics.
+
+The deterministic regression first failed because the stub discarded the
+unavailable output's byte budget, then passed. Coverage includes unavailable
+startup, fractional frame timing under frequent polling, mid-buffer loss,
+new buffers during loss, throttled reopen, recovery with a pending budget,
+failed enqueue, failed recovery padding, rate changes, long intervals and
+invalid partial stereo frames. The real SDL dummy backend test verifies actual
+queue consumption, stopped-device detection, reopen and new PCM delivery.
+Full current suites pass: 22 native / 32 Python. The evidence checker rejects
+missing injection/recovery, stalled audio and insufficient outage observations.
+
+Native queue-failure acceptance: `.local/qa/gameplay-soy3sqy9`, 180 seconds,
+10,801 VI / 10,471 graphics / 5,400 audio tasks. A private LD_PRELOAD helper
+simulated three seconds of initial unavailability, a queue failure at 45
+seconds and eight seconds without an available output. The four availability
+transitions were observed; 150 audio tasks advanced between the pre-loss and
+in-outage progress samples. Movement, pause/resume, live filters and volume
+options were accepted and the source EEPROM stayed unchanged. Private helper
+code is never linked into the port. The first attempted injection was invalid
+because ld.so split a path containing spaces; it supplied no fault evidence.
+The corrected run uses a relative preload path without spaces. New harness
+runs compile helpers per isolated directory to avoid changing a library while
+another test process has it loaded.
+
+These checks use software Vulkan and SDL dummy output. They establish guest
+continuity and backend recovery, not speaker audibility, a real unplug or
+physical 120-Hz rendering. PulseAudio/output-device acceptance remains open.
+
+Native SDL output-removal acceptance: `.local/qa/gameplay-vf4ptqal`, 180 seconds,
+10,801 VI / 10,468 graphics / 5,400 audio tasks. Three-second startup outage,
+current-device SDL removal event at 45 seconds and eight-second unavailable
+period all passed the dedicated recovery checker. 301 audio tasks advanced
+between the pre-loss and in-outage observations. Keyboard remap/cancel/help,
+changed-key driving, original PRESS ENTER adaptation, pause/resume and Restart
+were accepted. `controls-help.png` reviewed: T/X/Enter labels with matching
+keycap glyphs fit the original menu. EEPROM/Pak source hashes unchanged.
+This run used the new --audio-loss removal harness flag and a per-run helper;
+actual hardware disconnection and speaker output remain separately pending.

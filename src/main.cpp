@@ -13,6 +13,7 @@
 #include <mutex>
 #include <cmath>
 #include "audio_fifo.h"
+#include "audio_sdl.h"
 #include "audio_pcm.h"
 #include "wav_capture.h"
 #include "settings.h"
@@ -31,7 +32,8 @@ bool bc_input_event(const SDL_Event&);
 void bc_poll_input();
 bool bc_get_input(int,uint16_t*,float*,float*);
 RspExitReason blastcorps_audio_rsp(uint8_t*,uint32_t);
-static SDL_AudioDeviceID audio_device=0;
+static bc::SDLAudioBackend audio_backend;
+static bc::AudioOutput audio_output(audio_backend);
 static std::mutex audio_mutex;
 static AudioFifo audio_fifo;
 static uint64_t audio_buffers=0,audio_frames=0,audio_empty_queues=0,audio_rejected=0;
@@ -41,25 +43,32 @@ static std::string capture_path;
 static std::unique_ptr<WavCapture> capture;
 static std::atomic<int> output_volume{100};
 static std::atomic<bool> output_mute{false};
-bool bc_audio_room(){std::lock_guard lock(audio_mutex);bool room=audio_fifo.room(audio_device?SDL_GetQueuedAudioSize(audio_device):0);if(!room)++audio_rejected;return room;}
+static uint64_t audio_now(){return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();}
+static void audio_status(){
+ static bool known=false,was_online=false;
+ bool online=audio_output.online();
+ if(!known||online!=was_online){
+  fprintf(stderr,"{\"event\":\"audio_output_status\",\"available\":%s}\n",online?"true":"false");
+  known=true;was_online=online;
+ }
+}
+bool bc_audio_room(){std::lock_guard lock(audio_mutex);bool room=audio_fifo.room(audio_output.queued(audio_now()));audio_status();if(!room)++audio_rejected;return room;}
 static bool has_audio=false;
 void bc_set_audio_output(int volume,bool mute){output_volume.store(volume);output_mute.store(mute);}
 static void set_frequency(uint32_t freq){
- std::lock_guard lock(audio_mutex); if(audio_device)SDL_CloseAudioDevice(audio_device);
+ std::lock_guard lock(audio_mutex);
  audio_fifo.reset();
  audio_hz=freq;
- SDL_AudioSpec wanted{};wanted.freq=freq;wanted.format=AUDIO_S16SYS;wanted.channels=2;wanted.samples=512;
- audio_device=SDL_OpenAudioDevice(nullptr,0,&wanted,nullptr,0);
- if(!audio_device)bc_fatal("audio_open");SDL_PauseAudioDevice(audio_device,0);
+ audio_output.frequency(freq,audio_now());audio_status();
  fprintf(stderr,"{\"event\":\"audio_frequency\",\"hz\":%u}\n",freq);
 }
 static void queue_audio(int16_t* samples,size_t count){
  std::lock_guard lock(audio_mutex);
  auto pcm=n64_stereo_pcm(std::span(samples,count));
  apply_audio_output(pcm,output_volume.load(),output_mute.load());
- auto queued=SDL_GetQueuedAudioSize(audio_device);
+ auto now=audio_now();auto queued=audio_output.queued(now);
  if(audio_buffers&&queued==0)++audio_empty_queues;
- if(SDL_QueueAudio(audio_device,pcm.data(),pcm.size()*2)!=0)bc_fatal("audio_queue");
+ audio_output.push(pcm,now);audio_status();
  audio_fifo.push(count*2);
  ++audio_buffers;audio_frames+=count/2;audio_max_queue=std::max(audio_max_queue,queued+uint32_t(count*2));
  for(auto sample:pcm)audio_peak=std::max(audio_peak,std::abs(int(sample)));
@@ -70,7 +79,7 @@ static void queue_audio(int16_t* samples,size_t count){
  static bool logged_signal=false;if(!logged_signal){int peak=0;for(size_t i=0;i<count;i++)peak=std::max(peak,std::abs(int(samples[i])));if(peak){logged_signal=true;fprintf(stderr,"{\"event\":\"audio_signal\",\"peak\":%d,\"samples\":%zu}\n",peak,count);}}
  if(!has_audio){has_audio=true;fprintf(stderr,"{\"event\":\"audio_samples\",\"count\":%zu}\n",count);}
 }
-static size_t remaining_audio(){std::lock_guard lock(audio_mutex);return audio_fifo.head_bytes(audio_device?SDL_GetQueuedAudioSize(audio_device):0)/4;}
+static size_t remaining_audio(){std::lock_guard lock(audio_mutex);auto bytes=audio_output.queued(audio_now());audio_status();return audio_fifo.head_bytes(bytes)/4;}
 static RspUcodeFunc* select_ucode(const OSTask* task){return task->t.type==M_AUDTASK?blastcorps_audio_rsp:nullptr;}
 static void rsp_init(){recomp::rsp::constants_init();recomp::rsp::set_callbacks({select_ucode});}
 void bc_complete_audio();
@@ -147,6 +156,10 @@ int main(int argc,char** argv){
  auto start=std::chrono::steady_clock::now(),next=start;
  while(!exited){
   SDL_Event event;while(SDL_PollEvent(&event)){
+   if(event.type==SDL_AUDIODEVICEREMOVED&&!event.adevice.iscapture){
+    std::lock_guard lock(audio_mutex);
+    if(event.adevice.which==audio_backend.device()){audio_output.lost(audio_now());audio_status();}
+   }
    if(bc_input_event(event)){
     bool fullscreen=(SDL_GetWindowFlags(window)&SDL_WINDOW_FULLSCREEN)!=0;
     if(SDL_SetWindowFullscreen(window,fullscreen?0:SDL_WINDOW_FULLSCREEN_DESKTOP)!=0)fprintf(stderr,"Fullscreen: %s\n",SDL_GetError());
@@ -158,6 +171,7 @@ int main(int argc,char** argv){
    }
    if(event.type==SDL_QUIT)exited=true;
   }
+  {std::lock_guard lock(audio_mutex);audio_output.poll(audio_now());audio_status();}
   if(auto change=bc::take_pc_change()){
    try{
     auto store=bc::SettingsStore(bc_data_directory/"settings.json");auto updated=bc::merge_setting(store.load(),*change);

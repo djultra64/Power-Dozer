@@ -12,6 +12,7 @@ import tempfile
 import time
 from check_gameplay_probe import check
 from check_pak_save import check as check_pak
+from check_audio_recovery import check as check_audio_recovery
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -31,12 +32,17 @@ def run(args):
         pak_hash=hashlib.sha256(args.seed_pak.read_bytes()).hexdigest()
         shutil.copyfile(args.seed_pak,data/'controller-pak.bin')
     env=dict(os.environ,BC_TRACE_INPUT='1',BC_TRACE_GAMEPLAY='1',SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',VK_DRIVER_FILES='/usr/share/vulkan/icd.d/lvp_icd.x86_64.json')
+    if args.audio_loss:
+        subprocess.run(['c++','-std=c++20','-shared','-fPIC','-I/home/linuxbrew/.linuxbrew/include/SDL2','tools/qa_audio_fault.cpp','-ldl','-L/home/linuxbrew/.linuxbrew/lib','-lSDL2','-Wl,-rpath,/home/linuxbrew/.linuxbrew/lib','-o',str(directory/'libaudio-fault.so')],cwd=ROOT,check=True)
+        # ld.so splits LD_PRELOAD on spaces, including spaces inside paths.
+        # Use a relative path without spaces and set the native working folder.
+        env.update(LD_PRELOAD=str((directory/'libaudio-fault.so').relative_to(ROOT)),BC_QA_AUDIO_FAULT_AFTER='45',BC_QA_AUDIO_OUTAGE='8',BC_QA_AUDIO_STARTUP_OUTAGE='3',BC_QA_AUDIO_FAULT_KIND=args.audio_loss)
     log=directory/'native.log'
     print(f'Private test directory: {directory}',flush=True)
     confirm='z'
     prompt_captured=False
     with log.open('w') as output:
-        process=subprocess.Popen([str(ROOT/'build/blastcorps-prototype'),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale','1','--wide','--refresh','120'],env=env,stdout=output,stderr=subprocess.STDOUT)
+        process=subprocess.Popen([str(ROOT/'build/blastcorps-prototype'),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale','1','--wide','--refresh','120'],cwd=ROOT,env=env,stdout=output,stderr=subprocess.STDOUT)
         def text():return log.read_text(errors='replace')
         def states():
             result=[]
@@ -202,6 +208,7 @@ def run(args):
             # Mode 0 is the new-player introduction. Existing completed players
             # legitimately go map (14) → statistics (7) → mission (2) instead.
             result=check(log,required_modes=(14,2))
+            if args.audio_loss:result['audio_recovery']=check_audio_recovery(log)
             result['seconds_requested']=args.seconds
             result['exercise_verified']=args.exercise
             result['options_verified']=args.options
@@ -234,6 +241,7 @@ if __name__=='__main__':
     parser.add_argument('--options',action='store_true')
     parser.add_argument('--controls',action='store_true')
     parser.add_argument('--prompts',action='store_true')
+    parser.add_argument('--audio-loss',choices=('queue','removal'),help='Privately simulate startup output unavailability and mid-game audio loss')
     parser.add_argument('--glyphs',choices=('xbox','playstation','switch'),help='Capture controller editor glyphs using the manual family fallback')
     parser.add_argument('--wait-failure',action='store_true')
     args=parser.parse_args()

@@ -1,5 +1,7 @@
 # Beta local de Blast Corps para Linux
 
+Actualización posterior: los defectos concretos de HUD, ticker, sprites del mapa, cielo y fundido reportados en los videos reabren ese alcance gráfico; la aceptación previa del terreno se conserva. El ejecutable de desarrollo ya incorpora las correcciones y un guard de despacho de audio. Véase [el seguimiento y sus límites](graphics-audio-followup-2026-10-10.md). Los paquetes citados abajo conservan el checkpoint anterior.
+
 Checkpoint `99bb524`, 10 de octubre de 2026. Los gráficos actuales están
 aceptados por el usuario. **Puede dejar de procesarse el audio de forma
 intermitente mientras la imagen continúa.** Hubo sesiones posteriores de tres

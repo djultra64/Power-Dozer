@@ -167,6 +167,11 @@ add_test(NAME audio_stereo_channels COMMAND audio_pcm_test)
 add_executable(line_quad_test tests/line_quad.cpp)
 target_include_directories(line_quad_test PRIVATE include)
 add_test(NAME l3d_line_geometry COMMAND line_quad_test)
+add_executable(carrier_arrow_test tests/carrier_arrow.cpp)
+target_include_directories(carrier_arrow_test PRIVATE include "${RT64}/src" "${RT64}/src/contrib/hlslpp/include")
+target_compile_options(carrier_arrow_test PRIVATE -mssse3 -msse4.1)
+target_compile_options(carrier_arrow_test PRIVATE -UNDEBUG)
+add_test(NAME carrier_arrow_hud_isolation COMMAND carrier_arrow_test)
 add_executable(save_store_test tests/save_store.cpp src/save_store.cpp src/atomic_file.cpp)
 target_include_directories(save_store_test PRIVATE include)
 add_test(NAME save_recovery_and_isolation COMMAND save_store_test)
@@ -289,3 +294,34 @@ foreach(BC_MESGQUEUE_CASE normal timed)
  add_test(NAME sdk_external_retry_fairness_${BC_MESGQUEUE_CASE} COMMAND mesgqueue_runtime_test ${BC_MESGQUEUE_CASE})
  set_tests_properties(sdk_external_retry_fairness_${BC_MESGQUEUE_CASE} PROPERTIES TIMEOUT 10)
 endforeach()
+
+# Recover the original audio dispatch protocol using a normal scheduler request.
+target_sources(blastcorps-prototype PRIVATE src/audio_dispatch.cpp)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+ "${CMAKE_SOURCE_DIR}/tools/prepare_audio_dispatch_fixture.py"
+ "${CMAKE_SOURCE_DIR}/.local/generated/functions/funcs_3.c"
+ "${CMAKE_SOURCE_DIR}/.local/generated/functions/funcs_4.c"
+ "${CMAKE_SOURCE_DIR}/.local/generated/functions/funcs_22.c")
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/prepare_audio_dispatch_fixture.py"
+ "${CMAKE_SOURCE_DIR}/.local/generated/functions" "${CMAKE_BINARY_DIR}"
+ RESULT_VARIABLE BC_AUDIO_DISPATCH_FIXTURE_RESULT)
+if(NOT BC_AUDIO_DISPATCH_FIXTURE_RESULT EQUAL 0)
+ message(FATAL_ERROR "Cannot prepare fingerprinted original guest audio dispatch fixture")
+endif()
+add_executable(audio_dispatch_test tests/audio_dispatch.cpp src/audio_dispatch.cpp
+ "${CMAKE_BINARY_DIR}/blastcorps-audio-dispatch-guest.cpp"
+ "${CMAKE_SOURCE_DIR}/.local/audio-rsp.cpp" "${RUNTIME}/librecomp/src/rsp.cpp")
+target_include_directories(audio_dispatch_test PRIVATE include .local/generated/functions
+ "${RUNTIME}/N64Recomp/include" "${RUNTIME}/ultramodern/include"
+ "${RUNTIME}/librecomp/include" "${RUNTIME}/librecomp/include/librecomp"
+ "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/concurrentqueue")
+target_compile_definitions(audio_dispatch_test PRIVATE
+ BC_MESGQUEUE_SOURCE="${CMAKE_BINARY_DIR}/blastcorps-mesgqueue.cpp"
+ BC_THREADQUEUE_SOURCE="${CMAKE_BINARY_DIR}/blastcorps-threadqueue.cpp")
+target_compile_options(audio_dispatch_test PRIVATE -mssse3 -msse4.1)
+target_link_libraries(audio_dispatch_test PRIVATE Threads::Threads)
+add_test(NAME original_audio_pending_dispatch_red_baseline COMMAND audio_dispatch_test baseline)
+set_tests_properties(original_audio_pending_dispatch_red_baseline PROPERTIES WILL_FAIL TRUE TIMEOUT 5)
+add_test(NAME original_audio_pending_dispatch_recovery COMMAND audio_dispatch_test late5)
+add_test(NAME original_audio_healthy_dispatch_protocol COMMAND audio_dispatch_test healthy)
+set_tests_properties(original_audio_pending_dispatch_recovery original_audio_healthy_dispatch_protocol PROPERTIES TIMEOUT 5)

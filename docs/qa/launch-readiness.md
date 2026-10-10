@@ -1,5 +1,7 @@
 # Preparación del lanzamiento privado de Linux
 
+Actualización posterior: los defectos concretos de HUD, ticker, sprites del mapa, cielo y fundido reportados en los videos reabren ese alcance gráfico; la aceptación previa del terreno se conserva. El ejecutable de desarrollo ya incorpora las correcciones y un guard de despacho de audio. Véase [el seguimiento y sus límites](graphics-audio-followup-2026-10-10.md). Los paquetes citados abajo conservan el checkpoint anterior.
+
 Revisión del 10 de octubre de 2026. Este documento prepara una beta privada
 revisable; no certifica una candidata ni autoriza publicación. El alcance
 actual entrega una beta local con los gráficos actuales aceptados por el usuario

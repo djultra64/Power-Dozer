@@ -145,6 +145,42 @@ def main():
             fallback.append(f'void {name}(uint8_t*, recomp_context*) {{ bc_fatal("{binding["original"]}", 0x{binding["address"]:08X}u); }}')
     (out / 'fallbacks.cpp').write_text('\n'.join(fallback+['}'])+'\n')
 
+def normalize_widescreen_body(body):
+    """Scope original 4:3 geometry changes to known fullscreen/ticker producers."""
+    def once(before,after,label):
+        nonlocal body
+        if body.count(before)!=1:raise ValueError('Original widescreen '+label+' layout changed')
+        body=body.replace(before,after)
+    if body.startswith('RECOMP_FUNC void func_80271FD0(') and 'bc_widescreen_sky' not in body:
+        site='    MEM_B(-0X403B, ctx->r1) = ctx->r12;'
+        once(site,'    bc_widescreen_sky(rdram);\n'+site,'sky buffer flip')
+    if body.startswith('RECOMP_FUNC void func_8025E67C(') and 'bc_widescreen_whiteout' not in body:
+        at=body.index('\n')+1;body=body[:at]+'    bc_widescreen_whiteout(rdram);\n'+body[at:]
+    if body.startswith('RECOMP_FUNC void func_801E9718(') and 'bc_widescreen_ticker(rdram)' not in body:
+        for name in ('func_80259CCC','func_80259DC8'):
+            site='    '+name+'(rdram, ctx);'
+            once(site,'    bc_widescreen_ticker_text(rdram,ctx);\n'+site,'ticker text call')
+        at=body.index('\n')+1;body=body[:at]+'    bc_widescreen_ticker(rdram);\n'+body[at:]
+    if body.startswith('RECOMP_FUNC void func_801E8DCC(') and '(bc_wide ? 0X24 : 0X1B)' not in body:
+        site='    ctx->r1 = SIGNED(ctx->r10) < 0X1B ? 1 : 0;'
+        once(site,'    ctx->r1 = SIGNED(ctx->r10) < (bc_wide ? 0X24 : 0X1B) ? 1 : 0;','ticker FIFO length')
+    return body
+
+
+def normalize_map_vehicle_body(body):
+    """Repair only the map's two mirrored RGBA16 vehicle sprite producers."""
+    if not body.startswith('RECOMP_FUNC void func_801F9258(') or 'bc_map_vehicle_sprite_rewrite' in body:
+        return body
+    site='    func_80272ED8(rdram, ctx);'
+    if body.count(site)!=2:raise ValueError('Original map vehicle sprite caller layout changed')
+    at=body.index('\n')+1
+    body=body[:at]+'    uint32_t bc_map_sprite_begin=0;\n    bool bc_map_sprite_eligible=false;\n'+body[at:]
+    hook=('    bc_map_sprite_begin=uint32_t(ctx->r4);\n'
+          '    bc_map_sprite_eligible=bc_map_vehicle_sprite_eligible(rdram,uint32_t(ctx->r5));\n'+site+'\n'
+          '    bc_map_vehicle_sprite_rewrite(rdram,bc_map_sprite_begin,uint32_t(ctx->r2),bc_map_sprite_eligible);')
+    return body.replace(site,hook)
+
+
 def normalize(folder):
     # These hooks depend on the original pause layout and callable entries.
     rom=(ROOT/'.local/hd_code.bin').read_bytes()
@@ -170,10 +206,25 @@ def normalize(folder):
         at=address-0x802447C0
         if rom[at:at+len(expected)//2].hex()!=expected:
             raise ValueError(f'Original PC options hook layout changed at {address:08X}')
+    # Pin both overlays: these data layouts and original instruction sites
+    # must match the user's validated USA Rev 1 image before applying hooks.
+    front=(ROOT/'.local/hd_front_end.bin').read_bytes()
+    for data,base,address,expected in (
+        (rom,0x802447C0,0x802FA820,'04ff0000fc18000000000000ffffffff'),
+        (rom,0x802447C0,0x802FA8B0,'00000000fff600000000000000000000'),
+        (front,0x801E7000,0x80208380,'ff6000ae00b400000000000000810028'),
+        (front,0x801E7000,0x801E8E1C,'2941001b1420fff1'),
+        (front,0x801E7000,0x801E9FB4,'0c096733afb00034'),
+        (front,0x801E7000,0x801EA0C0,'0c096772afad0044'),
+        (front,0x801E7000,0x801F968C,'0c09cbb6e7a40018'),
+        (front,0x801E7000,0x801F96F4,'0c09cbb6e7a60018')):
+        at=address-base
+        if data[at:at+len(expected)//2].hex()!=expected:
+            raise ValueError(f'Original widescreen hook layout changed at {address:08X}')
     pattern = re.compile(r'RECOMP_FUNC void [^(]+\([^)]*\) \{.*?^;\}', re.M | re.S)
     temporary = re.compile(r'^(?P<indent>\s*)gpr (?P<name>jr_addend_[0-9A-F]{8}) = (?P<value>[^;]+);$', re.M)
     def fix(match):
-        body = match.group(0)
+        body = normalize_map_vehicle_body(normalize_widescreen_body(match.group(0)))
         names = list(dict.fromkeys(m['name'] for m in temporary.finditer(body) if m['value'].strip()!='0'))
         body = temporary.sub(lambda m:m.group(0) if m['value'].strip()=='0' else f"{m['indent']}{m['name']} = {m['value']};", body)
         if names:

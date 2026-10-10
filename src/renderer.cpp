@@ -101,6 +101,7 @@ Context(uint8_t* rdram,ultramodern::renderer::WindowHandle window) {
         app_->state->rsp->reset();
         app_->interpreter->loadUCodeGBI(task->t.ucode & 0x3FFFFFF,task->t.ucode_data & 0x3FFFFFF,true);
         bc_load_l3d(*app_->interpreter,task->t.ucode & 0x3FFFFFF,task->t.ucode_data & 0x3FFFFFF);
+        bc_load_hud_annotations(*app_->interpreter,task->t.ucode & 0x3FFFFFF);
         if(!app_->interpreter->hleGBI || app_->interpreter->hleGBI->ucode==RT64::GBIUCode::Unknown)bc_fatal("unsupported_graphics_ucode",task->t.ucode);
         if(count<=12) fprintf(stderr,"{\"event\":\"gfx_task\",\"seq\":%llu,\"ucode\":%u,\"list\":%u}\n",(unsigned long long)count,(uint32_t)task->t.ucode,(uint32_t)task->t.data_ptr);
         app_->processDisplayLists(app_->core.RDRAM,task->t.data_ptr & 0x3FFFFFF,0,true);

@@ -12,6 +12,7 @@
 #include <limits>
 #include <unordered_map>
 #include "rsp_scheduler.h"
+#include "audio_dispatch.h"
 #include "save_store.h"
 #include "translucent_mode.h"
 #include <execinfo.h>
@@ -220,6 +221,9 @@ void __real_osRecvMesg_recomp(uint8_t*,recomp_context*);
 void __wrap_osRecvMesg_recomp(uint8_t* rdram,recomp_context* ctx){
  uint32_t queue=ctx->r4,dest=ctx->r5;gpr guest_dest=uint64_t(int64_t(int32_t(dest)));
  __real_osRecvMesg_recomp(rdram,ctx);
+ if(queue==0x80315440&&dest&&ctx->r2==0&&bc::request_pending_audio_after_vi(rdram,queue,uint32_t(MEM_W(0,guest_dest)))){
+  fprintf(stderr,"{\"event\":\"audio_dispatch_request\",\"vi\":%llu,\"audio\":%llu}\n",(unsigned long long)bc_vis.load(),(unsigned long long)bc_audio.load());
+ }
  static const bool trace_audio_state=std::getenv("BC_TRACE_AUDIO_STATE")!=nullptr;
  static uint64_t last_audio_state_vi=0;
  if(trace_audio_state&&queue==0x80315440&&ctx->r2==0){

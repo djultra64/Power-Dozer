@@ -1,5 +1,6 @@
 #include "l3d.h"
 #include "line_quad.h"
+#include "carrier_arrow.h"
 #include "prototype.h"
 #include "hle/rt64_interpreter.h"
 #include "gbi/rt64_gbi_f3d.h"
@@ -10,6 +11,19 @@
 namespace {
 RT64::GBI l3d;
 bool initialized=false;
+RT64::GBI hud_gbi;
+void hud_vertex(RT64::State* state,RT64::DisplayList** dl) {
+ auto& rsp=*state->rsp;
+ const auto address=rsp.fromSegmentedMasked((*dl)->w1);
+ const auto count=(*dl)->p0(20,4)+1,first=(*dl)->p0(16,4);
+ RT64::GBI_F3D::vertex(state,dl);
+ if(!bc::carrier_arrow_vertices(address,count,first))return;
+ auto& data=state->ext.workloadQueue->workloads[state->ext.workloadQueue->writeCursor].drawData;
+ if(rsp.curTransformIndex>=data.worldTransformGroups.size()||rsp.curViewProjIndex>=data.viewProjTransformGroups.size())
+  bc_fatal("carrier_arrow_transform");
+ bc::annotate_carrier_arrow(data.transformGroups,
+  data.worldTransformGroups[rsp.curTransformIndex],data.viewProjTransformGroups[rsp.curViewProjIndex]);
+}
 // L3D uses the F3D vertex cache and matrix commands. Its primitives are lines,
 // not F3D's triangles/quads. Expand their projected endpoints into thin quads.
 void line(RT64::State* state,unsigned a,unsigned b,int width,unsigned shade) {
@@ -68,4 +82,13 @@ void bc_load_l3d(RT64::Interpreter& interpreter,unsigned text,unsigned data) {
  interpreter.hleGBI=&l3d;
  interpreter.state->rsp->setGBI(&l3d);
  l3d.resetFromTask(interpreter.state);
+}
+void bc_load_hud_annotations(RT64::Interpreter& interpreter,unsigned text) {
+ // The verified USA Rev 1 main F3D program. L3D and other GBIs retain their
+ // own vertex handlers. Only the carrier's exact ten-vertex mesh is tagged.
+ if(text!=0x2E53F0||!interpreter.hleGBI||interpreter.hleGBI->ucode!=RT64::GBIUCode::F3D)return;
+ hud_gbi=*interpreter.hleGBI;
+ hud_gbi.map[F3D_G_VTX]=hud_vertex;
+ interpreter.hleGBI=&hud_gbi;
+ interpreter.state->rsp->setGBI(&hud_gbi);
 }

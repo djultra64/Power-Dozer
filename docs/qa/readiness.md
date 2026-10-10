@@ -1409,3 +1409,35 @@ unstripped binary. No inferior function calls or global ptrace-policy changes.
 79 Python tests pass after this QA-only addition; production binary unchanged.
 Eight sequential90second private4K startup trials are in progress with this
 capture enabled. Repeated success alone will not causally close the known freeze.
+
+Pre-timer-fix monitored startup batch terminal exit0(handle68853):8 sequential
+90second4K120 private warm runs. gameplay-8dyke2g1/2p7oxhj5/rsbb2o_u/gpp1ssy2/
+l75w4sol/0zhlc1ln/e_hj12sl/njjcbrcg each5401VI,5098..5104gfx,2699audio;
+all standard movement/pause/Continue and source EEPROM preservation passed.
+No live stall triggered, so no causal native freeze closure from this batch.
+The batch ended before replacing/rebuilding the native executable.
+
+Independent REAL SDK timer race reproduced: ThreadSanitizer terminal exit66
+on pinned ultramodern/src/timer.cpp SHA5320da1c67d44425f4f13b58d0d3e7afae3029c8142557f9e734083a2f75617f.
+osSetTimer line187 writes timestamp while timer-thread std::set comparator
+line79 reads it. Fixture compiles that actual SDK source and actual concurrent
+queue; only native thread decoration and destination message queue are stubbed.
+Official Fedora gcc15.2.1-7.fc43 libtsan was privately extracted, not installed;
+RPM digests OK, SHA401767e53860e6074047802c1b9a2668c5d4d5ecd6525cf77d91460ced41a3a2.
+Private logs/source/provenance retained in .local/qa/timer-race.
+
+Validated local timer source transform now snapshots deadline/interval/queue/
+message into producer actions. The background worker owns immutable ordered
+records and replaces/cancels by address; periodic updates stay host-owned.
+It never reads/writes guest timer memory, so guest rearming cannot mutate set
+keys. Producer legacy API writes and all unrelated time APIs remain unchanged.
+Original game sched.c line245 uses this timer for audio-list completion; no
+gameplay reads of its internal timer fields were found. Shared pinned SDK is
+unchanged and fingerprint mismatch fails configuration before output.
+Actual transformed implementation passed functional one-shot/destination,
+replacement/deadline order,cancellation,zero-countdown periodic tests and
+50000 concurrent rearms/cancels with ThreadSanitizer terminal0, no race reports.
+30 native checks and82 Python checks pass after rebuild; diff check clean.
+Six-minute cold-cache4K native exercise/retry trial is now running. This fixes
+an independently demonstrated race; the previously observed native startup
+freeze remains open until its cause is separately established.

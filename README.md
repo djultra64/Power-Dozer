@@ -15,15 +15,14 @@ objetivo de 120 fps en 720p y 1080p sobre una salida virtual de 120 Hz. En 4K,
 la prueba sostenida quedó alrededor de 116,5 fps y no pasó el objetivo de 120.
 Faltan la cobertura de misiones y las comprobaciones en una pantalla física.
 
-El audio siguió activo durante sesiones aisladas de seis minutos con movimiento,
-pausa y reinicio. Se corrigieron la cesión del RSP, el orden estéreo y la
-inicialización de los reintentos estándar del runtime para eventos críticos.
-Se corrigió también una carrera de datos demostrada en los temporizadores del
-SDK; su planificador trabaja con copias inmutables de los parámetros del juego.
-También se verificó la recuperación con fallos simulados del dispositivo SDL.
-Persisten bloqueos intermitentes: una sesión reciente detuvo gráficos y audio
-durante el arranque. La beta todavía no se considera candidata a lanzamiento.
-La evidencia y los diagnósticos están en [docs/qa/readiness.md](docs/qa/readiness.md).
+La beta local del commit `99bb524` incluye las correcciones del runtime y una
+reconstrucción comprobada con SDK independiente. El usuario acepta los gráficos
+actuales. El mismo paquete pasó sesiones nativas de tres y seis minutos, pero
+una sesión anterior dejó de procesar audio mientras los gráficos avanzaban.
+**Ese fallo intermitente de audio sigue sin resolver.** No se declara candidata
+a lanzamiento ni se certifica la revisión de licencias. Artefactos, instalación
+y controles en [notas de la beta local](docs/qa/private-beta-notes.md); evidencia
+en [docs/qa/readiness.md](docs/qa/readiness.md).
 
 ![Escena renderizada por el prototipo](docs/evidence/scene.png)
 
@@ -99,16 +98,20 @@ el origen permanece intacto. Los overlays, capturas y ROM no forman parte de
 esa importación de progreso. Si falta una ROM instalada o su caché es inválida, el ejecutable abre el
 selector nativo de archivos. Cancelar sale sin escribir datos; un error permite
 elegir otra ROM. `--no-rom-dialog` mantiene el arranque sin diálogos para QA.
-Hay un paquete Linux privado con dependencias y avisos de licencia, probado
-fuera del checkout con datos aislados. Ese archivo todavía necesita actualizarse
-al código actual y completar la revisión de dependencias/licencias y de la
-instalación. La aceptación visual del selector del escritorio sigue pendiente.
+El paquete Linux privado `blastcorps-private-linux-x86_64.tar.gz` incluye
+dependencias y avisos; se extrajo y probó fuera del checkout con datos aislados.
+El snapshot `blastcorps-private-source-review.tar.gz` y su receta de
+[reconstrucción independiente](docs/qa/source-rebuild.md) también están disponibles
+localmente. La revisión de dependencias/licencias y la aceptación visual del
+selector del escritorio siguen pendientes.
 
 ## Reproducir la compilación
 
-Este primer prototipo reutiliza el toolchain y los archivos estáticos de RT64
-del checkout local de Tetrisphere. Compila su propio N64ModernRuntime y no
-modifica el proyecto Tetrisphere.
+La receta histórica reutiliza el toolchain y los archivos estáticos de RT64
+del checkout local de Tetrisphere. También puede usarse `--sdk-root` con un SDK
+independiente construido desde el snapshot de fuentes; esa ruta ya se verificó
+en un host exportado. La receta está en [docs/qa/source-rebuild.md](docs/qa/source-rebuild.md).
+El port compila su propio N64ModernRuntime y no modifica Tetrisphere.
 
 ```bash
 python3 tools/build.py 'Blast Corps (USA) (Rev 1).zip' \

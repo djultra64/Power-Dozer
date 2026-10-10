@@ -1,5 +1,10 @@
 # Graphics source investigation — 2026-10-10
 
+Current disposition: the user explicitly accepted the present graphics and
+closed this investigation on 2026-10-10. The evidence below is retained for
+reference; these appearance differences no longer block the requested beta.
+Do not resume graphical experiments as part of the remaining launch work.
+
 Independent source review started at `6bf0e2d` and continued through the current
 lifecycle checkpoint. This reviewer made no production changes, rebuilds,
 native execution, GPU work or dependency modifications. The local
@@ -350,3 +355,72 @@ mode, incomplete main clear or onscreen train shadow was demonstrated in its
 sampled interval. The actual initial polygon's GPU attachment, texture and
 contents remain the decisive missing evidence. No effects were disabled and
 no culling, geometry, blending or framebuffer workaround is recommended.
+
+## Initial-frame GPU pixel history and bound resources
+
+The subsequent private RenderDoc 1.42 capture
+`initial-original-scale_frame2230.rdc` was taken at original resolution/aspect
+and original refresh, before the producer-fairness correction. Successful
+replays inspect actual GPU resources, rather than inferring their contents
+from the earlier CPU trace. The reports are retained under
+`.local/qa/renderdoc/initial-original-scale-resources`,
+`initial-terrain-resources` and `initial-terrain-mesh`.
+
+Pixel history for color resource 951 identifies terrain draw 1501, primitive
+11, at (190,205), and primitive 12 at (200,190). At (130,190) it identifies
+terrain draw 1496, primitive 27. At (160,155), terrain primitive 11 is followed
+by shadow draw 1787, primitive 0; the latter passes but leaves the color
+unchanged at that particular pixel. These observations identify the sampled
+colored patches as terrain. They do not prove that the entire shadow draw
+is transparent or that all visible discrepancies share this source.
+
+Draw 1501 has render index 35, instance 36 and 17 triangles starting at index
+2079. Actual GPU tile 49 selects descriptor-array element 308, a 64x32 soil
+texture; its TC/UL scales are both [1,1]. The RDP tile uses RGBA16, stride 128,
+64x32 wrapping and unit shifts. Primitive 11 projects to approximately
+(204.10,233.75), (142.19,69.73), (81.65,110.86), with positive clip w and
+UVs (62.999,30.9995), (0,0), (0,30.9995). Primitive 12 completes the adjacent
+triangle of that large ground quad. These dimensions and UVs are evidence,
+not a demonstrated projection or texture-selection defect. The sparse
+earlier source trace does not contain this exact index/face-count pair, so
+it cannot yet identify this call's source geometry producer.
+
+Shadow draw 1787 has render index 150 and GPU tile 220. It selects element
+1562/resource 46005, with the expected 64x64 IA8 dimensions. The actual
+reinterpretation output contains 3443 transparent black texels and 653 opaque
+white texels. Its vertex RGB 10 and alpha 140 match the guest shadow quad.
+Raw pre-reinterpretation copies have different channel meaning and must not
+be confused with this bound IA8 output. The actual selected output is a binary
+mask; it does not contain a copied colored scene. Comparison with the original
+shadow mask remains necessary before considering a production correction.
+
+### The initial reference shadow has a renderer regression
+
+Offline extraction of the original Mupen64Plus state validates its M64+SAVE
+header/version and locates RDRAM at byte 444 from the pinned core's state
+reader. The owner-4 mask at 0x80359100 contains 2587 zero bytes, 853 bytes of
+value 8 and 656 FF bytes. The native mask contains 3443 zero and 653 FF bytes,
+consistent with the GPU IA8 output. Every original byte 8 lies at x modulo
+4 equal to 3, before the unfilled final row. The white silhouettes overlap
+closely (640 common texels, 669 union), although frame/camera equivalence
+is not established for every sample.
+
+This difference is attributable to the reference renderer's fill expression.
+Angrylion commit `4cc07ca8094f` changed the grouped byte-extraction shift into
+`(fill_color >> ((fb & 3)^3) << 3) & 0xff`. For guest fill 0x00010001, this
+produces [0,0,0,8], matching the original-state pattern exactly. The expression
+before that commit, and the independently grouped shifts in parallel-rdp and
+MAME, produce [0,1,0,1]. Thus the stronger broad darkening in this Angrylion
+reference cannot be treated as the required hardware appearance. A private
+reference with the grouping restored must regenerate its cached masks before
+a new visual comparison; loading the old state alone preserves its bad bytes.
+Production must not be changed to reproduce the reference's value-8 artifact.
+
+The private offline report and extracted masks are under
+`.local/qa/graphics-source-tools/terrain-shadow-cpu`. It also compares every
+captured vertex of draws 1496/1501/1787: post-VS screen positions differ from
+their input screen positions only by the expected +0.5 pixel center offset,
+within approximately 0.00011 pixel. No additional vertex expansion by the
+raster vertex shader is demonstrated in these draws. The visible route arcs
+and displaced scene fragments remain separate open defects requiring their
+own captured draw/resource evidence.

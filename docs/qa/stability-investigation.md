@@ -292,3 +292,55 @@ and 5399 audio tasks. Its cwd and executable were outside this checkout in a
 path with spaces. Movement, pause/Continue, Restart and completed-level replay
 were verified; source EEPROM/Pak hashes stayed unchanged. Its SDK/RT64/tools
 were built independently from exported sources; full CPU suites passed 41/110.
+
+
+### Updated installed package: audio stalls while graphics advance
+
+The first native acceptance attempt of the updated installed object
+`7fb9d803ddb1bd3cea11766ca7f705bfb51390e6440deaeb1bc6311b95349568`
+from clean commit `99bb524`, archive
+`0b6824931902aafcdb679540c7bc0b87b57275cf069a1308654f40b366dbdfa2`,
+failed in `gameplay-j8o4si3t` (harness exit 1). Graphics advanced 5558→5858
+and VI 5403→5703 while audio remained at 2638 tasks. The harness captured two
+read-only snapshots and then closed the native process; its final `probe_end`
+was VI 5755, graphics 5908 and audio 2638. This is not the earlier global
+startup stall, nor proof that packaging caused it.
+
+The original-side trace has full frame queue (8), empty reply queue, audio
+receiver thread `0x80368088` blocked on reply, current RSP task zero and a nonzero
+audio task list head. Guest movement, pause/Continue and Restart had succeeded
+before the failure; that does not pass full session acceptance. GDB attached
+successfully, but the stripped installed object lacks SDK/guest symbols, so
+those memory/queue dumps are unavailable in this first capture. Resolve host
+PCs against the exactly matched development debug object and add verified
+private symbol loading before another reproduction. Do not infer a lost event,
+acknowledge a task or patch the guest before discriminating the scheduler path.
+
+Two subsequent sessions of the identical installed object completed normally:
+`gameplay-ghunmacy`, 180 seconds, exit 0, VI 10801/graphics 10954/audio 5399;
+and `gameplay-jck7jpdz`, 360 seconds, exit 0, VI 21601/graphics 21756/audio
+10799. Both verified movement/pause/Continue/Restart and retained unchanged
+seed EEPROM/Pak. A private capture helper now verifies matching BuildID and
+exact code/data section bytes before loading development symbols; a separate
+live CPU fixture validates its bounded queue/task dumps. No native hang occurred
+in these two repetitions, so neither supplies the missing causal capture or
+proves a fix. The audio stall remains intermittent and unresolved.
+
+The user subsequently accepted current graphics and requested abbreviated
+remaining tests. Further full-route/repeated long sessions are outside that
+requested testing scope. Any additional audio diagnostic must target the
+pending causal question, and beta notes must retain the known intermittent
+failure until a correction is demonstrated.
+
+One targeted read-only diagnostic session, `gameplay-gcgc7f1l`, then completed
+100 seconds with exit 0, VI 6001, graphics 6154 and audio 2998. Its private ELF
+`52429d545bc1a018d213d5d06d4cd761ac1e6cad7a2f5159b9dfdb4b9710f69e`
+wraps message entry points while preserving the original receive wrapper and
+SDK send implementation. CPU comparisons confirm identical complete context
+and 8 MB guest RAM for its immediate/nonblocking validation cases; those cases
+do not validate asynchronous scheduling. Production objects stayed unchanged.
+The bounded trace emitted 20000 events over VI 4200–5377 and reached its cap
+before the end of the native session. It did not reproduce the audio stall;
+therefore this session is diagnostic evidence, not a corrected regression or
+a final package replacement. No further long repetitions are authorized by
+the latest requested testing scope.

@@ -2,33 +2,46 @@
 
 Revisión del 10 de octubre de 2026. Este documento prepara una beta privada
 revisable; no certifica una candidata ni autoriza publicación. El alcance
-actual prioriza gráficos, estabilidad e instalación. Los 120 fps sostenidos y
+actual entrega una beta local con los gráficos actuales aceptados por el usuario
+y la limitación de audio indicada abajo. Los 120 fps sostenidos y
 la cobertura amplia de misiones se registran en [manual-testing.md](manual-testing.md).
 
-## Artefacto comprobado y actualización pendiente
+## Artefactos de la beta local
 
-El checkpoint del archivo `.local/packages/blastcorps-private-linux-x86_64.tar.gz`
-corresponde al commit limpio `f3e927a25164b35546eb3ed0b99d9cb7f4235c56`:
+El runtime `.local/packages/blastcorps-private-linux-x86_64.tar.gz` y la fuente
+`.local/packages/blastcorps-private-source-review.tar.gz` se generaron desde el
+commit limpio `99bb524bd702fa8a54350ff7a2aa18afd6b637a3`:
 
 ```text
-SHA-256 b8696f3e6dc8d02a10b4484c48a82e7171d51e1b2c61761d419182f486897aa9
+Runtime SHA-256 0b6824931902aafcdb679540c7bc0b87b57275cf069a1308654f40b366dbdfa2
+ELF instalado 7fb9d803ddb1bd3cea11766ca7f705bfb51390e6440deaeb1bc6311b95349568
 91 miembros; 90 archivos en el inventario; 77 textos de licencia
+Fuente SHA-256 b06a3394b05ee00eb076b58fb20042af54c402dc9fc954815984559b6bc398d0
+10.309 archivos de fuente verificados
 ready_for_release=false; revisión completa de licencias pendiente
 ```
 
-Sus 90 hashes se comprobaron después de extraerlo en una ruta con espacios,
-fuera del checkout; la evidencia está en `.local/qa/package-checkpoint-oct10.json`.
-Este checkpoint incluye los avisos nuevos, pero **está pendiente de reemplazo**:
-es anterior a la corrección de fairness del productor externo de mesgqueue.
-También está pendiente la prueba nativa del paquete actualizado. El manifiesto,
-checksum y prueba de runtime deben referirse al mismo paquete final; una prueba
-del ejecutable de desarrollo no sustituye esta comprobación.
+Todos los hashes se verificaron; el runtime se extrajo en una ruta nueva con
+espacios fuera del checkout. No contienen ROM, progreso privado ni capturas.
+Las dependencias inspeccionadas con `ldd` resuelven y el ELF usa `$ORIGIN/lib`.
+La evidencia está en `.local/qa/package-checkpoint-current.json`.
+
+El mismo ELF instalado pasó sesiones de 180 y 360 segundos con movimiento,
+pausa y Restart (`gameplay-ghunmacy` y `gameplay-jck7jpdz`). Sin cambios de
+código, una sesión anterior (`gameplay-j8o4si3t`) dejó de procesar audio mientras
+los gráficos avanzaban. **El bloqueo intermitente de audio sigue sin resolver**;
+las sesiones posteriores no demuestran su eliminación. Se entrega como beta
+local con esta limitación conocida. Las instrucciones breves están en
+[private-beta-notes.md](private-beta-notes.md).
+
+Los archivos conservan el checkpoint 99bb524; estas notas posteriores no están
+dentro del snapshot. No se regeneran ni se modifica el binario para esta entrega.
 
 ## Requisitos comprobables de este binario
 
 Linux x86-64 con SSSE3 y SSE4.1, controlador Vulkan operativo, escritorio
 X11/Wayland y una carpeta de datos escribible. La inspección estática del ELF
-del paquete anterior requiere símbolos de **glibc 2.38** y
+del paquete actual requiere símbolos de **glibc 2.38** y
 **GLIBCXX_3.4.31** en `libstdc++.so.6`. Es un requisito observado de símbolos,
 no una certificación de distribuciones o de todas las CPU compatibles.
 Una compilación posterior debe repetir esta inspección.
@@ -69,10 +82,10 @@ Estos resultados no abarcan todas las misiones ni mandos físicos.
 El objetivo de interpolación a 120 se midió en 720p/1080p sobre una salida
 virtual de 120 Hz. La medición sostenida de 4K quedó alrededor de 116,5 fps.
 La pantalla física, continuidad audible, cobertura amplia y rendimiento
-sostenido quedan pendientes de la lista manual. Los defectos gráficos conocidos
-y la aceptación del paquete final siguen impidiendo declarar una candidata;
-el bloqueo demostrado del productor externo ya tiene corrección y regresiones nativas;
-su diagnóstico y aceptación final se registran en [readiness.md](readiness.md).
+sostenido quedan pendientes de la lista manual. El usuario acepta los gráficos
+actuales para esta beta local. El bloqueo del productor externo ya tiene
+corrección y regresiones nativas; el audio intermitente y la revisión de
+fuentes/licencias siguen abiertos. Su estado está en [readiness.md](readiness.md).
 
 ## Inventario de avisos y procedencia
 
@@ -106,14 +119,15 @@ no reutilizar automáticamente un texto obtenido de otra versión.
 
 La [GPL v3, secciones 1, 4–6](https://github.com/N64Recomp/N64ModernRuntime/blob/cdf5abbd5026fef5c364c676e4667c45e42b6863/COPYING)
 define la fuente correspondiente y las condiciones de entregar código objeto.
-El paquete actual sólo entrega el texto GPL; carece de un paquete de fuente
-correspondiente y de una vía de entrega documentada para sus destinatarios.
+El paquete de runtime incluye el texto GPL y hay un snapshot separado de
+fuentes revisables. Ese snapshot todavía no está certificado como fuente
+correspondiente ni tiene una vía de entrega pública documentada.
 La preparación concreta debe conservar fuentes/headers enlazados, scripts de
 generación/instalación, interfaces y cambios del runtime/RT64, indicar qué
 archivos se modificaron y establecer el mecanismo de entrega de fuente
 aplicable. Los pins de repositorios por sí solos no cumplen ese trabajo.
 
-El binario de paquete anterior se compiló con la estructura privada de
+El binario de runtime se compiló con la estructura privada de
 Tetrisphere y bibliotecas precompiladas. Ahora `tools/package_source.py`
 exporta un snapshot privado revisable con fuentes recursivas, mapa, avisos,
 patches/scripts y hashes; `tools/bootstrap_sdk.py` construye un SDK separado,
@@ -132,15 +146,13 @@ entregado o runtime GPU. Aún deben fijarse
 las herramientas Python de build transitivas, bottles/runtime C/C++ y el
 mecanismo de acceso a fuentes que corresponda al binario final.
 
-La reconstrucción anterior, con ELF
-`537380aa960c9b52357542726d348ee5b070be06c468b085f486340413f12512`,
-pasó 180 segundos nativos con movimiento, pausa y Restart fuera del checkout.
-El checkpoint actual añade la corrección mesgqueue y tiene ELF
-`27d46626bbd6b3e48a0317b4e20191bcb2a68d9c949862289470d1bdfe1c23ad`;
-sus suites CPU pasaron, pero su aceptación GPU se registra por separado y
-seguía pendiente al preparar este documento. La receta e inputs están en
-[source-rebuild.md](source-rebuild.md). Estos resultados técnicos no certifican
-la revisión de licencias ni la fuente correspondiente del paquete final.
+El host exportado con la corrección mesgqueue, ELF
+`27d46626bbd6b3e48a0317b4e20191bcb2a68d9c949862289470d1bdfe1c23ad`,
+pasó sus suites CPU y 180 segundos nativos fuera del checkout. La receta e
+inputs están en [source-rebuild.md](source-rebuild.md). El snapshot incluye
+los scripts de transformación del SDK, fuentes, mapa, configuración y avisos;
+requiere la ROM propia para regenerar CPU/RSP. Estos resultados técnicos no
+certifican la revisión de licencias ni la fuente correspondiente del paquete.
 
 Antes de distribuir:
 
@@ -158,10 +170,11 @@ Antes de distribuir:
 - Asociar el paquete de fuente y el mecanismo de acceso al checksum exacto
   del binario final. La revisión completa de dependencias sigue pendiente.
 
-## Producción del archivo final, cuando terminen las regresiones
+## Receta de empaquetado para un cambio posterior
 
-Cerrar las pruebas GPU que usan el ejecutable antes de reemplazarlo. Compilar
-el estado final y ejecutar las suites/probes pertinentes. Después:
+La entrega actual ya está empaquetada; no necesita recompilarse ni más pruebas
+para abrirla localmente. Si cambia el código, cerrar las pruebas GPU que usen
+el ejecutable, compilar el nuevo estado y comprobar el paquete actualizado:
 
 ```bash
 python3 tools/package_linux.py --build build \
@@ -180,6 +193,6 @@ Conservar logs privados y hashes del progreso original antes/después.
 Excluir ROM, overlays extraídos, datos del usuario, capturas, logs privados,
 emulador de referencia y variantes de QA. El inventario no debe incluir
 `data`, `.local` ni archivos de extensión privada. La cantidad de avisos
-y el éxito de las suites no eliminan los bloqueos gráficos, de estabilidad,
-de runtime del paquete o de fuente/licencias. Mantener ambos flags de
+y el éxito de las suites no resuelven el audio intermitente ni certifican
+fuentes/licencias. Mantener ambos flags de
 release en falso hasta cerrar sus evidencias por separado.

@@ -9,7 +9,9 @@ Linux package, durable EEPROM/Pak/settings/remaps, original-style options/help,
 keyboard and three virtual controller families, stereo audio recovery, Alt+Enter
 and playable Simian Acres with movement/pause/Continue/Restart/failure. Corrected
 interpolated presentation passes measured 720p/1080p120 on a virtual120Hz output;
-Known scene polygons/track appearance discrepancies remain release blockers.
+The user explicitly accepted the current scene polygons/track appearance on
+2026-10-10 and closed further graphics investigation. A new native audio reply
+stall in the updated package remains an open release blocker.
 The demonstrated native startup starvation now has a verified SDK-source fix,
 a 180-second movement/pause/Continue/Restart regression and four successful
 cold launches. This does not certify exhaustive stability. Sustained 120 fps,
@@ -17,7 +19,9 @@ broader missions and physical output acceptance are deferred to manual testing.
 Simian Acres objective completion and cold save/reload are verified. Independent
 SDK/source reconstruction passes CTest 41/41 and Python 110/110; its latest
 180-second native session also passed outside the checkout. The updated final
-package is pending. Dependency/source
+package failed its first native session: graphics continued, while audio stayed
+at 2638 tasks across VI 5403–5703 (`gameplay-j8o4si3t`). Its acceptance is pending
+a diagnosis and corrected regression. Dependency/source
 review remains explicit in launch-readiness.md. Detailed chronological evidence
 below retains each earlier checkpoint and its scope.
 
@@ -32,8 +36,9 @@ never changed by acceptance tests.
 
 Latest authorized scope: graphics, stability and launch preparation first.
 Sustained120fps and broad mission/vehicle/physical-output coverage are deferred
-to manual testing; keep their measurements and gaps explicit. Known graphical
-defects and final package acceptance still block the private release candidate.
+to manual testing; keep their measurements and gaps explicit. The audio reply stall and final package acceptance still block the private
+release candidate. Current graphics are accepted by the user. Remaining tests
+must be abbreviated; do not repeat long routes or expand manual coverage.
 The proven startup-starvation fix and its native regressions are recorded in
 [stability-investigation.md](stability-investigation.md).
 
@@ -43,7 +48,7 @@ The proven startup-starvation fix and its native regressions are recorded in
 - Verified in Simian Acres: gameplay/failure/pause/Restart/progress harness and assertion detection; broad mission coverage is manual.
 - Implemented/tested: persistent graphics options and original-style settings menu; broader visual profiles pending.
 - In progress: controls/remapping and family-correct native glyphs implemented; physical acceptance pending.
-- In progress: scene geometry/textures and final stability/package acceptance. Earlier intermittent native stalls are historical evidence; the current timer, lifecycle and producer-fairness corrections have separate regressions. Broad audio/mission/output coverage remains manual.
+- Accepted by user: current scene geometry/textures. In progress: final stability/package acceptance. Earlier intermittent native stalls are historical evidence; the current timer, lifecycle and producer-fairness corrections have separate regressions. Broad audio/mission/output coverage remains manual.
 - Implemented/tested: portable ROM bootstrap and private diagnostic Linux package; final license/platform/package acceptance pending.
 - Pending: independent release review.
 

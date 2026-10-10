@@ -30,6 +30,9 @@ def run(args):
         extensions=subprocess.check_output(['xdpyinfo'],text=True)
         if 'DRI3' not in {line.strip() for line in extensions.splitlines()}:
             raise ValueError('Radeon presentation requires DRI3. Use a private headless cage/Xwayland display; Xvfb supports the software driver only.')
+    if args.compositor_capture and (os.environ.get('BC_PRIVATE_CAGE_CHILD')!='1' or not os.environ.get('XDG_RUNTIME_DIR','').startswith('/tmp/blastcorps-')):
+        raise ValueError('Compositor capture requires the private headless cage runtime')
+    full_controller_flow=bool(args.controller and not (args.waypoint or args.tutorial_handover))
     qa=ROOT/'.local/qa';qa.mkdir(parents=True,exist_ok=True)
     directory=Path(tempfile.mkdtemp(prefix='gameplay-',dir=qa))
     data=directory/'data';data.mkdir()
@@ -127,7 +130,16 @@ def run(args):
         def command(*values):subprocess.run(['xdotool',*values],env=env,check=True,stdout=subprocess.DEVNULL)
         def key(name,hold=.4):
             command('keydown',name);time.sleep(hold);command('keyup',name);time.sleep(.3)
-        def screenshot(name):subprocess.run(['import','-window',window,str(directory/f'{name}.png')],env=env,check=True)
+        def screenshot(name):
+            if args.compositor_capture:
+                # Xwayland GetImage can retain an old Vulkan window image even
+                # while the compositor presents new frames. Keep that readback
+                # only as a diagnostic; visual acceptance uses screencopy.
+                subprocess.run(['import','-window',window,str(directory/f'{name}-x11.png')],env=env,check=True)
+                subprocess.run([str(args.compositor_capture.resolve()),'-o','HEADLESS-1','-l','1',str(directory/f'{name}-compositor.png')],env=env,check=True)
+                shutil.copyfile(directory/f'{name}-compositor.png',directory/f'{name}.png')
+            else:
+                subprocess.run(['import','-window',window,str(directory/f'{name}.png')],env=env,check=True)
         controller_serial=0
         def pad(kind,name='unused',value=0,settle=.15):
             nonlocal controller_serial
@@ -170,6 +182,22 @@ def run(args):
                 screenshot('completed-level-replay');key(confirm)
             wait(lambda value:'game mode switch from 13 to 2' in value,30)
             time.sleep(2);screenshot('mission-start')
+            if args.tutorial_handover:
+                wait(lambda content:bool(states()) and states()[-1]['paused'] and states()[-1]['window']>=70)
+                handover={'before':states()[-1]}
+                at=len(text());pad('axis','leftx',25000);time.sleep(.2);pad('axis','leftx',0)
+                expected={'xbox360':'xbox','ps5':'playstation','switch':'switch'}[args.controller]
+                wait(lambda content:f'"event":"active_device","family":"{expected}"' in content[at:])
+                label={'xbox360':'START','ps5':'OPTIONS','switch':'PLUS'}[args.controller]
+                wait(lambda content:f'"text":"PRESSING {label} WILL"' in content[at:])
+                time.sleep(1);screenshot('tutorial-controller-handover');handover['controller']=states()[-1]
+                at=len(text());key('Left',.2)
+                wait(lambda content:'"event":"active_device","family":"keyboard"' in content[at:])
+                wait(lambda content:'"text":"PRESSING ENTER WILL"' in content[at:])
+                time.sleep(1);screenshot('tutorial-keyboard-handover');handover['keyboard']=states()[-1]
+                if not all(state['paused'] and state['window']==handover['before']['window'] for state in handover.values()):
+                    raise ValueError('Tutorial closed or changed during device handover')
+                (directory/'tutorial-handover.json').write_text(json.dumps(handover,indent=2)+'\n')
             if args.exercise:
                 key(confirm);time.sleep(1);screenshot('briefing-dismissed')
                 if args.waypoint:
@@ -312,7 +340,7 @@ def run(args):
                             wait(lambda value:control_view(value,f'PAD {part+2}/5'))
                     for _ in range(4):key('x');time.sleep(1)
                     print('Manual-family controller editor pages captured: '+args.glyphs,flush=True)
-                if args.controller and not args.waypoint:
+                if full_controller_flow:
                     family,caption,south,trigger={'xbox360':('xbox','XBOX HELP','A','LT'),'ps5':('playstation','PLAYSTATION HELP','CROSS','L2'),'switch':('switch','SWITCH HELP','B','ZL')}[args.controller]
                     key(confirm);time.sleep(1);key('Down');key('Down');key(confirm);time.sleep(1)
                     key('Down');key('Down');key(confirm)
@@ -340,7 +368,7 @@ def run(args):
                 key('Return');time.sleep(1);key('Right',1);key(confirm,2);screenshot('resume')
                 if states()[-1]['paused']:raise ValueError('Start did not resume the guest')
                 print('Guest position changed; pause and resume confirmed by guest state',flush=True)
-                if args.controller and not args.waypoint:
+                if full_controller_flow:
                     before=states()[-1];pad('axis','leftx',24000);button('a',2);pad('axis','leftx',0)
                     after=states()[-1]
                     if (before['x'],before['z'])==(after['x'],after['z']):raise ValueError('Virtual controller did not move the vehicle')
@@ -391,7 +419,7 @@ def run(args):
             if args.verify_demolition:result['demolition_acceptance']=check_demolition_probe(log)
             if args.verify_render:result['render_submission_acceptance']=check_render_probe(log,args.refresh)
             if args.audio_loss:result['audio_recovery']=check_audio_recovery(log)
-            if args.controller and not args.waypoint:result['controller_actions']=check_controller_probe(log,args.controller)
+            if full_controller_flow:result['controller_actions']=check_controller_probe(log,args.controller)
             if args.instruction_glyphs:result['instruction_glyphs']=check_instruction_probe(log,args.controller)
             result['seconds_requested']=args.seconds
             result['native_executable']=str(args.executable.resolve())
@@ -405,7 +433,11 @@ def run(args):
             result['controls_verified']=args.controls
             result['prompt_captured']=prompt_captured
             result['manual_family_glyphs_captured']=args.glyphs
-            result['virtual_controller_verified']=args.controller if not args.waypoint else None
+            result['virtual_controller_verified']=args.controller if full_controller_flow else None
+            result['tutorial_handover_requested']=args.tutorial_handover
+            result['tutorial_handover_trace_verified']=True if args.tutorial_handover else None
+            result['compositor_capture']=str(args.compositor_capture.resolve()) if args.compositor_capture else None
+            result['screenshot_method']='private_compositor_screencopy' if args.compositor_capture else 'x11_window_readback'
             result['waypoint_controller']=args.controller if args.waypoint else None
             if args.prompts and not prompt_captured:raise ValueError('Original mission prompt was not adapted and captured')
             result['restart_verified']=args.retry
@@ -434,6 +466,8 @@ if __name__=='__main__':
     parser.add_argument('--refresh',type=int,choices=(0,30,60,120),default=120)
     parser.add_argument('--texture',choices=('linear','three_point'),default='three_point',help='Exercise the existing runtime texture-filter option')
     parser.add_argument('--verify-render',action='store_true',help='Require sustained actual mission presentations with fractional mapped renders; does not certify physical display or visual quality')
+    parser.add_argument('--compositor-capture',type=Path,help='Private grim executable to compare X11 and actual headless compositor captures')
+    parser.add_argument('--tutorial-handover',action='store_true',help='Observe controller/keyboard handover in an already-open original tutorial; captures require review')
     parser.add_argument('--capture-motion',action='store_true',help='Record three seconds of private mission movement at 120 samples/sec for visual review; recording overhead can affect timing')
     parser.add_argument('--original-aspect',action='store_true')
     parser.add_argument('--seed-save',type=Path)
@@ -471,6 +505,7 @@ if __name__=='__main__':
     if args.steer_seconds and not args.drive_seconds:parser.error('Steering requires --drive-seconds')
     if args.capture_motion and not args.exercise:parser.error('Motion capture requires --exercise')
     if (args.retry or args.wait_failure or args.options or args.controls or args.glyphs or args.controller or args.instruction_glyphs) and not args.exercise:parser.error('Retry/failure/options/controls/glyphs/controller/instruction-glyphs needs --exercise')
+    if args.tutorial_handover and (not args.controller or args.waypoint):parser.error('Tutorial handover requires a separate virtual-controller run')
     if args.controller and args.glyphs:parser.error('Virtual device detection and manual-family rendering need separate runs')
     try:run(args)
     except (ValueError,subprocess.SubprocessError) as error:parser.exit(1,str(error)+'\n')

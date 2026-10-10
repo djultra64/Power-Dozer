@@ -1271,3 +1271,36 @@ addresses. Cached drawing/pointer reuse or capture timing must be distinguished
 before changing the bridge. Keep last-active-device requirement open for this
 specific original-window handover case; do not infer correctness from help UI
 or previously tested future prompts.
+
+
+Original tutorial handover resolved by presented-image verification. Three prior
+X11 window readbacks in gameplay-u6b7a5pb were byte-identical despite guest
+movement; their visible Enter instruction was stale and cannot diagnose a
+cached guest prompt. Added optional private Cage screencopy capture. It is
+restricted to BC_PRIVATE_CAGE_CHILD=1 and /tmp/blastcorps-* runtime directories,
+so it cannot capture the physical desktop. With that option, canonical PNGs
+come from the compositor; separate -x11 PNGs retain readback diagnostics.
+Result records screenshot_method. Private grim1.5.0-2.fc43 was extracted from
+the official Fedora Koji RPM after checking RPM digests; no system install,
+package changes, ROM distribution or shipping dependency was introduced.
+
+Xbox tutorial run gameplay-9g7zc4bu terminal exit0:120seconds7201VI/6904gfx/
+3599audio. Before/controller/keyboard remain paused in original window87,
+position71680/4480/65568. Actual compositor pictures and native text events
+show PRESSING ENTER WILL -> PRESSING START WILL -> PRESSING ENTER WILL.
+Presented mission-move image differs and shows actual Ramdozer movement.
+This rejects the suspected cached-pointer handover bug for this original
+window; no production hook change is justified. X11-only static captures
+remain unsuitable as sole visual acceptance evidence on this Vulkan/Xwayland
+setup. Prior destruction counter verification remains valid, but its static
+X11 screenshot does not verify the collapse animation.
+
+PlayStation repeat gameplay-o55xu3tg terminal exit0(handle59769):120seconds
+7201VI/6905gfx/3599audio. Canonical compositor captures reviewed: original
+window87 shows PRESSING OPTIONS WILL with active PlayStation virtual pad,
+then PRESSING ENTER WILL after keyboard Left. Native text/device events agree;
+normal movement/pause/Continue and source EEPROM preservation pass.
+The probe now also requires replacement text events after each device event,
+and requires the same paused original tutorial throughout. This narrow trace
+acceptance is separate from full controller remap/reconnect/physical acceptance.
+79 Python tests pass; native production code is unchanged in this investigation.

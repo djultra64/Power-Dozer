@@ -178,6 +178,27 @@ def normalize_widescreen_body(body):
     return body
 
 
+def normalize_vehicle_pivot_body(body):
+    """Expose bind pivots from the shared vehicle skin animation producer."""
+    if 'bc_register_vehicle_pivots' in body:
+        return body
+    animation=body.startswith('RECOMP_FUNC void func_8029E558(')
+    loading=body.startswith('RECOMP_FUNC void func_802A1388(')
+    if not (animation or loading):
+        return body
+    expected='    // 0x8029E558: addiu' if animation else '    // 0x802A1388: addiu'
+    if body.count(expected)!=1:
+        raise ValueError('Original vehicle skin entry layout changed')
+    at=body.index('\n')+1
+    call='    extern void bc_register_vehicle_pivots(uint8_t*,uint32_t,uint32_t,uint32_t);\n'
+    if animation:
+        call+='    bc_register_vehicle_pivots(rdram,uint32_t(ctx->r2),uint32_t(ctx->r3),uint32_t(ctx->r8));\n'
+    else:
+        call+='    bc_register_vehicle_pivots(rdram,0,uint32_t(ctx->r2),0);\n'
+        call+='    bc_register_vehicle_pivots(rdram,0,uint32_t(ctx->r3),0);\n'
+    return body[:at]+call+body[at:]
+
+
 def normalize_map_vehicle_body(body):
     """Repair only the map's two mirrored RGBA16 vehicle sprite producers."""
     if not body.startswith('RECOMP_FUNC void func_801F9258(') or 'bc_map_vehicle_sprite_rewrite' in body:
@@ -237,7 +258,7 @@ def normalize(folder):
     pattern = re.compile(r'RECOMP_FUNC void [^(]+\([^)]*\) \{.*?^;\}', re.M | re.S)
     temporary = re.compile(r'^(?P<indent>\s*)gpr (?P<name>jr_addend_[0-9A-F]{8}) = (?P<value>[^;]+);$', re.M)
     def fix(match):
-        body = normalize_map_vehicle_body(normalize_widescreen_body(match.group(0)))
+        body = normalize_vehicle_pivot_body(normalize_map_vehicle_body(normalize_widescreen_body(match.group(0))))
         names = list(dict.fromkeys(m['name'] for m in temporary.finditer(body) if m['value'].strip()!='0'))
         body = temporary.sub(lambda m:m.group(0) if m['value'].strip()=='0' else f"{m['indent']}{m['name']} = {m['value']};", body)
         if names:

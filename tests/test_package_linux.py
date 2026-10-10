@@ -11,7 +11,7 @@ package=importlib.util.module_from_spec(spec);spec.loader.exec_module(package)
 class PackagePrivacy(unittest.TestCase):
     def test_branded_launcher_uses_own_directory_from_foreign_working_directory(self):
         with tempfile.TemporaryDirectory(prefix='Power Dozer launch ') as d:
-            root=Path(d);stage=root/'Power Dozer v0.81';stage.mkdir();(stage/'lib').mkdir()
+            root=Path(d);stage=root/'Power Dozer v0.82';stage.mkdir();(stage/'lib').mkdir()
             executable=stage/'power-dozer'
             executable.write_text('#!/usr/bin/env python3\nimport json, os, sys\nprint(json.dumps({"args":sys.argv[1:],"library_path":os.environ["LD_LIBRARY_PATH"]}))\n')
             executable.chmod(0o755)

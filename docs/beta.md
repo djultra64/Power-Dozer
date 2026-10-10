@@ -1,4 +1,4 @@
-# Power Dozer v0.81 — beta for testing
+# Power Dozer v0.82 — beta for testing
 
 Open `Run Power Dozer.sh` on this machine (the earlier launcher also works). It stays open until you close
 the window; it uses scale 3 (internal 720p), a 16:9 profile, stereo audio and an

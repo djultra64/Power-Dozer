@@ -6,7 +6,7 @@
 
 # Power Dozer
 
-**v0.81 — beta of a native Blast Corps port for Linux and Windows x86-64.**
+**v0.82 — beta of a native Blast Corps port for Linux and Windows x86-64.**
 Static recompilation of Blast Corps USA Rev 1 with N64Recomp,
 N64ModernRuntime and RT64. The project is not affiliated with Rare or Nintendo.
 
@@ -20,8 +20,11 @@ Download your platform archive from
 [Releases](https://github.com/djultra64/Power-Dozer/releases), check its
 SHA-256 and extract it into a writable folder:
 
-- Linux: `power-dozer-v0.81-linux-x86_64.tar.gz`; run `Run Power Dozer.sh`.
-- Windows: `power-dozer-v0.81-windows-x86_64.zip`; run `Run Power Dozer.cmd`.
+- Linux: `power-dozer-v0.82-linux-x86_64.tar.gz`; run `Run Power Dozer.sh`.
+- Windows: `power-dozer-v0.82-windows-x86_64.zip`; run `Run Power Dozer.cmd`.
+
+v0.82 fixes wheel interpolation on Backlash and other wheeled vehicles.
+The fix is included in the Linux and Windows v0.82 packages.
 
 On first launch, select your own **Blast Corps USA Rev 1** ROM.
 z64/v64/n64 and ZIP files containing a single valid ROM are supported. The ROM is not included.
@@ -65,14 +68,17 @@ pause, resume, restart, progress and input with virtual SDL controllers were ver
 The latest graphics test confirmed Switch and keyboard glyphs in the game.
 Native Windows startup, Unicode saves/import and a brief interactive Vulkan
 run with keyboard input also passed. See [v0.81 verification](https://github.com/djultra64/Power-Dozer/blob/main/docs/qa/release-v0.81.md)
-for the observed scope and limitations.
+for the observed scope and limitations. The wheel fix passed 138 Python tests,
+46 Linux CTest checks, two Windows CTest checks and three-minute attract-mode
+runs on both platforms; see
+[v0.82 verification](docs/qa/release-v0.82.md).
 
 **There is an intermittent audio issue:** recovery for pending tasks was added,
 but it has not yet been shown to eliminate all dropouts.
 Full level coverage, physical controllers and sustained 120 fps
 remain for manual testing. End-of-level fades/sky and the
 visual stability of the HUD arrow need further checking.
-v0.81 is a public beta release for testing and reports.
+v0.82 is a public beta release for testing and reports.
 The reported thin black ground line is not currently reproducible; the reporter
 and recent local captures no longer show it. No speculative patch was applied.
 

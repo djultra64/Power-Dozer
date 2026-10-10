@@ -135,7 +135,7 @@ void bc_input_update(SDL_Window* window){
   capture.update(current);finish_capture(current);
   for(size_t i=1;i<focus_keys.size();i++)if(focus_keys[i]&&current.keys[i])model.consume({bc::BindingKind::Key,int(i)});
   frame=model.sample(current);if(capture.active())frame={};previous=current;log_device();
-  title="Power Dozer v0.81 | Confirm: "+model.prompt(bc::InputAction::Confirm).label+" | Back: "+model.prompt(bc::InputAction::Back).label+" | "+active_name()+" | Alt+Enter: Fullscreen";
+  title="Power Dozer v0.82 | Confirm: "+model.prompt(bc::InputAction::Confirm).label+" | Back: "+model.prompt(bc::InputAction::Back).label+" | "+active_name()+" | Alt+Enter: Fullscreen";
   if(std::getenv("BC_TRACE_INPUT")){
    static bc::InputFrame before;
    if(frame.buttons!=before.buttons||frame.x!=before.x||frame.y!=before.y){fprintf(stderr,"{\"event\":\"input\",\"buttons\":%u,\"stick_x\":%.3f,\"stick_y\":%.3f}\n",frame.buttons,frame.x,frame.y);before=frame;}

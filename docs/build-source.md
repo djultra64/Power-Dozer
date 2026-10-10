@@ -1,6 +1,6 @@
-# Rebuild Power Dozer v0.81
+# Rebuild Power Dozer v0.82
 
-`power-dozer-v0.81-source.tar.gz` contains the host, adaptation scripts,
+`power-dozer-v0.82-source.tar.gz` contains the host, adaptation scripts,
 configuration, tests and notices, along with pinned sources for N64Recomp,
 N64ModernRuntime, RT64 and spimdisasm and the three mapping/symbol inputs.
 `SOURCES.json` records repositories, recursive commits and SHA-256/size for
@@ -15,9 +15,9 @@ If SDL is outside standard prefixes, set `PKG_CONFIG_PATH` and
 `CMAKE_PREFIX_PATH` to its installed prefix.
 
 ```bash
-sha256sum -c power-dozer-v0.81-source.tar.gz.sha256
-tar -xzf power-dozer-v0.81-source.tar.gz
-cd power-dozer-v0.81-source/host
+sha256sum -c power-dozer-v0.82-source.tar.gz.sha256
+tar -xzf power-dozer-v0.82-source.tar.gz
+cd power-dozer-v0.82-source/host
 
 # Verify hashes and display the recipe without downloading or compiling:
 python3 tools/bootstrap_sdk.py --sources ../vendor --sdk-root ../sdk --plan

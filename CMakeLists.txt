@@ -110,7 +110,7 @@ if(WIN32)
  set(BC_ULTRA_TRANSLATION "${CMAKE_BINARY_DIR}/blastcorps-windows-translation.cpp")
  file(WRITE "${BC_ULTRA_TRANSLATION}" "${BC_WINDOWS_TRANSLATION}")
 endif()
-add_executable(blastcorps-prototype src/main.cpp src/audio_sdl.cpp src/runtime.cpp src/renderer.cpp src/input.cpp src/input_model.cpp src/input_capture.cpp src/controls_store.cpp src/atomic_file.cpp src/l3d.cpp src/save_store.cpp src/pak_store.cpp src/pak_runtime.cpp src/pak_session.cpp src/save_migration.cpp src/settings.cpp src/settings_menu.cpp src/pc_options.cpp src/controls_menu.cpp
+add_executable(blastcorps-prototype src/main.cpp src/audio_sdl.cpp src/runtime.cpp src/renderer.cpp src/input.cpp src/input_model.cpp src/input_capture.cpp src/controls_store.cpp src/atomic_file.cpp src/l3d.cpp src/vehicle_pivots.cpp src/save_store.cpp src/pak_store.cpp src/pak_runtime.cpp src/pak_session.cpp src/save_migration.cpp src/settings.cpp src/settings_menu.cpp src/pc_options.cpp src/controls_menu.cpp
  src/game_prompts.cpp src/game_prompt_runtime.cpp src/input_glyph.cpp
  "${CMAKE_SOURCE_DIR}/.local/generated/fallbacks.cpp"
  "${CMAKE_SOURCE_DIR}/.local/audio-rsp.cpp"
@@ -196,7 +196,7 @@ if(WIN32)
  add_custom_command(TARGET windows_files_test POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different "${BC_WINDOWS_SDL}/lib/x64/SDL2.dll" "$<TARGET_FILE_DIR:windows_files_test>")
  add_test(NAME windows_atomic_save_and_transactional_import COMMAND windows_files_test)
  add_test(NAME windows_command_line_help COMMAND blastcorps-prototype --help)
- set_tests_properties(windows_command_line_help PROPERTIES PASS_REGULAR_EXPRESSION "Power Dozer v0.81")
+ set_tests_properties(windows_command_line_help PROPERTIES PASS_REGULAR_EXPRESSION "Power Dozer v0.82")
 else()
 add_executable(render_observer_test tests/render_observer.cpp src/render_observer_model.cpp)
 target_include_directories(render_observer_test PRIVATE include)
@@ -235,6 +235,10 @@ add_test(NAME audio_stereo_channels COMMAND audio_pcm_test)
 add_executable(line_quad_test tests/line_quad.cpp)
 target_include_directories(line_quad_test PRIVATE include)
 add_test(NAME l3d_line_geometry COMMAND line_quad_test)
+add_executable(pivot_interpolation_test tests/pivot_interpolation.cpp src/vehicle_pivots.cpp "${RT64}/src/hle/rt64_rigid_body.cpp" "${RT64}/src/common/rt64_math.cpp")
+target_include_directories(pivot_interpolation_test PRIVATE include "${RT64}/src" "${RT64}/src/contrib/hlslpp/include")
+target_compile_options(pivot_interpolation_test PRIVATE -mssse3 -msse4.1 -UNDEBUG)
+add_test(NAME animated_part_pivot_interpolation COMMAND pivot_interpolation_test)
 add_executable(carrier_arrow_test tests/carrier_arrow.cpp)
 target_include_directories(carrier_arrow_test PRIVATE include "${RT64}/src" "${RT64}/src/contrib/hlslpp/include")
 target_compile_options(carrier_arrow_test PRIVATE -mssse3 -msse4.1)

@@ -1,20 +1,20 @@
-# Install Power Dozer v0.81
+# Install Power Dozer v0.82
 
 ## Linux
 
-Extract `power-dozer-v0.81-linux-x86_64.tar.gz` into a writable folder,
+Extract `power-dozer-v0.82-linux-x86_64.tar.gz` into a writable folder,
 keeping the `lib` and `licenses` folders:
 
 ```bash
-sha256sum -c power-dozer-v0.81-linux-x86_64.tar.gz.sha256
-tar -xzf power-dozer-v0.81-linux-x86_64.tar.gz
-cd power-dozer-v0.81-linux-x86_64
+sha256sum -c power-dozer-v0.82-linux-x86_64.tar.gz.sha256
+tar -xzf power-dozer-v0.82-linux-x86_64.tar.gz
+cd power-dozer-v0.82-linux-x86_64
 ./'Run Power Dozer.sh'
 ```
 
 ## Windows
 
-Download `power-dozer-v0.81-windows-x86_64.zip` and its SHA-256 file. Verify
+Download `power-dozer-v0.82-windows-x86_64.zip` and its SHA-256 file. Verify
 the hash with `Get-FileHash` in PowerShell, extract the archive into a writable
 folder, and run `Run Power Dozer.cmd` or `power-dozer.exe`. Keep all DLLs,
 `gamecontrollerdb.txt` and `licenses` beside the executable.
@@ -24,9 +24,9 @@ Requires Windows x64, SSSE3/SSE4.1, Vulkan drivers and the
 The Windows package includes SDL2 2.26.3 and its pinned Windows DXC libraries.
 
 ```powershell
-Get-FileHash .\power-dozer-v0.81-windows-x86_64.zip -Algorithm SHA256
-Expand-Archive .\power-dozer-v0.81-windows-x86_64.zip -DestinationPath .
-Set-Location .\power-dozer-v0.81-windows-x86_64
+Get-FileHash .\power-dozer-v0.82-windows-x86_64.zip -Algorithm SHA256
+Expand-Archive .\power-dozer-v0.82-windows-x86_64.zip -DestinationPath .
+Set-Location .\power-dozer-v0.82-windows-x86_64
 .\power-dozer.exe
 ```
 

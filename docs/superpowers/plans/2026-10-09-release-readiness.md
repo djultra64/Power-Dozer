@@ -82,11 +82,22 @@ virtual controller harness and mapping database provenance.
 **Interfaces:** action→physical binding model; device family and last-active
 source; glyph/label resolver shared with the actual guest input path.
 
-- [ ] Test all three families, remaps, unknown/manual family, trigger/D-pad,
+- [x] Test all three families, remaps, unknown/manual family, trigger/D-pad,
   reconnect, focus loss and shortcut suppression before modifying behavior.
 - [ ] Implement correct default controls, in-game prompts/help and optional remap.
 - [ ] Exercise virtual Xbox/PlayStation/Switch devices and keyboard; review native
   captures against action traces. Test physical devices when available.
+
+Task 4 next acceptance step: the action model/editor/help and thirteen original
+instruction addresses are implemented and have native keyboard regressions.
+Draw actual device glyphs through the game's graphics path, then obtain native
+virtual-family help/tutorial captures against matched action traces. Do not
+substitute window-title labels or glyph enum identities for rendered glyphs.
+Original `8026BCE0` returns the active display-list pointer; the frame's main
+list begins at `FrameContext+0x48B0`, with `0xB5E` eight-byte entries. Any appended
+UI commands must verify space within that list and preserve the original text
+animation and RDP state. Avoid reserving arbitrary guest vertex/texture memory:
+the existing host-only text slots must never become RSP texture addresses.
 
 ### Task 5: Graphics/interpolation and audio acceptance
 

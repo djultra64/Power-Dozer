@@ -4,9 +4,15 @@ Reference inspected: Tetrisphere options-beta checkout, Blocksphere 1.0.1 Linux
 package instructions and in-game PC options design. Its Windows and physical
 controller acceptance are separate from compilation.
 
-Current Blast Corps evidence: boot/demo, RT64 high-resolution target, stereo
-audio, Alt+Enter, L3D map and Simian Acres load. The latest isolated graphical
-run completed 110 seconds; it did not complete a mission.
+Current checkpoint (2026-10-10): portable native ROM import/cache and private
+Linux package, durable EEPROM/Pak/settings/remaps, original-style options/help,
+keyboard and three virtual controller families, stereo audio recovery, Alt+Enter
+and playable Simian Acres with movement/pause/Continue/Restart/failure. Corrected
+interpolated presentation passes measured 720p/1080p120 on a virtual120Hz output;
+4K120 sustained performance remains under investigation. New objective
+completion, broader missions, physical controls/output audio, complete licenses
+and final package/independent review remain pending. Detailed chronological
+evidence below retains each earlier checkpoint and its scope.
 
 Ruling: execute local design/plan stages without renewed approvals — the user
 explicitly authorizes autonomous work while away — scope decisions must remain
@@ -21,10 +27,10 @@ never changed by acceptance tests.
 
 - Complete: durable EEPROM storage and isolated data paths, including native reload.
 - In progress: gameplay/failure/pause/progress harness and assertion detection.
-- In progress: persistent graphics options and original-style settings menu.
+- Implemented/tested: persistent graphics options and original-style settings menu; broader visual profiles pending.
 - In progress: controls/remapping and family-correct native glyphs implemented; physical acceptance pending.
-- Pending: aspect/interpolation/L3D/audio acceptance across representative missions.
-- Pending: portable ROM bootstrap, clean package and platform verification.
+- Pending: aspect/interpolation/L3D/audio acceptance across representative missions; intermittent audio task loss in gameplay-ja976uzj is unresolved.
+- Implemented/tested: portable ROM bootstrap and private diagnostic Linux package; final license/platform/package acceptance pending.
 - Pending: independent release review.
 
 Latest controls acceptance: editor/help and original HUD/tutorial instruction
@@ -940,3 +946,43 @@ intermediate imagery, not just synthetic target/pool values, but does not
 certify all camera/vehicle/effect/cutscene scenarios or physical120Hz scans.
 Goal remains active; wider graphics acceptance and performance, real output
 audio, objective completion, license/package audit and RC review remain open.
+
+Task5 skip-cause observation added: Deadline (budget), NewWorkload (queue
+advance), Reduction (previous presentation backlog), Presentation (missing
+intermediate targets). Fake-clock RED no-op skip failed separate cause totals;
+GREEN records independent causes, elapsed/reset and no inflation of actual
+presented FPS. Selector per-present JSON now requires BC_TRACE_SELECTION; normal
+BC_TRACE_RENDER reports only bounded windows, avoiding detailed selector I/O.
+Source hash/unique hook guards still apply. A diagnostic-count correction counts
+remaining scheduled presentations from current index i, rather than the SDK's
+new loop bound (which can be below already presented indices without MSAA).
+This changes diagnostics only, never the SDK skip/render algorithm.
+
+First counter trial .local/qa/gameplay-ja976uzj (4K120/three_point) is REJECTED:
+audio stopped at485 tasks by VI1202, stayed485 through7201VI/6900graphics while
+gameplay movement/pause/Continue advanced. Nonfatal sound allocation failures
+appeared later. No guest assertion reported. FPS observer shows6..9 deadline
+skips per two-second mission window and zero new-workload/reduction skips, so
+render budget is an observed performance cause. Its presentation_skips field
+uses the superseded diagnostic formula and must not be treated as accurate
+dropped-presentation counts. No CPU build was active when audio first stopped;
+a later diagnostic rebuild overlapped the tail of this trial only.
+
+Same-profile trace reproduction .local/qa/gameplay-gm9bxodr (BC_TRACE_AUDIO=1,
+corrected presentation-skip count) passed7202VI/6906graphics/3599audio, source
+EEP/Pak unchanged, movement/pause/Continue accepted. Deadline and presentation
+skips match in the final window (6 each), zero new-workload/reduction. This is
+not proof of repair: intermittent audio loss remains an open release blocker
+requiring causal reproduction, not a passing retry. Next diagnostics capture
+frame/reply queue counts and waiters plus guest audio-thread state on scheduler
+message reception, bounded every120VI via BC_TRACE_AUDIO_STATE. Reads occur on
+the guest scheduler thread rather than racing arbitrary host-thread reads.
+
+Bounded audio-state build completed and27 native/58 Python tests passed; no
+claim that the intermittent native loss is fixed. Long diagnostic trial now
+live: .local/qa/gameplay-vonw694u, gpu-4k-audio-state360.log,360 seconds requested,
+4K120/three_point plus movement/pause/Continue/Restart, source EEPROM cloned.
+Native queue snapshots are present (e.g. VI3480/audio1738, frame/reply counts0,
+audio frame waiter80368088). Fresh handle59089 remains running after an explicit
+poll; continue waiting/polling this handle, do not restart on an observation
+timeout. Its eventual terminal result and coverage remain to be inspected.

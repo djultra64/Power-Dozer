@@ -1,5 +1,14 @@
 #include "render_observer.h"
 #include <cmath>
+void BcRenderObserver::skip(uint64_t ns,BcRenderSkip reason,uint32_t count){
+ if(!started_){begin_=ns;started_=true;}
+ switch(reason){
+ case BcRenderSkip::Deadline:window_.deadline_skips+=count;break;
+ case BcRenderSkip::NewWorkload:window_.new_workload_skips+=count;break;
+ case BcRenderSkip::Presentation:window_.presentation_skips+=count;break;
+ case BcRenderSkip::Reduction:window_.reduction_skips+=count;break;
+ }
+}
 void BcRenderObserver::present(uint64_t ns,bool success){
  if(!started_){begin_=ns;started_=true;}
  if(success)++window_.presents;else ++window_.failed;

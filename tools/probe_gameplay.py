@@ -55,7 +55,7 @@ def run(args):
     confirm='z'
     prompt_captured=False
     with log.open('w') as output:
-        process=subprocess.Popen([str(ROOT/'build/blastcorps-prototype'),'--rom',str(ROOT/'.local/rom.z64'),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale',str(args.scale),'--original-aspect' if args.original_aspect else '--wide','--refresh',str(args.refresh)],cwd=ROOT,env=env,stdout=output,stderr=subprocess.STDOUT)
+        process=subprocess.Popen([str(ROOT/'build/blastcorps-prototype'),'--rom',str(ROOT/'.local/rom.z64'),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale',str(args.scale),'--original-aspect' if args.original_aspect else '--wide','--refresh',str(args.refresh),'--texture',args.texture],cwd=ROOT,env=env,stdout=output,stderr=subprocess.STDOUT)
         def text():return log.read_text(errors='replace')
         def states():
             result=[]
@@ -286,7 +286,7 @@ def run(args):
             if args.controller:result['controller_actions']=check_controller_probe(log,args.controller)
             if args.instruction_glyphs:result['instruction_glyphs']=check_instruction_probe(log,args.controller)
             result['seconds_requested']=args.seconds
-            result['graphics_requested']={'gpu_driver':args.gpu,'scale':args.scale,'wide':not args.original_aspect,'refresh':args.refresh}
+            result['graphics_requested']={'gpu_driver':args.gpu,'scale':args.scale,'wide':not args.original_aspect,'refresh':args.refresh,'texture':args.texture}
             result['motion_capture']=str(directory/'mission-motion.mp4') if args.capture_motion else None
             result['exercise_verified']=args.exercise
             result['options_verified']=args.options
@@ -315,6 +315,7 @@ if __name__=='__main__':
     parser.add_argument('--gpu',choices=('software','radv'),default='software',help='Select software Vulkan or the local Radeon GPU; target rates still depend on the private display')
     parser.add_argument('--scale',type=float,default=1,help='Internal rendering multiplier, 1..9; 9 requests a 2160-line target')
     parser.add_argument('--refresh',type=int,choices=(0,30,60,120),default=120)
+    parser.add_argument('--texture',choices=('linear','three_point'),default='three_point',help='Exercise the existing runtime texture-filter option')
     parser.add_argument('--verify-render',action='store_true',help='Require sustained actual mission presentations with fractional mapped renders; does not certify physical display or visual quality')
     parser.add_argument('--capture-motion',action='store_true',help='Record three seconds of private mission movement at 120 samples/sec for visual review; recording overhead can affect timing')
     parser.add_argument('--original-aspect',action='store_true')

@@ -219,6 +219,19 @@ void __real_osRecvMesg_recomp(uint8_t*,recomp_context*);
 void __wrap_osRecvMesg_recomp(uint8_t* rdram,recomp_context* ctx){
  uint32_t queue=ctx->r4,dest=ctx->r5;gpr guest_dest=uint64_t(int64_t(int32_t(dest)));
  __real_osRecvMesg_recomp(rdram,ctx);
+ static const bool trace_audio_state=std::getenv("BC_TRACE_AUDIO_STATE")!=nullptr;
+ static uint64_t last_audio_state_vi=0;
+ if(trace_audio_state&&queue==0x80315440&&ctx->r2==0){
+  const auto vi=bc_vis.load();
+  if(vi>=last_audio_state_vi+120){
+   last_audio_state_vi=vi;
+   auto word=[&](uint32_t a){return uint32_t(MEM_W(0,S32(a)));};
+   auto* frame=TO_PTR(OSMesgQueue,S32(0x80368238));
+   auto* reply=TO_PTR(OSMesgQueue,S32(0x80368270));
+   auto* thread=TO_PTR(OSThread,S32(0x80368088));
+   fprintf(stderr,"{\"event\":\"audio_guest_state\",\"vi\":%llu,\"audio\":%llu,\"frame_messages\":%d,\"frame_waiter\":%u,\"reply_messages\":%d,\"reply_waiter\":%u,\"audio_thread_state\":%u,\"current_rsp_task\":%u,\"audio_list_head\":%u}\n",(unsigned long long)vi,(unsigned long long)bc_audio.load(),frame->validCount,uint32_t(frame->blocked_on_recv),reply->validCount,uint32_t(reply->blocked_on_recv),unsigned(thread->state),word(0x803156B4),word(0x803156A4));
+  }
+ }
  static int count=0;if(queue==0x80315440&&dest&&count++<40){fprintf(stderr,"scheduler message=%08X\n",uint32_t(MEM_W(0,guest_dest)));fflush(stderr);}
  if(std::getenv("BC_TRACE_AUDIO")&&dest&&ctx->r2==0&&(queue==0x80315440||queue==0x80368238||queue==0x80368270)){
   auto word=[&](uint32_t a){return uint32_t(MEM_W(0,S32(a)));};

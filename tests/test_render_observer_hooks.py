@@ -11,7 +11,7 @@ class RenderHookPreparation(unittest.TestCase):
         self.original=hooks.EXPECTED.copy()
         self.scratch=tempfile.TemporaryDirectory();self.root=Path(self.scratch.name)
         self.source=self.root/'source/src/hle';self.source.mkdir(parents=True)
-        snippets={'present':'                swapChainValid = ext.swapChain->present(swapChainIndex, &waitSemaphore, 1);\n                RenderTargetKey colorTargetKey(presentFb->addressStart, presentFb->width, presentFb->siz, Framebuffer::Type::Color);','workload':'                    framesRendered++;'}
+        snippets={'present':'                swapChainValid = ext.swapChain->present(swapChainIndex, &waitSemaphore, 1);\n                RenderTargetKey colorTargetKey(presentFb->addressStart, presentFb->width, presentFb->siz, Framebuffer::Type::Color);\n                    framesToPresent = std::min(int(frameCounters.available), i + 1);','workload':'                    framesRendered++;\n                        displayFrames--;\n                            skippedFrames = true;\n                            displayTicks += workload.viOriginalRate * (displayFrames - (frame + 1));'}
         self.files={}
         for kind,site in snippets.items():
             path=self.source/('rt64_'+kind+'_queue.cpp');path.write_text('// fixture\n'+site+'\n')
@@ -23,6 +23,11 @@ class RenderHookPreparation(unittest.TestCase):
         hooks.prepare(self.root/'source',self.output)
         self.assertIn('bc_render_present(swapChainValid)',(self.output/'blastcorps_present_queue.cpp').read_text())
         self.assertIn('bc_render_generated(generateInterpolatedFrames, curFrameWeight',(self.output/'blastcorps_workload_queue.cpp').read_text())
+        self.assertIn('bc_render_selecting()', (self.output/'blastcorps_present_queue.cpp').read_text())
+        self.assertIn('BcRenderSkip::Presentation', (self.output/'blastcorps_present_queue.cpp').read_text())
+        self.assertIn('uint32_t(framesToPresent - i)', (self.output/'blastcorps_present_queue.cpp').read_text())
+        for reason in ('Reduction', 'Deadline', 'NewWorkload'):
+            self.assertIn('BcRenderSkip::'+reason, (self.output/'blastcorps_workload_queue.cpp').read_text())
         self.assertEqual(before,{kind:path.read_bytes() for kind,path in self.files.items()})
     def test_changed_fingerprint_refuses_to_build(self):
         self.files['present'].write_text('changed')

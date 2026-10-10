@@ -30,7 +30,7 @@ def prepare(source,destination):
         if kind=='present':
             selection='''                RenderTargetKey colorTargetKey(presentFb->addressStart, presentFb->width, presentFb->siz, Framebuffer::Type::Color);'''
             if text.count(selection)!=1:raise ValueError('RT64 selection hook site is not unique')
-            probe='''                if (bc_render_observing()) {
+            probe='''                if (bc_render_selecting()) {
                     int count = 0, available = 0;
                     { std::lock_guard<std::mutex> lock(ext.sharedResources->interpolatedMutex); count = frameCounters.count; available = frameCounters.available; }
                     bool modified = false;
@@ -40,6 +40,25 @@ def prepare(source,destination):
                 }
 '''
             text=text.replace(selection,probe+selection)
+        skip_sites = {
+            'present': [(
+                '                    framesToPresent = std::min(int(frameCounters.available), i + 1);',
+                '                    bc_render_skipped(BcRenderSkip::Presentation, uint32_t(framesToPresent - i));'
+            )],
+            'workload': [(
+                '                        displayFrames--;',
+                '                        bc_render_skipped(BcRenderSkip::Reduction, 1);'
+            ), (
+                '                            skippedFrames = true;',
+                '                            bc_render_skipped(BcRenderSkip::Deadline, 1);'
+            ), (
+                '                            displayTicks += workload.viOriginalRate * (displayFrames - (frame + 1));',
+                '                            bc_render_skipped(BcRenderSkip::NewWorkload, displayFrames - (frame + 1));'
+            )]
+        }
+        for skip_site, callback in skip_sites[kind]:
+            if text.count(skip_site)!=1:raise ValueError('RT64 skip hook site is not unique: '+kind)
+            text=text.replace(skip_site,callback+'\n'+skip_site)
         payload='#include "render_observer.h"\n'+text
         output=destination/('blastcorps_'+kind+'_queue.cpp')
         if not output.exists() or output.read_text()!=payload:output.write_text(payload)

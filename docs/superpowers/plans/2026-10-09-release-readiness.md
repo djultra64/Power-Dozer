@@ -70,7 +70,7 @@ host event queue for changes made in guest menu hooks.
 
 - [x] Test invalid/nonfinite values, missing/old config, preservation of unrelated
   values, cancel/back and all supported graphics choices before implementation.
-- [ ] Implement saved scale/aspect/refresh/fullscreen/MSAA/presentation/texture
+- [x] Implement saved scale/aspect/refresh/fullscreen/MSAA/presentation/texture
   filters and settings menu in the original visual language.
 - [x] Identify and mark which choices apply live and which need restart.
 - [ ] Exercise 4:3/16:9 and 720p/1080p/4K; compare native captures of menus/HUD.
@@ -84,7 +84,7 @@ source; glyph/label resolver shared with the actual guest input path.
 
 - [x] Test all three families, remaps, unknown/manual family, trigger/D-pad,
   reconnect, focus loss and shortcut suppression before modifying behavior.
-- [ ] Implement correct default controls, in-game prompts/help and optional remap.
+- [x] Implement correct default controls, in-game prompts/help and optional remap.
 - [x] Exercise virtual Xbox/PlayStation/Switch devices and keyboard; review native
   captures against action traces.
 - [ ] Test physical devices when available.
@@ -118,9 +118,9 @@ timing/PCM probes and regression tests.
 **Files:** native ROM/cache import and overlay extraction, package scripts,
 licenses, build manifest, checksums and distribution instructions.
 
-- [ ] Test invalid revision, swapped formats, bounded ZIP candidates, missing cache,
+- [x] Test invalid revision, swapped formats, bounded ZIP candidates, missing cache,
   read-only data and clean/upgrade layouts before integrating the loader.
-- [ ] Remove source-root runtime paths; extract validated overlays from the user's
+- [x] Remove source-root runtime paths; extract validated overlays from the user's
   ROM on launch. Cache and settings/progress live in the portable data directory.
 - [ ] Package required redistributables and controller database; verify no private
   ROM/assets/saves/captures are included and paths work outside the source tree.

@@ -12,5 +12,9 @@ int main(){
  check(sample.mapped==22&&sample.transforms==58,"mapping observations retain actual sample totals");
  BcRenderObserver empty;sample=empty.snapshot(0);check(sample.seconds==0&&sample.present_fps==0,"empty snapshot is finite");
  empty.present(0,true);sample=empty.snapshot(0);check(sample.seconds==0&&std::isfinite(sample.present_fps),"zero-duration snapshot never divides by zero");
+ BcRenderObserver skips;skips.skip(1000000000,BcRenderSkip::Deadline,2);skips.skip(1000000001,BcRenderSkip::NewWorkload,3);skips.skip(1000000002,BcRenderSkip::Presentation,4);skips.skip(1000000003,BcRenderSkip::Reduction,1);
+ sample=skips.snapshot(2000000000);check(sample.deadline_skips==2&&sample.new_workload_skips==3&&sample.presentation_skips==4&&sample.reduction_skips==1,"skip causes remain separate from actual successful presentations");
+ check(sample.presents==0&&sample.present_fps==0&&sample.seconds==1,"skipped work never inflates successful output FPS");
+ sample=skips.snapshot(3000000000);check(sample.deadline_skips==0&&sample.new_workload_skips==0&&sample.presentation_skips==0&&sample.reduction_skips==0,"skip reasons reset with each measured window");
  puts("Actual present/render windows, weights and reset passed");
 }

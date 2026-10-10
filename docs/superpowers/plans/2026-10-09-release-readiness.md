@@ -85,8 +85,9 @@ source; glyph/label resolver shared with the actual guest input path.
 - [x] Test all three families, remaps, unknown/manual family, trigger/D-pad,
   reconnect, focus loss and shortcut suppression before modifying behavior.
 - [ ] Implement correct default controls, in-game prompts/help and optional remap.
-- [ ] Exercise virtual Xbox/PlayStation/Switch devices and keyboard; review native
-  captures against action traces. Test physical devices when available.
+- [x] Exercise virtual Xbox/PlayStation/Switch devices and keyboard; review native
+  captures against action traces.
+- [ ] Test physical devices when available.
 
 Task 4 next acceptance step: the action model/editor/help and thirteen original
 instruction addresses are implemented and have native keyboard regressions.

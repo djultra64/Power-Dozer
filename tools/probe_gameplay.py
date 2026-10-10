@@ -13,6 +13,7 @@ import time
 from check_gameplay_probe import check
 from check_pak_save import check as check_pak
 from check_audio_recovery import check as check_audio_recovery
+from check_controller_probe import check as check_controller_probe
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -37,6 +38,11 @@ def run(args):
         # ld.so splits LD_PRELOAD on spaces, including spaces inside paths.
         # Use a relative path without spaces and set the native working folder.
         env.update(LD_PRELOAD=str((directory/'libaudio-fault.so').relative_to(ROOT)),BC_QA_AUDIO_FAULT_AFTER='45',BC_QA_AUDIO_OUTAGE='8',BC_QA_AUDIO_STARTUP_OUTAGE='3',BC_QA_AUDIO_FAULT_KIND=args.audio_loss)
+    if args.controller:
+        subprocess.run(['c++','-std=c++20','-shared','-fPIC','-I/home/linuxbrew/.linuxbrew/include/SDL2','tools/qa_controller.cpp','-ldl','-L/home/linuxbrew/.linuxbrew/lib','-lSDL2','-Wl,-rpath,/home/linuxbrew/.linuxbrew/lib','-o',str(directory/'libcontroller.so')],cwd=ROOT,check=True)
+        preload=str((directory/'libcontroller.so').relative_to(ROOT))
+        if env.get('LD_PRELOAD'):preload+=':'+env['LD_PRELOAD']
+        env.update(LD_PRELOAD=preload,BC_QA_CONTROLLER=args.controller,BC_QA_INPUT_FILE=str(directory/'controller-input'))
     log=directory/'native.log'
     print(f'Private test directory: {directory}',flush=True)
     confirm='z'
@@ -80,6 +86,16 @@ def run(args):
         def key(name,hold=.4):
             command('keydown',name);time.sleep(hold);command('keyup',name);time.sleep(.3)
         def screenshot(name):subprocess.run(['import','-window',window,str(directory/f'{name}.png')],env=env,check=True)
+        controller_serial=0
+        def pad(kind,name='unused',value=0):
+            nonlocal controller_serial
+            controller_serial+=1
+            request=directory/'controller-input';temporary=directory/'controller-input.tmp'
+            temporary.write_text(f'{controller_serial} {kind} {name} {value}\n');temporary.replace(request)
+            wait(lambda content:f'"serial":{controller_serial},"ok":true' in content)
+            time.sleep(.15)
+        def button(name,hold=.4):
+            pad('button',name,1);time.sleep(hold);pad('button',name,0);time.sleep(.3)
         try:
             wait(lambda value:'rt64_device_ready' in value)
             window=subprocess.check_output(['xdotool','search','--pid',str(process.pid),'--name','Blast Corps'],env=env,text=True).split()[-1]
@@ -178,9 +194,49 @@ def run(args):
                             wait(lambda value:control_view(value,f'PAD {part+2}/5'))
                     for _ in range(4):key('x');time.sleep(1)
                     print('Manual-family controller editor pages captured: '+args.glyphs,flush=True)
+                if args.controller:
+                    family,caption,south,trigger={'xbox360':('xbox','XBOX HELP','A','LT'),'ps5':('playstation','PLAYSTATION HELP','CROSS','L2'),'switch':('switch','SWITCH HELP','B','ZL')}[args.controller]
+                    key(confirm);time.sleep(1);key('Down');key('Down');key(confirm);time.sleep(1)
+                    key('Down');key('Down');key(confirm)
+                    wait(lambda content:control_view(content,'KEYBOARD HELP','ACCEL/OK: '+confirm.upper()))
+                    button('guide')
+                    wait(lambda content:control_view(content,caption,'ACCEL/OK: '+south))
+                    time.sleep(1);screenshot(args.controller+'-active-help');time.sleep(.13);screenshot(args.controller+'-active-help-next')
+                    # Physical South performs Confirm and advances the Help page.
+                    button('a');wait(lambda content:control_view(content,caption,'BRAKE/EXIT: '+trigger))
+                    screenshot(args.controller+'-active-help-camera')
+                    # An unbound keyboard key changes prompts without navigating.
+                    key('v');wait(lambda content:control_view(content,'KEYBOARD HELP','BRAKE/EXIT: SHIFT'))
+                    screenshot(args.controller+'-keyboard-handover')
+                    button('guide');wait(lambda content:control_view(content,caption,'BRAKE/EXIT: '+trigger))
+                    pad('detach');wait(lambda content:control_view(content,'KEYBOARD HELP','BRAKE/EXIT: SHIFT'))
+                    screenshot(args.controller+'-disconnected')
+                    pad('attach',value=1);time.sleep(1)
+                    if not control_view(text(),'KEYBOARD HELP','BRAKE/EXIT: SHIFT'):raise ValueError('Held South changed the Help page when reconnecting')
+                    pad('button','a',0);button('guide')
+                    wait(lambda content:control_view(content,caption,'BRAKE/EXIT: '+trigger));button('a')
+                    wait(lambda content:control_view(content,caption) and 'CAM UP:' in content.split('"event":"pc_controls_view"')[-1])
+                    screenshot(args.controller+'-reconnected')
+                    for _ in range(3):key('x');time.sleep(1)
+                    print('Native SDL controller help, keyboard handover and held-button reconnect verified: '+args.controller,flush=True)
                 key('Return');time.sleep(1);key('Right',1);key(confirm,2);screenshot('resume')
                 if states()[-1]['paused']:raise ValueError('Start did not resume the guest')
                 print('Guest position changed; pause and resume confirmed by guest state',flush=True)
+                if args.controller:
+                    before=states()[-1];pad('axis','leftx',24000);button('a',2);pad('axis','leftx',0)
+                    after=states()[-1]
+                    if (before['x'],before['z'])==(after['x'],after['z']):raise ValueError('Virtual controller did not move the vehicle')
+                    screenshot(args.controller+'-controller-drive')
+                    button('start');time.sleep(1)
+                    if not states()[-1]['paused']:raise ValueError('Controller Start did not pause the guest')
+                    button('start');time.sleep(1)
+                    # Original Start opens the map, then selects More, which
+                    # opens window 1 with CONTINUE selected. Confirm resumes.
+                    current=states()[-1]
+                    if not current['paused'] or current['window']!=1 or current['state_lo']!=4:raise ValueError('Controller Start did not reach the original Continue menu')
+                    screenshot(args.controller+'-original-continue');button('a')
+                    wait(lambda content:bool(states()) and not states()[-1]['paused'])
+                    print('Native SDL controller movement and pause/resume verified: '+args.controller,flush=True)
                 if args.retry:
                     restart_at=len(text());key('Return');time.sleep(1)
                     key('Down')
@@ -209,12 +265,14 @@ def run(args):
             # legitimately go map (14) → statistics (7) → mission (2) instead.
             result=check(log,required_modes=(14,2))
             if args.audio_loss:result['audio_recovery']=check_audio_recovery(log)
+            if args.controller:result['controller_actions']=check_controller_probe(log,args.controller)
             result['seconds_requested']=args.seconds
             result['exercise_verified']=args.exercise
             result['options_verified']=args.options
             result['controls_verified']=args.controls
             result['prompt_captured']=prompt_captured
             result['manual_family_glyphs_captured']=args.glyphs
+            result['virtual_controller_verified']=args.controller
             if args.prompts and not prompt_captured:raise ValueError('Original mission prompt was not adapted and captured')
             result['restart_verified']=args.retry
             result['failure_verified']=args.wait_failure
@@ -242,10 +300,12 @@ if __name__=='__main__':
     parser.add_argument('--controls',action='store_true')
     parser.add_argument('--prompts',action='store_true')
     parser.add_argument('--audio-loss',choices=('queue','removal'),help='Privately simulate startup output unavailability and mid-game audio loss')
+    parser.add_argument('--controller',choices=('xbox360','ps5','switch'),help='Exercise native UI and guest actions using an SDL virtual controller')
     parser.add_argument('--glyphs',choices=('xbox','playstation','switch'),help='Capture controller editor glyphs using the manual family fallback')
     parser.add_argument('--wait-failure',action='store_true')
     args=parser.parse_args()
     if args.seconds<90:parser.error('At least 90 seconds are required for the mission transition')
-    if (args.retry or args.wait_failure or args.options or args.controls or args.glyphs) and not args.exercise:parser.error('Retry/failure/options/controls/glyphs needs --exercise')
+    if (args.retry or args.wait_failure or args.options or args.controls or args.glyphs or args.controller) and not args.exercise:parser.error('Retry/failure/options/controls/glyphs/controller needs --exercise')
+    if args.controller and args.glyphs:parser.error('Virtual device detection and manual-family rendering need separate runs')
     try:run(args)
     except (ValueError,subprocess.SubprocessError) as error:parser.exit(1,str(error)+'\n')

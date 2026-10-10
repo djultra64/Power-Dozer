@@ -461,3 +461,42 @@ were accepted. `controls-help.png` reviewed: T/X/Enter labels with matching
 keycap glyphs fit the original menu. EEPROM/Pak source hashes unchanged.
 This run used the new --audio-loss removal harness flag and a per-run helper;
 actual hardware disconnection and speaker output remain separately pending.
+
+Native device-driven control acceptance now uses a private LD_PRELOAD SDL
+virtual-controller helper, not a family setting or guest-button injection.
+SDL itself emits connection/button/axis events and the shipping input adapter
+reads the virtual device through ordinary SDL controller APIs. The helper
+filters physical/other host devices only inside its test process, so it cannot
+select the user's HHD/Steam controller by accident. Requests use an atomic
+private file; per-run libraries are not linked into the port.
+
+Three 140-second native runs passed: PS5 `.local/qa/gameplay-qewxpyu9`,
+8,401 VI / 8,064 graphics / 4,199 audio; Switch `.local/qa/gameplay-zix_q5mz`,
+8,401 VI / 8,056 graphics / 4,199 audio; Xbox 360
+`.local/qa/gameplay-qdhbs2yg`, 8,401 VI / 8,001 graphics / 4,199 audio.
+Automatic family/generation selection, controller Help page navigation via
+physical South, keyboard handover, disconnect fallback, held-South reconnect
+suppression, release/repress, steering/acceleration and native pause/Continue
+were accepted. Reviewed first-page captures: PS cross/circle/Options, Switch
+B/A/PLUS and Xbox A/B/Start match actual SDL action traces. A separate evidence
+checker verifies those captions, controller Confirm/Start bits and analog
+movement under the detected source; rejects wrong Switch letters, manual-only
+evidence, missing Start, no keyboard handover and held-button leakage. All
+three logs passed that checker. Current suites: 22 native / 38 Python passed.
+
+The initial versions of all three native tests failed an incorrect assertion
+that a second Start directly resumes. Guest traces instead showed mode 8→2,
+window 1 and paused=1. Original `hd.c` menu selection case 1 shows that Start
+selects More; window 1's first row is CONTINUE. This was checked against the
+extracted ROM: entry 802F58AC points to 80309A18, string CONTINUE. The revised
+test verifies this exact paused window/state, then physically presses South
+and waits for guest unpause. No shipping game/input behavior changed to hide
+the test failure. The prior failed directories remain partial visual/action
+evidence, not successful overall acceptance runs.
+
+The primary display's listed modes peak around 60 Hz and the secondary's
+around 75 Hz (`xrandr --query`, read-only, no display settings changed). Neither
+currently offers a listed 120-Hz mode. Virtual device and Xvfb tests do not
+verify physical controller presses or physical 120-Hz presentation. Native
+controller Help glyphs/handover are accepted; glyphs beside original HUD and
+tutorial instructions plus physical button acceptance remain open.

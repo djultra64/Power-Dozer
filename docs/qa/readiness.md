@@ -1126,3 +1126,19 @@ ptrace/Yama setting changed. This option runs only for --capture-hang native
 QA children. A newly authorized future trial is needed for an actual frozen
 native backtrace; current .local/qa/gameplay-tq46ltb6 started before this permit
 was added and reached Simian Acres normally.
+
+Exploratory Up-held route .local/qa/gameplay-tq46ltb6 did not reproduce startup
+freeze, reached mission and collected additional RDUs. No damage/destruction
+counters increased. Later original roadside tutorial window80 paused the guest;
+the generic movement assertion failed because its Z confirmation closed the
+tutorial rather than driving. Explicit handle94216 returned exit1. This is
+harness coverage failure, not a demonstrated native freeze. Private capture
+shows intact nearby house/tree and bulldozer. Probe now dismisses bounded
+original roadside tutorials after exploratory driving before testing movement.
+
+Post-tutorial-handling native trial .local/qa/gameplay-gbejd_6p reached terminal
+exit0,105seconds,6302VI/6003gfx/3149audio; movement/pause/Continue and original
+source EEPROM preservation passed. Original damage max30, buildingsDestroyed0:
+still NOT new destruction/objective acceptance. Last tutorial window73 pauses
+normal guest simulation, but audio tasks continue. No backtrace generated
+because no transition timed out in this trial. Startup freeze remains open.

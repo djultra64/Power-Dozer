@@ -176,6 +176,13 @@ def run(args):
                         command('keyup',confirm)
                         if args.drive_direction:command('keyup',args.drive_direction)
                     screenshot('demolition-drive')
+                    # A roadside tutorial may appear after releasing the pedal.
+                    # Dismiss its original confirmation before testing movement.
+                    deadline=time.monotonic()+8
+                    time.sleep(.3)
+                    while states()[-1]['paused'] and states()[-1]['window']>=70:
+                        if time.monotonic()>=deadline:raise ValueError('Roadside tutorial did not close')
+                        key(confirm);time.sleep(.5)
                 before=states()[-1]
                 if args.capture_motion:
                     with (directory/'motion-capture.log').open('w') as capture_log:

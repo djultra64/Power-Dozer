@@ -1,0 +1,1573 @@
+{
+  "schema": 2,
+  "provenance": {
+    "source": "User-provided complete controller and keyboard atlas",
+    "source_sha256": "910784770fa24511702b7dcc1811943b968e437cc110e97991f206600cdcf198",
+    "source_dimensions": [
+      1122,
+      1402
+    ],
+    "rights_review": "unresolved; no license or ownership claim",
+    "sources": {
+      "complete": {
+        "file": "source.png",
+        "sha256": "910784770fa24511702b7dcc1811943b968e437cc110e97991f206600cdcf198",
+        "dimensions": [
+          1122,
+          1402
+        ]
+      },
+      "initial": {
+        "file": "source-initial.png",
+        "sha256": "15c042e9ed943a7e24ca55f7fcfe5d18d20ded6f3b1a70dd19d7a0d321241591",
+        "dimensions": [
+          1448,
+          1086
+        ]
+      }
+    }
+  },
+  "extraction": {
+    "outline_threshold": 90,
+    "output_dimensions": [
+      32,
+      32
+    ],
+    "filter": "nearest",
+    "pixel_encoding": "RGBA8 numeric 0xRRGGBBAA",
+    "background": "4-connected edge flood fill above dark-outline threshold; largest retained connected body"
+  },
+  "sprites": [
+    {
+      "name": "xbox_a",
+      "box": [
+        35,
+        37,
+        116,
+        96
+      ]
+    },
+    {
+      "name": "xbox_b",
+      "box": [
+        123,
+        37,
+        204,
+        96
+      ]
+    },
+    {
+      "name": "xbox_x",
+      "box": [
+        210,
+        37,
+        291,
+        96
+      ]
+    },
+    {
+      "name": "xbox_y",
+      "box": [
+        296,
+        37,
+        377,
+        96
+      ]
+    },
+    {
+      "name": "xbox_dpad_up",
+      "box": [
+        383,
+        21,
+        464,
+        96
+      ]
+    },
+    {
+      "name": "xbox_dpad_down",
+      "box": [
+        465,
+        21,
+        546,
+        96
+      ]
+    },
+    {
+      "name": "xbox_dpad_left",
+      "box": [
+        546,
+        21,
+        627,
+        96
+      ]
+    },
+    {
+      "name": "xbox_dpad_right",
+      "box": [
+        632,
+        21,
+        713,
+        96
+      ]
+    },
+    {
+      "name": "xbox_l_stick",
+      "box": [
+        718,
+        21,
+        799,
+        96
+      ]
+    },
+    {
+      "name": "xbox_r_stick",
+      "box": [
+        815,
+        21,
+        896,
+        96
+      ]
+    },
+    {
+      "name": "xbox_l3",
+      "box": [
+        909,
+        21,
+        990,
+        96
+      ]
+    },
+    {
+      "name": "xbox_r3",
+      "box": [
+        1007,
+        21,
+        1088,
+        96
+      ]
+    },
+    {
+      "name": "playstation_cross",
+      "box": [
+        35,
+        264,
+        116,
+        326
+      ]
+    },
+    {
+      "name": "playstation_circle",
+      "box": [
+        123,
+        264,
+        204,
+        326
+      ]
+    },
+    {
+      "name": "playstation_square",
+      "box": [
+        210,
+        266,
+        291,
+        326
+      ]
+    },
+    {
+      "name": "playstation_triangle",
+      "box": [
+        296,
+        266,
+        377,
+        326
+      ]
+    },
+    {
+      "name": "playstation_dpad_up",
+      "box": [
+        383,
+        247,
+        464,
+        326
+      ]
+    },
+    {
+      "name": "playstation_dpad_down",
+      "box": [
+        465,
+        247,
+        546,
+        326
+      ]
+    },
+    {
+      "name": "playstation_dpad_left",
+      "box": [
+        546,
+        247,
+        627,
+        326
+      ]
+    },
+    {
+      "name": "playstation_dpad_right",
+      "box": [
+        632,
+        247,
+        713,
+        326
+      ]
+    },
+    {
+      "name": "playstation_l_stick",
+      "box": [
+        718,
+        247,
+        799,
+        326
+      ]
+    },
+    {
+      "name": "playstation_r_stick",
+      "box": [
+        815,
+        247,
+        896,
+        326
+      ]
+    },
+    {
+      "name": "playstation_l3",
+      "box": [
+        909,
+        247,
+        990,
+        326
+      ]
+    },
+    {
+      "name": "playstation_r3",
+      "box": [
+        1007,
+        247,
+        1088,
+        326
+      ]
+    },
+    {
+      "name": "switch_b",
+      "box": [
+        35,
+        495,
+        116,
+        554
+      ]
+    },
+    {
+      "name": "switch_a",
+      "box": [
+        123,
+        495,
+        204,
+        554
+      ]
+    },
+    {
+      "name": "switch_y",
+      "box": [
+        210,
+        495,
+        291,
+        554
+      ]
+    },
+    {
+      "name": "switch_x",
+      "box": [
+        296,
+        495,
+        377,
+        554
+      ]
+    },
+    {
+      "name": "switch_dpad_up",
+      "box": [
+        383,
+        477,
+        464,
+        552
+      ]
+    },
+    {
+      "name": "switch_dpad_down",
+      "box": [
+        465,
+        477,
+        546,
+        552
+      ]
+    },
+    {
+      "name": "switch_dpad_left",
+      "box": [
+        546,
+        477,
+        627,
+        552
+      ]
+    },
+    {
+      "name": "switch_dpad_right",
+      "box": [
+        632,
+        477,
+        713,
+        552
+      ]
+    },
+    {
+      "name": "switch_l_stick",
+      "box": [
+        718,
+        477,
+        799,
+        554
+      ]
+    },
+    {
+      "name": "switch_r_stick",
+      "box": [
+        815,
+        477,
+        896,
+        554
+      ]
+    },
+    {
+      "name": "switch_l3",
+      "box": [
+        909,
+        477,
+        990,
+        552
+      ]
+    },
+    {
+      "name": "switch_r3",
+      "box": [
+        1007,
+        477,
+        1088,
+        552
+      ]
+    },
+    {
+      "name": "generic_1",
+      "box": [
+        35,
+        714,
+        116,
+        773
+      ]
+    },
+    {
+      "name": "generic_2",
+      "box": [
+        123,
+        714,
+        204,
+        773
+      ]
+    },
+    {
+      "name": "generic_3",
+      "box": [
+        210,
+        714,
+        291,
+        773
+      ]
+    },
+    {
+      "name": "generic_4",
+      "box": [
+        296,
+        714,
+        377,
+        773
+      ]
+    },
+    {
+      "name": "generic_dpad_up",
+      "box": [
+        383,
+        698,
+        464,
+        773
+      ]
+    },
+    {
+      "name": "generic_dpad_down",
+      "box": [
+        465,
+        698,
+        546,
+        773
+      ]
+    },
+    {
+      "name": "generic_dpad_left",
+      "box": [
+        546,
+        698,
+        627,
+        773
+      ]
+    },
+    {
+      "name": "generic_dpad_right",
+      "box": [
+        632,
+        698,
+        713,
+        773
+      ]
+    },
+    {
+      "name": "generic_l_stick",
+      "box": [
+        718,
+        698,
+        799,
+        773
+      ]
+    },
+    {
+      "name": "generic_r_stick",
+      "box": [
+        815,
+        698,
+        896,
+        773
+      ]
+    },
+    {
+      "name": "generic_l3",
+      "box": [
+        909,
+        698,
+        990,
+        773
+      ]
+    },
+    {
+      "name": "generic_r3",
+      "box": [
+        1007,
+        698,
+        1088,
+        773
+      ]
+    },
+    {
+      "name": "xbox_lb",
+      "box": [
+        44,
+        135,
+        149,
+        188
+      ]
+    },
+    {
+      "name": "xbox_rb",
+      "box": [
+        177,
+        135,
+        282,
+        188
+      ]
+    },
+    {
+      "name": "xbox_lt",
+      "box": [
+        307,
+        124,
+        384,
+        197
+      ]
+    },
+    {
+      "name": "xbox_rt",
+      "box": [
+        423,
+        124,
+        500,
+        197
+      ]
+    },
+    {
+      "name": "xbox_menu",
+      "box": [
+        534,
+        135,
+        635,
+        188
+      ]
+    },
+    {
+      "name": "xbox_view",
+      "box": [
+        671,
+        135,
+        772,
+        188
+      ]
+    },
+    {
+      "name": "xbox_home",
+      "box": [
+        798,
+        124,
+        899,
+        192
+      ]
+    },
+    {
+      "name": "playstation_l1",
+      "box": [
+        43,
+        363,
+        148,
+        416
+      ]
+    },
+    {
+      "name": "playstation_r1",
+      "box": [
+        176,
+        363,
+        281,
+        416
+      ]
+    },
+    {
+      "name": "playstation_l2",
+      "box": [
+        309,
+        352,
+        386,
+        425
+      ]
+    },
+    {
+      "name": "playstation_r2",
+      "box": [
+        426,
+        358,
+        496,
+        427
+      ],
+      "allow_touching_edges": [
+        1
+      ],
+      "note": "Top outline starts at y358 immediately below D-pad label ending y357; exact body boundary retained, label excluded."
+    },
+    {
+      "name": "playstation_options",
+      "box": [
+        543,
+        363,
+        644,
+        416
+      ]
+    },
+    {
+      "name": "playstation_share",
+      "box": [
+        688,
+        363,
+        789,
+        416
+      ]
+    },
+    {
+      "name": "playstation_touchpad",
+      "box": [
+        827,
+        363,
+        938,
+        422
+      ]
+    },
+    {
+      "name": "switch_l",
+      "box": [
+        44,
+        587,
+        149,
+        640
+      ]
+    },
+    {
+      "name": "switch_r",
+      "box": [
+        177,
+        587,
+        282,
+        640
+      ]
+    },
+    {
+      "name": "switch_zl",
+      "box": [
+        311,
+        576,
+        388,
+        653
+      ]
+    },
+    {
+      "name": "switch_zr",
+      "box": [
+        422,
+        576,
+        499,
+        653
+      ]
+    },
+    {
+      "name": "switch_minus",
+      "box": [
+        529,
+        587,
+        630,
+        640
+      ]
+    },
+    {
+      "name": "switch_plus",
+      "box": [
+        656,
+        587,
+        757,
+        640
+      ]
+    },
+    {
+      "name": "switch_home",
+      "box": [
+        791,
+        587,
+        892,
+        642
+      ]
+    },
+    {
+      "name": "switch_capture",
+      "box": [
+        944,
+        587,
+        1045,
+        640
+      ]
+    },
+    {
+      "name": "generic_l",
+      "box": [
+        44,
+        810,
+        149,
+        863
+      ]
+    },
+    {
+      "name": "generic_r",
+      "box": [
+        178,
+        810,
+        285,
+        863
+      ]
+    },
+    {
+      "name": "generic_lt",
+      "box": [
+        314,
+        799,
+        391,
+        874
+      ]
+    },
+    {
+      "name": "generic_rt",
+      "box": [
+        426,
+        799,
+        503,
+        874
+      ]
+    },
+    {
+      "name": "generic_start",
+      "box": [
+        529,
+        810,
+        630,
+        863
+      ]
+    },
+    {
+      "name": "generic_select",
+      "box": [
+        635,
+        810,
+        736,
+        863
+      ]
+    },
+    {
+      "name": "generic_home",
+      "box": [
+        739,
+        806,
+        840,
+        863
+      ]
+    },
+    {
+      "name": "generic_l_click",
+      "box": [
+        875,
+        799,
+        952,
+        872
+      ]
+    },
+    {
+      "name": "generic_r_click",
+      "box": [
+        986,
+        799,
+        1063,
+        872
+      ]
+    },
+    {
+      "name": "key_a",
+      "box": [
+        33,
+        933,
+        96,
+        981
+      ]
+    },
+    {
+      "name": "key_b",
+      "box": [
+        116,
+        933,
+        179,
+        981
+      ]
+    },
+    {
+      "name": "key_c",
+      "box": [
+        199,
+        933,
+        262,
+        981
+      ]
+    },
+    {
+      "name": "key_d",
+      "box": [
+        282,
+        933,
+        345,
+        981
+      ]
+    },
+    {
+      "name": "key_e",
+      "box": [
+        364,
+        933,
+        427,
+        981
+      ]
+    },
+    {
+      "name": "key_f",
+      "box": [
+        446,
+        933,
+        509,
+        981
+      ]
+    },
+    {
+      "name": "key_g",
+      "box": [
+        529,
+        933,
+        592,
+        981
+      ]
+    },
+    {
+      "name": "key_h",
+      "box": [
+        612,
+        933,
+        675,
+        981
+      ]
+    },
+    {
+      "name": "key_i",
+      "box": [
+        695,
+        933,
+        758,
+        981
+      ]
+    },
+    {
+      "name": "key_j",
+      "box": [
+        777,
+        933,
+        840,
+        981
+      ]
+    },
+    {
+      "name": "key_k",
+      "box": [
+        861,
+        933,
+        924,
+        981
+      ]
+    },
+    {
+      "name": "key_l",
+      "box": [
+        945,
+        933,
+        1008,
+        981
+      ]
+    },
+    {
+      "name": "key_m",
+      "box": [
+        1028,
+        933,
+        1091,
+        981
+      ]
+    },
+    {
+      "name": "key_n",
+      "box": [
+        33,
+        1000,
+        96,
+        1048
+      ]
+    },
+    {
+      "name": "key_o",
+      "box": [
+        116,
+        1000,
+        179,
+        1048
+      ]
+    },
+    {
+      "name": "key_p",
+      "box": [
+        199,
+        1000,
+        262,
+        1048
+      ]
+    },
+    {
+      "name": "key_q",
+      "box": [
+        282,
+        1000,
+        345,
+        1048
+      ]
+    },
+    {
+      "name": "key_r",
+      "box": [
+        364,
+        1000,
+        427,
+        1048
+      ]
+    },
+    {
+      "name": "key_s",
+      "box": [
+        446,
+        1000,
+        509,
+        1048
+      ]
+    },
+    {
+      "name": "key_t",
+      "box": [
+        529,
+        1000,
+        592,
+        1048
+      ]
+    },
+    {
+      "name": "key_u",
+      "box": [
+        612,
+        1000,
+        675,
+        1048
+      ]
+    },
+    {
+      "name": "key_v",
+      "box": [
+        695,
+        1000,
+        758,
+        1048
+      ]
+    },
+    {
+      "name": "key_w",
+      "box": [
+        777,
+        1000,
+        840,
+        1048
+      ]
+    },
+    {
+      "name": "key_x",
+      "box": [
+        861,
+        1000,
+        924,
+        1048
+      ]
+    },
+    {
+      "name": "key_y",
+      "box": [
+        945,
+        1000,
+        1008,
+        1048
+      ]
+    },
+    {
+      "name": "key_z",
+      "box": [
+        1028,
+        1000,
+        1091,
+        1048
+      ]
+    },
+    {
+      "name": "key_0",
+      "box": [
+        28,
+        1069,
+        91,
+        1118
+      ]
+    },
+    {
+      "name": "key_1",
+      "box": [
+        99,
+        1069,
+        162,
+        1118
+      ]
+    },
+    {
+      "name": "key_2",
+      "box": [
+        171,
+        1069,
+        234,
+        1118
+      ]
+    },
+    {
+      "name": "key_3",
+      "box": [
+        247,
+        1069,
+        310,
+        1118
+      ]
+    },
+    {
+      "name": "key_4",
+      "box": [
+        321,
+        1069,
+        384,
+        1118
+      ]
+    },
+    {
+      "name": "key_5",
+      "box": [
+        397,
+        1069,
+        460,
+        1118
+      ]
+    },
+    {
+      "name": "key_6",
+      "box": [
+        471,
+        1069,
+        534,
+        1118
+      ]
+    },
+    {
+      "name": "key_7",
+      "box": [
+        546,
+        1069,
+        609,
+        1118
+      ]
+    },
+    {
+      "name": "key_8",
+      "box": [
+        620,
+        1069,
+        683,
+        1118
+      ]
+    },
+    {
+      "name": "key_9",
+      "box": [
+        694,
+        1069,
+        757,
+        1118
+      ]
+    },
+    {
+      "name": "key_up",
+      "box": [
+        788,
+        1069,
+        851,
+        1118
+      ]
+    },
+    {
+      "name": "key_down",
+      "box": [
+        866,
+        1069,
+        929,
+        1118
+      ]
+    },
+    {
+      "name": "key_left",
+      "box": [
+        946,
+        1069,
+        1009,
+        1118
+      ]
+    },
+    {
+      "name": "key_right",
+      "box": [
+        1028,
+        1069,
+        1091,
+        1118
+      ]
+    },
+    {
+      "name": "key_space",
+      "box": [
+        24,
+        1141,
+        138,
+        1184
+      ]
+    },
+    {
+      "name": "key_enter",
+      "box": [
+        141,
+        1141,
+        244,
+        1184
+      ]
+    },
+    {
+      "name": "key_esc",
+      "box": [
+        245,
+        1141,
+        328,
+        1184
+      ]
+    },
+    {
+      "name": "key_tab",
+      "box": [
+        332,
+        1141,
+        419,
+        1184
+      ]
+    },
+    {
+      "name": "key_caps",
+      "box": [
+        422,
+        1141,
+        502,
+        1184
+      ]
+    },
+    {
+      "name": "key_backspace",
+      "box": [
+        505,
+        1141,
+        610,
+        1184
+      ]
+    },
+    {
+      "name": "key_shift",
+      "box": [
+        611,
+        1141,
+        723,
+        1184
+      ]
+    },
+    {
+      "name": "key_ctrl",
+      "box": [
+        726,
+        1141,
+        804,
+        1184
+      ]
+    },
+    {
+      "name": "key_alt",
+      "box": [
+        807,
+        1141,
+        880,
+        1184
+      ]
+    },
+    {
+      "name": "key_altgr",
+      "box": [
+        883,
+        1141,
+        960,
+        1184
+      ]
+    },
+    {
+      "name": "key_cmd",
+      "box": [
+        962,
+        1141,
+        1038,
+        1184
+      ]
+    },
+    {
+      "name": "key_fn",
+      "box": [
+        1043,
+        1141,
+        1103,
+        1184
+      ]
+    },
+    {
+      "name": "key_tilde",
+      "box": [
+        25,
+        1210,
+        82,
+        1259
+      ]
+    },
+    {
+      "name": "key_minus",
+      "box": [
+        83,
+        1210,
+        140,
+        1259
+      ]
+    },
+    {
+      "name": "key_equals",
+      "box": [
+        147,
+        1210,
+        206,
+        1259
+      ]
+    },
+    {
+      "name": "key_lbracket",
+      "box": [
+        217,
+        1210,
+        278,
+        1259
+      ]
+    },
+    {
+      "name": "key_rbracket",
+      "box": [
+        290,
+        1210,
+        351,
+        1259
+      ]
+    },
+    {
+      "name": "key_backslash",
+      "box": [
+        364,
+        1210,
+        427,
+        1259
+      ]
+    },
+    {
+      "name": "key_semicolon",
+      "box": [
+        439,
+        1210,
+        502,
+        1259
+      ]
+    },
+    {
+      "name": "key_apostrophe",
+      "box": [
+        515,
+        1210,
+        582,
+        1259
+      ]
+    },
+    {
+      "name": "key_comma",
+      "box": [
+        593,
+        1210,
+        656,
+        1259
+      ]
+    },
+    {
+      "name": "key_period",
+      "box": [
+        669,
+        1210,
+        730,
+        1259
+      ]
+    },
+    {
+      "name": "key_slash",
+      "box": [
+        739,
+        1210,
+        800,
+        1259
+      ]
+    },
+    {
+      "name": "key_insert",
+      "box": [
+        808,
+        1210,
+        867,
+        1259
+      ]
+    },
+    {
+      "name": "key_delete",
+      "box": [
+        872,
+        1210,
+        931,
+        1259
+      ]
+    },
+    {
+      "name": "key_home",
+      "box": [
+        932,
+        1210,
+        989,
+        1256
+      ],
+      "allow_touching_edges": [
+        3
+      ],
+      "note": "Body last row y1255 touches the external HOME label starting y1256; exact body boundary retained, label excluded."
+    },
+    {
+      "name": "key_end",
+      "box": [
+        987,
+        1210,
+        1044,
+        1259
+      ]
+    },
+    {
+      "name": "key_numlock",
+      "box": [
+        1045,
+        1210,
+        1102,
+        1273
+      ]
+    },
+    {
+      "name": "key_pageup",
+      "box": [
+        20,
+        1287,
+        77,
+        1348
+      ]
+    },
+    {
+      "name": "key_pagedown",
+      "box": [
+        80,
+        1287,
+        137,
+        1348
+      ]
+    },
+    {
+      "name": "key_printscreen",
+      "box": [
+        145,
+        1287,
+        206,
+        1348
+      ]
+    },
+    {
+      "name": "key_scrolllock",
+      "box": [
+        214,
+        1287,
+        275,
+        1348
+      ]
+    },
+    {
+      "name": "key_pause",
+      "box": [
+        283,
+        1287,
+        344,
+        1348
+      ]
+    },
+    {
+      "name": "key_num7",
+      "box": [
+        354,
+        1287,
+        395,
+        1348
+      ]
+    },
+    {
+      "name": "key_num8",
+      "box": [
+        391,
+        1287,
+        432,
+        1348
+      ]
+    },
+    {
+      "name": "key_num9",
+      "box": [
+        429,
+        1287,
+        470,
+        1348
+      ]
+    },
+    {
+      "name": "key_num4",
+      "box": [
+        467,
+        1287,
+        508,
+        1348
+      ]
+    },
+    {
+      "name": "key_num5",
+      "box": [
+        505,
+        1287,
+        546,
+        1348
+      ]
+    },
+    {
+      "name": "key_num6",
+      "box": [
+        543,
+        1287,
+        584,
+        1348
+      ]
+    },
+    {
+      "name": "key_num1",
+      "box": [
+        583,
+        1287,
+        624,
+        1348
+      ]
+    },
+    {
+      "name": "key_num2",
+      "box": [
+        621,
+        1287,
+        662,
+        1348
+      ]
+    },
+    {
+      "name": "key_num3",
+      "box": [
+        659,
+        1287,
+        700,
+        1348
+      ]
+    },
+    {
+      "name": "key_num0",
+      "box": [
+        697,
+        1287,
+        746,
+        1348
+      ]
+    },
+    {
+      "name": "key_numdecimal",
+      "box": [
+        745,
+        1287,
+        800,
+        1348
+      ]
+    },
+    {
+      "name": "key_numdivide",
+      "box": [
+        799,
+        1287,
+        854,
+        1348
+      ]
+    },
+    {
+      "name": "key_nummultiply",
+      "box": [
+        845,
+        1287,
+        900,
+        1348
+      ]
+    },
+    {
+      "name": "key_numminus",
+      "box": [
+        889,
+        1287,
+        944,
+        1348
+      ]
+    },
+    {
+      "name": "key_numplus",
+      "box": [
+        935,
+        1287,
+        990,
+        1348
+      ]
+    },
+    {
+      "name": "key_numenter",
+      "box": [
+        983,
+        1285,
+        1046,
+        1350
+      ]
+    },
+    {
+      "name": "key_blank",
+      "source": "initial",
+      "box": [
+        1080,
+        997,
+        1152,
+        1053
+      ],
+      "note": "Unlabeled physical keycap from the first user atlas; fallback body only, actual key name remains supplied by the existing UI."
+    }
+  ]
+}

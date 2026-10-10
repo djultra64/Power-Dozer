@@ -29,3 +29,21 @@ Snapshot beta nuevo del commit `450d67b`: runtime `.local/packages/blastcorps-pr
 Actualización del fondo dentro del juego: el PNG estirado anterior era un archivo separado. El productor original `80200BE0` sigue usando 75 rectángulos de 64×16, demasiado estrechos para el reconocimiento automático de fondos de RT64. Ahora sus dos caminos (copy/blended) emiten un marcador D4, limitado a ese productor mediante comprobación de instrucciones ROM; el handler F3D solicita `G_EX_ASPECT_STRETCH` sólo durante esas llamadas y restaura el estado. Los texeles originales, logo y texto se conservan; en 4:3 el handler mantiene el comportamiento original.
 
 **Validación del cambio:** revisión independiente sin hallazgos; 45/45 CTest y 125/125 Python; captura real del compositor `gameplay-nv8pir_u/pak-player-selection-compositor.png` confirma el fondo de borde a borde, con logo/texto proporcionados. Sesión de menú de 45 s, exit0, 2701 VI / 1349 tareas de audio y partidas de origen sin modificar. Binario actualizado: SHA256 `1513826776d2229e190fbc9681f3fd877944c1c355a5148dd4f44488d9a20214`. Launcher `Run Blast Corps Beta.sh` abre este binario; los archivos del snapshot 450d67b conservan su versión anterior. La sesión de menú no sustituye las comprobaciones pendientes de gameplay/audio descritas arriba.
+
+
+Actualización de glifos para Power Dozer v0.8: reemplazados los trazos genéricos
+por 169 recortes RGBA32×32 de los dos atlas suministrados, con Xbox/PlayStation/
+Switch/Generic y teclado completo. El host expande un descriptor D5 por icono
+en triángulos sin tocar TMEM; combina SHADE y alfa y restaura el estado gráfico.
+Se corrigió el orden de palabras del combinador RT64 (w1 sobre w0). El marcador
+gigante de diagnóstico en selección de archivo fue retirado; los iconos normales
+miden 13–16 píxeles y siguen el tamaño del HUD. Se conserva el nombre literal
+para teclas que no tienen una ilustración específica.
+
+Validación: 45/45 CTest y 127/127 Python. `gameplay-dug66oia`, Radeon/compositor
+privado 1920×1080, 60 s, exit0, mantuvo audio hasta el final (1798 buffers PCM,
+0 rechazos). Las capturas `switch-active-help-next-compositor.png` y
+`atlas-keyboard-help-compositor.png` se inspeccionaron: muestran B/A/+ y Z/X/Enter,
+respectivamente, alineados con sus acciones. No certifican mandos físicos ni
+recuperación del fallo de audio intermitente. Los primeros ensayos tenían
+comandos CPU válidos pero sprites invisibles y no se cuentan como aceptación.

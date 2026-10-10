@@ -1,5 +1,6 @@
 #include "pc_options.h"
 #include "input.h"
+#include "input_glyph.h"
 #include "support.h"
 #include <vector>
 #include <cstring>
@@ -67,10 +68,12 @@ int main(){
  constexpr uint32_t frame=0x80500000,list=frame+0x48B0,end=frame+0xA3A0;
  ctx.r2=a(list);bc_pc_options_glyphs(rdram,&ctx,frame);
  check(uint32_t(ctx.r2)>list&&uint32_t(ctx.r2)<end,"glyph commands stay in original main display list");
- check(uint32_t(MEM_W(0,a(list)))==0x00525464&&uint32_t(MEM_W(-4,ctx.r2))==0x20000000,"glyph block enables and disables extended GBI");
+ auto first_glyph=bc::decode_glyph_command({uint32_t(MEM_W(0,a(list))),uint32_t(MEM_W(4,a(list)))});
+ check(first_glyph&&bc::glyph_name(first_glyph->sprite)=="switch_b","help draws physical Switch south artwork from the supplied atlas");
+ for(uint32_t p=list;p<uint32_t(ctx.r2);p+=8)check(bc::decode_glyph_command({uint32_t(MEM_W(0,a(p))),uint32_t(MEM_W(4,a(p)))}).has_value(),"PC options append only bounded sprite commands without RDP state changes");
  MEM_H(0,a(0x8036BB20))=127;ctx.r2=a(list);bc_pc_options_glyphs(rdram,&ctx,frame);
- bool faded=false;for(uint32_t p=list;p<uint32_t(ctx.r2);p+=8)if(uint32_t(MEM_W(0,a(p)))==0xFA000000){check((uint32_t(MEM_W(4,a(p)))&255)==127,"glyph opacity follows original 16-bit window alpha");faded=true;}
- check(faded,"partially transparent glyph emits a colour");
+ bool faded=false;for(uint32_t p=list;p<uint32_t(ctx.r2);p+=8){auto glyph=bc::decode_glyph_command({uint32_t(MEM_W(0,a(p))),uint32_t(MEM_W(4,a(p)))});check(glyph&&glyph->alpha==127,"sprite opacity follows original 16-bit window alpha");faded=true;}
+ check(faded,"partially transparent window emits atlas sprites");
  MEM_H(0,a(0x8036BB20))=0;ctx.r2=a(list);bc_pc_options_glyphs(rdram,&ctx,frame);check(uint32_t(ctx.r2)==list,"zero alpha has no glyphs");MEM_H(0,a(0x8036BB20))=255;
  ctx.r2=a(end-8);bc_pc_options_glyphs(rdram,&ctx,frame);check(uint32_t(ctx.r2)==end-8,"insufficient display-list capacity leaves the guest untouched");
  MEM_H(0,a(0x8036BB1C))=1;ctx.r2=a(list);bc_pc_options_glyphs(rdram,&ctx,frame);check(uint32_t(ctx.r2)==list,"closed animation has no stray glyph commands");

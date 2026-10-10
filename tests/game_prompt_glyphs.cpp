@@ -1,4 +1,5 @@
 #include "game_prompts.h"
+#include "input_glyph.h"
 #include "support.h"
 #include <vector>
 #include <bit>
@@ -27,6 +28,7 @@ struct Fixture {
  uint32_t pointer(){return uint32_t(MEM_W(0,S32(reference)));}
  void flush(){bc_game_prompt_flush(rdram,reference,frame);}
  std::vector<std::array<uint32_t,2>> commands(){std::vector<std::array<uint32_t,2>> values;for(uint32_t p=begin;p<pointer();p+=8)values.push_back({uint32_t(MEM_W(0,S32(p))),uint32_t(MEM_W(4,S32(p)))});return values;}
+ std::vector<bc::GlyphDraw> glyphs(){std::vector<bc::GlyphDraw> values;for(auto command:commands()){auto glyph=bc::decode_glyph_command(command);check(glyph.has_value(),"font annotations emit only valid private atlas commands");values.push_back(*glyph);}return values;}
  void window(int phase=2){
   MEM_H(0,S32(0x8036BB18))=0;MEM_H(0,S32(0x8036BB1C))=phase;
   MEM_H(0,S32(0x802F8BDC))=256;MEM_H(2,S32(0x802F8BDC))=208;
@@ -37,7 +39,7 @@ int main(){
  {
   Fixture f;f.layout(0x8030821C,"PRESS START",92,196,26);f.flush();
   check(f.pointer()>f.begin,"HUD instruction must append actual glyph commands at font flush");
-  auto commands=f.commands();check(commands.front()==std::array<uint32_t,2>{0x00525464,0x10000064}&&commands.back()==std::array<uint32_t,2>{0x00525464,0x20000000},"glyph block restores its extended graphics scope");
+  auto glyphs=f.glyphs();check(glyphs.size()==1&&bc::glyph_name(glyphs.front().sprite)=="key_enter","HUD instruction emits one sprite for its physical Start key");
   auto end=f.pointer();f.flush();check(f.pointer()==end,"a consumed annotation cannot draw twice");
  }
  {
@@ -47,20 +49,25 @@ int main(){
  }
  {
   Fixture f;f.layout(0x8030821C,"PRESS START",92,196,20,0);f.flush();check(f.pointer()==f.begin,"invisible text has no visible icon");
-  f.layout(0x8030821C,"PRESS START",92,196,20,127);f.flush();bool colour=false;
-  for(auto command:f.commands())if(command[0]==0xFA000000){colour=true;check((command[1]&255)==127,"glyph alpha follows original text fade");}
-  check(colour,"partially faded glyphs retain actual colored rectangles");
+  f.layout(0x8030821C,"PRESS START",92,196,20,127);f.flush();auto glyphs=f.glyphs();
+  check(glyphs.size()==1&&glyphs.front().alpha==127,"sprite alpha follows original text fade");
  }
  {
-  Fixture f;f.layout(0x80308228,"USE Z/R TO TURN PAGES",24,20,15);f.flush();bool left=false,right=false;
-  for(auto command:f.commands())if((command[0]>>24)==0xF6){int x=(command[1]>>14)&1023,x1=(command[0]>>14)&1023;left|=x<12;right|=x>=12;check(x>=0&&x1<=24,"both icons must fit before the existing map text");}
-  check(left&&right,"both logical page controls have visible glyphs");
+  Fixture f;f.layout(0x80308228,"USE Z/R TO TURN PAGES",24,20,15);f.flush();auto glyphs=f.glyphs();
+  check(glyphs.size()==2&&glyphs[0].x==2&&glyphs[1].x==17&&glyphs[0].size==13&&glyphs[1].size==13&&glyphs[0].y==21&&glyphs[1].y==21,"height15 page controls use readable 13-pixel sprites at the reserved origin");
+  check(bc::glyph_name(glyphs[0].sprite)=="key_shift"&&bc::glyph_name(glyphs[1].sprite)=="key_e","both logical page controls identify the actual keyboard keys");
+  auto* rdram=f.rdram;auto x=std::bit_cast<float>(uint32_t(MEM_W(0x14,f.ctx.r29))),width=std::bit_cast<float>(uint32_t(MEM_W(0x1C,f.ctx.r29)));
+  check(x==32&&std::abs(x+width*15.4f-219.f)<.001f,"longer key names plus page prefix preserve the original right edge");
  }
  {
   Fixture f;model.activity(bc::InputSource::Controller);model.manual_family(bc::ControllerFamily::PlayStation);
-  f.layout(0x80308240,"USE Z/R TO MOVE MAP",24,20,15);f.flush();bool bottom=false;
-  for(auto command:f.commands())if((command[0]>>24)==0xF6){int x=(command[1]>>14)&1023,x1=(command[0]>>14)&1023,y=(command[1]>>2)&1023,y1=(command[0]>>2)&1023;bottom|=x<=5&&x1>5&&y<=30&&y1>30;}
-  check(bottom,"small map trigger glyph retains its bottom border");
+  f.layout(0x80308240,"USE Z/R TO MOVE MAP",24,20,16);f.flush();auto glyphs=f.glyphs();
+  check(glyphs.size()==2&&glyphs[0].x==2&&glyphs[1].x==18&&glyphs[0].size==14&&glyphs[1].size==14&&glyphs[0].y==21&&glyphs[1].y==21,"height16 map controls retain 14-pixel sprites instead of shrinking to fit x24");
+  check(bc::glyph_name(glyphs[0].sprite)=="playstation_l2"&&bc::glyph_name(glyphs[1].sprite)=="playstation_r1","map trigger and shoulder match the physical PlayStation controls");
+  auto* rdram=f.rdram;auto x=std::bit_cast<float>(uint32_t(MEM_W(0x14,f.ctx.r29))),width=std::bit_cast<float>(uint32_t(MEM_W(0x1C,f.ctx.r29)));
+  constexpr auto original=std::string_view("USE Z/R TO MOVE MAP"),replacement=std::string_view("USE L2/R1 TO MOVE MAP");
+  const auto original_right=24.f+16.f*(1.f+float(original.size()-1)*.6f);
+  check(x==34&&std::abs(x+width*(1.f+float(replacement.size()-1)*.6f)-original_right)<.001f,"two map icons shift text to34 and preserve its original right edge with L2/R1 names");
  }
  {
   Fixture f;f.window();f.layout(0x8030AECC,"USE A TO THRUST",-88,-64,20,127,true);f.flush();check(f.pointer()==f.begin,"black shadow pass cannot leave a colored icon while foreground blinks off");
@@ -71,9 +78,9 @@ int main(){
   auto* rdram=f.rdram;
   auto text_x=std::bit_cast<float>(uint32_t(MEM_W(0x14,f.ctx.r29)));
   auto text_width=std::bit_cast<float>(uint32_t(MEM_W(0x1C,f.ctx.r29)));
-  check(text_x> -88,"tutorial text reserves space for its inline prefix glyph");
+  check(text_x== -70,"tutorial text reserves its 18-pixel inline prefix");
   check(std::abs(text_x+text_width*(1+float(std::string_view("USE A TO THRUST").size()-1)*.6f)-(-88+20*(1+float(std::string_view("USE A TO THRUST").size()-1)*.6f)))<.001f,"inline glyph preserves the original instruction's right edge");
-  for(auto command:f.commands())if((command[0]>>24)==0xF6){int x=(command[1]>>14)&1023,y=(command[1]>>2)&1023;check(x>=72&&x<90&&y>=56&&y<76,"tutorial icon begins at the text anchor without covering the decorative left column");}
+  auto glyphs=f.glyphs();check(glyphs.size()==1&&glyphs[0].x==72&&glyphs[0].y==58&&glyphs[0].size==16,"tutorial icon keeps the original screen anchor clear of the decorative column");
  }
  {
   Fixture f;f.layout(0x8030821C,"PRESS START",92,196);f.set_pointer(f.end-128);f.flush();check(f.pointer()==f.end-128,"font flush never writes beyond the main display list or caller reserve");
@@ -88,7 +95,7 @@ int main(){
   f.layout(0x8030AECC,"USE A TO THRUST",-88,-64);f.flush();auto cross=f.commands();f.set_pointer(f.begin);
   model.replace(bc::InputAction::Confirm,bc::InputSource::Controller,{{bc::BindingKind::Button,SDL_CONTROLLER_BUTTON_X}});
   f.layout(0x8030AECC,"USE A TO THRUST",-88,-64);f.flush();check(f.commands()!=cross,"action remapping changes the actual tutorial glyph raster");
-  bool square=false;for(auto command:f.commands())if(command[0]==0xFA000000&&command[1]==0xFBA7DFFF)square=true;check(square,"remapped PlayStation instruction draws Square instead of Cross");
+  auto glyphs=f.glyphs();check(glyphs.size()==1&&bc::glyph_name(glyphs.front().sprite)=="playstation_square","remapped PlayStation instruction draws supplied Square artwork instead of Cross");
  }
  puts("Original instruction glyph queue and display-list bounds passed");
 }

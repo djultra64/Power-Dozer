@@ -96,7 +96,7 @@ int main(int argc,char** argv){
  setvbuf(stdout,nullptr,_IOLBF,0);
  double seconds=0;std::string family="auto";bool save_settings=false,rom_dialog=true;std::filesystem::path rom_path,import_path;
  for(int i=1;i<argc;i++)if(std::string(argv[i])=="--help"){
-  printf("Blast Corps experimental native beta\n--rom PATH (USA Rev 1 z64/v64/n64/ZIP) --seconds N (0: unlimited)\n--data-dir PATH (default: executable/data) --import-data OLD_DIRECTORY\n--no-rom-dialog (report missing/invalid ROM without opening a chooser)\n--scale N --wide --original-aspect --refresh 0|30|60|120\n--fullscreen --windowed --msaa 0|2|4|8 --presentation nearest|linear|pixel --texture linear|three_point\n--volume 0..100 --mute --no-mute --family auto|xbox|playstation|switch --save-settings --capture-audio FILE.wav\nKeyboard: arrows walk/steer, Z accelerate/confirm, X reverse/back, Enter pause/start, Shift stop/exit, I/J/K/L camera, Q/E horn\nAlt+Enter: toggle fullscreen\n");return 0;
+  printf("Power Dozer v0.8 — Blast Corps native beta\n--rom PATH (USA Rev 1 z64/v64/n64/ZIP) --seconds N (0: unlimited)\n--data-dir PATH (default: executable/data) --import-data OLD_DIRECTORY\n--no-rom-dialog (report missing/invalid ROM without opening a chooser)\n--scale N --wide --original-aspect --refresh 0|30|60|120\n--fullscreen --windowed --msaa 0|2|4|8 --presentation nearest|linear|pixel --texture linear|three_point\n--volume 0..100 --mute --no-mute --family auto|xbox|playstation|switch --save-settings --capture-audio FILE.wav\nKeyboard: arrows walk/steer, Z accelerate/confirm, X reverse/back, Enter pause/start, Shift stop/exit, I/J/K/L camera, Q/E horn\nAlt+Enter: toggle fullscreen\n");return 0;
  }
  try {
  bc_data_directory=bc::application_data_directory();
@@ -167,7 +167,7 @@ int main(int argc,char** argv){
  bc_initialize_pak();
  SDL_SetHint(SDL_HINT_GAMECONTROLLER_USE_BUTTON_LABELS,"0");
  if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_GAMECONTROLLER)!=0)bc_fatal(SDL_GetError());
- auto* window=SDL_CreateWindow("Blast Corps prototype",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,bc_wide?1280:960,720,SDL_WINDOW_VULKAN|SDL_WINDOW_RESIZABLE);
+ auto* window=SDL_CreateWindow("Power Dozer v0.8",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,bc_wide?1280:960,720,SDL_WINDOW_VULKAN|SDL_WINDOW_RESIZABLE);
  if(!window)bc_fatal(SDL_GetError());bc_input_init(family);
  if(bc::settings.fullscreen&&SDL_SetWindowFullscreen(window,SDL_WINDOW_FULLSCREEN_DESKTOP)!=0)fprintf(stderr,"Fullscreen: %s\n",SDL_GetError());
  ultramodern::renderer::GraphicsConfig graphics{};graphics.api_option=ultramodern::renderer::GraphicsApi::Vulkan;

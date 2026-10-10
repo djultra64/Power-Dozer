@@ -93,7 +93,7 @@ extern "C" void bc_pc_options_glyphs(uint8_t* rdram,recomp_context* ctx,uint32_t
  if(prompts.empty())return;
  auto opacity=std::clamp<int>(MEM_H(0,address(0x8036BB20)),0,255);
  if(!opacity)return;
- std::vector<bc::GlyphRectangle> rectangles;
+ std::vector<bc::GlyphDraw> draws;
  for(size_t i=0;i<prompts.size();i++){
   auto row=custom+(i+1)*28;
   // Match the original selected-row blink. Help information rows never blink.
@@ -101,9 +101,13 @@ extern "C" void bc_pc_options_glyphs(uint8_t* rdram,recomp_context* ctx,uint32_t
   int x=MEM_H(4,address(window))+MEM_H(2,address(row))-18;
   int y=MEM_H(6,address(window))+MEM_H(4,address(row))+2;
   auto glyph=bc::input_glyph(prompts[i],view.family());
-  for(auto rect:glyph){rect.x+=x;rect.y+=y;rect.rgba=(rect.rgba&0xFFFFFF00)|uint32_t((rect.rgba&255)*opacity/255);rectangles.push_back(rect);}
+  if(glyph)draws.push_back({*glyph,x,y,16,opacity});
  }
- auto commands=bc::glyph_commands(rectangles);
+ auto commands=bc::glyph_commands(draws);
+ if(std::getenv("BC_TRACE_INPUT")&&!commands.empty()){
+  static std::string previous;std::string names;for(auto d:draws)names+=std::string(bc::glyph_name(d.sprite))+",";
+  if(names!=previous){fprintf(stderr,"{\"event\":\"pc_atlas_commands\",\"sprites\":\"%s\",\"x\":%d,\"y\":%d}\n",names.c_str(),draws.front().x,draws.front().y);previous=names;}
+ }
  // Reserve space for the original caller's end-of-frame commands as well.
  if(commands.empty()||commands.size()*8+256>end-pointer)return;
  for(auto command:commands){MEM_W(0,address(pointer))=command[0];MEM_W(4,address(pointer))=command[1];pointer+=8;}

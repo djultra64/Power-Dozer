@@ -1,12 +1,29 @@
 import importlib.util
 import hashlib
 import json
+import os
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 spec=importlib.util.spec_from_file_location('package_linux',Path(__file__).resolve().parents[1]/'tools/package_linux.py')
 package=importlib.util.module_from_spec(spec);spec.loader.exec_module(package)
 class PackagePrivacy(unittest.TestCase):
+    def test_branded_launcher_uses_own_directory_from_foreign_working_directory(self):
+        with tempfile.TemporaryDirectory(prefix='Power Dozer launch ') as d:
+            root=Path(d);stage=root/'Power Dozer v0.8';stage.mkdir();(stage/'lib').mkdir()
+            executable=stage/'power-dozer'
+            executable.write_text('#!/usr/bin/env python3\nimport json, os, sys\nprint(json.dumps({"args":sys.argv[1:],"library_path":os.environ["LD_LIBRARY_PATH"]}))\n')
+            executable.chmod(0o755)
+            launcher=stage/'Run Power Dozer.sh';launcher.write_text(package.launcher_text())
+            env=dict(os.environ,LD_LIBRARY_PATH='/original path/lib')
+            result=subprocess.run(['bash',str(launcher),'--rom','/own ROM/game.zip','--data-dir','/new data'],cwd=root,env=env,check=True,text=True,capture_output=True)
+            observed=json.loads(result.stdout)
+            self.assertEqual(observed['args'],['--rom','/own ROM/game.zip','--data-dir','/new data'])
+            self.assertEqual(observed['library_path'],str(stage/'lib')+':/original path/lib')
+            env.pop('LD_LIBRARY_PATH')
+            result=subprocess.run(['bash',str(launcher)],cwd=root,env=env,check=True,text=True,capture_output=True)
+            self.assertEqual(json.loads(result.stdout)['library_path'],str(stage/'lib'))
     def fixture_licenses(self,root):
         source=root/'source';source.mkdir();data=b'Fixture license text';(source/'LICENSE').write_bytes(data)
         manifest={'files':{'LICENSE':{'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}}}

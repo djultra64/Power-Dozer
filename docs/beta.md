@@ -1,6 +1,6 @@
-# Beta experimental para probar
+# Power Dozer v0.8 — beta para probar
 
-Abrir `Run Blast Corps Beta.sh` en este equipo. Permanece abierto hasta cerrar
+Abrir `Run Power Dozer.sh` en este equipo (también sirve el launcher anterior). Permanece abierto hasta cerrar
 la ventana; usa escala 3 (720p interno), perfil 16:9, audio estéreo y objetivo
 de interpolación de 120. RT64 limita ese objetivo al refresco disponible.
 La beta todavía necesita validar el recorrido completo de menús y misiones.
@@ -63,3 +63,7 @@ no una medición de 120 fps sostenidos.
 ./'Run Blast Corps Beta.sh' --scale 9 --msaa 4 --save-settings
 ./'Run Blast Corps Beta.sh' --volume 50 --mute # Silencia la salida; el RSP sigue activo.
 ```
+
+Los glifos del teclado y Xbox/PlayStation/Switch usan los recortes del atlas
+suministrado, con transparencia y tamaño proporcional al HUD. Las teclas
+sin dibujo específico conservan su nombre junto a una tecla vacía.

@@ -1,12 +1,15 @@
 #include "l3d.h"
 #include "line_quad.h"
 #include "carrier_arrow.h"
+#include "input_glyph.h"
 #include "prototype.h"
 #include "hle/rt64_interpreter.h"
 #include "gbi/rt64_gbi_f3d.h"
 #include "gbi/rt64_gbi_rdp.h"
 #include "contrib/xxHash/xxhash.h"
 #include <cstdio>
+#include <cstdlib>
+#include <set>
 
 namespace {
 RT64::GBI l3d;
@@ -21,6 +24,41 @@ void menu_background_rectangle(RT64::State* state,RT64::DisplayList** dl) {
  if(bc_wide)rdp.setRectAspect(G_EX_ASPECT_STRETCH);
  RT64::GBI_RDP::texrect(state,dl);
  rdp.setRectAspect(previous);
+}
+void atlas_glyph(RT64::State* state,RT64::DisplayList** dl) {
+ auto descriptor=bc::decode_glyph_command({(*dl)->w0,(*dl)->w1});
+ if(!descriptor)return;
+ auto mesh=bc::glyph_mesh(*descriptor);
+ if(mesh.positions.empty())return;
+ if(std::getenv("BC_TRACE_INPUT")){
+  static std::set<uint16_t> seen;
+  if(seen.insert(descriptor->sprite.index).second){fprintf(stderr,"{\"event\":\"atlas_glyph_rendered\",\"sprite\":\"%.*s\",\"x\":%d,\"y\":%d,\"size\":%d,\"triangles\":%zu}\n",int(bc::glyph_name(descriptor->sprite).size()),bc::glyph_name(descriptor->sprite).data(),descriptor->x,descriptor->y,descriptor->size,mesh.positions.size()/12);}
+ }
+ // Raw triangles bypass RSP matrices. Match the centered, proportional
+ // original UI in the renderer's fixed 16:9 mode rather than stretching keys.
+ if(bc_wide)for(size_t i=0;i<mesh.positions.size();i+=4)
+  mesh.positions[i]=160+(mesh.positions[i]-160)*.75f;
+ auto& rdp=*state->rdp;auto& rsp=*state->rsp;
+ state->flush();
+ const auto textureOn=state->drawCall.textureOn;
+ const auto textureTile=state->drawCall.textureTile;
+ const auto textureLevels=state->drawCall.textureLevels;
+ rsp.pushOtherMode();rdp.pushCombine();rsp.pushGeometryMode();
+ rsp.clearGeometryMode(~uint32_t(0));
+ rsp.setGeometryMode(G_SHADE|rsp.shadingSmoothMask);
+ // SHADE, one cycle, straight alpha, no depth/fog/texture sampling.
+ // RT64 packs N64 w1 above w0 (GBI_RDP::setCombine), not the
+ // display-list word order. Reversing these words produces zero alpha.
+ rdp.setCombine(uint64_t(0xFFFE793C)<<32|0x00FFFFFF);
+ rsp.setOtherMode(0xF0,0x00504240);
+ rdp.drawTris(uint32_t(mesh.positions.size()/12),mesh.positions.data(),mesh.texcoords.data(),mesh.colours.data(),0,0);
+ // Capture glyph state before restoring guest state for following draws.
+ state->flush();
+ rsp.popGeometryMode();rdp.popCombine();rsp.popOtherMode();
+ state->drawCall.textureOn=textureOn;
+ state->drawCall.textureTile=textureTile;
+ state->drawCall.textureLevels=textureLevels;
+ state->updateDrawStatusAttribute(RT64::DrawAttribute::Texture);
 }
 void hud_vertex(RT64::State* state,RT64::DisplayList** dl) {
  auto& rsp=*state->rsp;
@@ -100,6 +138,7 @@ void bc_load_hud_annotations(RT64::Interpreter& interpreter,unsigned text) {
  hud_gbi=*interpreter.hleGBI;
  hud_gbi.map[F3D_G_VTX]=hud_vertex;
  hud_gbi.map[0xD4]=menu_background_rectangle;
+ hud_gbi.map[0xD5]=atlas_glyph;
  interpreter.hleGBI=&hud_gbi;
  interpreter.state->rsp->setGBI(&hud_gbi);
 }

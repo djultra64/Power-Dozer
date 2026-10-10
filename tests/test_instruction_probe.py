@@ -13,7 +13,7 @@ class InstructionEvidence(unittest.TestCase):
             labels=module.CONTROLS[controller];rows.append(('USE Z/R TO MOVE MAP',labels,'USE '+'/'.join(labels)+' TO MOVE MAP'))
         result=[]
         for original,labels,text in rows:
-            result.extend([dict(event='game_action_prompt',original=original,text=text),dict(event='game_action_glyphs',original=original,labels=labels,x=2,y=23,size=9,alpha=255,commands=32)])
+            result.extend([dict(event='game_action_prompt',original=original,text=text),dict(event='game_action_glyphs',original=original,labels=labels,sprites=[module.SPRITES[label] for label in labels],x=2,y=23,size=9,alpha=255,commands=len(labels))])
         return result
     def check(self,events,controller=None):
         with tempfile.TemporaryDirectory() as directory:
@@ -24,11 +24,17 @@ class InstructionEvidence(unittest.TestCase):
         events=self.events();del events[1]['commands']
         with self.assertRaisesRegex(ValueError,'commands'):self.check(events)
     def test_missing_second_map_glyph_rejected(self):
-        events=self.events();events[-1]['labels']=['SHIFT']
+        events=self.events();events[-1]['labels']=['SHIFT'];events[-1]['commands']=1;events[-1]['sprites']=['key_shift']
         with self.assertRaisesRegex(ValueError,'Missing glyphs'):self.check(events)
     def test_wrong_name_rejected(self):
         events=self.events('ps5');events[-2]['text']='USE LT/RB TO MOVE MAP'
         with self.assertRaisesRegex(ValueError,'disagrees'):self.check(events,'ps5')
+    def test_wrong_atlas_sprite_rejected(self):
+        events=self.events('switch');events[-1]['sprites']=['xbox_lt','xbox_rb']
+        with self.assertRaisesRegex(ValueError,'Missing glyphs'):self.check(events,'switch')
+    def test_missing_sprite_identity_rejected(self):
+        events=self.events();del events[1]['sprites']
+        with self.assertRaisesRegex(ValueError,'identities'):self.check(events)
     def test_out_of_bounds_rejected(self):
         events=self.events();events[1]['x']=319
         with self.assertRaisesRegex(ValueError,'bounds'):self.check(events)

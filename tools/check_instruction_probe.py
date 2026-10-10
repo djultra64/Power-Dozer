@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 CONTROLS={'xbox360':['LT','RB'],'ps5':['L2','R1'],'switch':['ZL','R']}
+SPRITES={'ENTER':'key_enter','SHIFT':'key_shift','E':'key_e','LT':'xbox_lt','RB':'xbox_rb','L2':'playstation_l2','R1':'playstation_r1','ZL':'switch_zl','R':'switch_r'}
 
 def check(path,controller=None):
     events=[]
@@ -15,15 +16,18 @@ def check(path,controller=None):
     glyphs=[event for event in events if event.get('event')=='game_action_glyphs']
     for event in glyphs:
         labels=event.get('labels');size=event.get('size',0)
-        if not isinstance(labels,list) or not 1<=len(labels)<=2 or not 8<=size<=16 or not 1<=event.get('alpha',0)<=255 or event.get('commands',0)<=10:
+        sprites=event.get('sprites')
+        if not isinstance(labels,list) or not 1<=len(labels)<=2 or not 8<=size<=16 or not 1<=event.get('alpha',0)<=255 or event.get('commands',0)!=len(labels):
             raise ValueError('Invalid or missing actual instruction glyph commands')
+        if not isinstance(sprites,list) or len(sprites)!=len(labels) or any(not isinstance(sprite,str) or not sprite for sprite in sprites):
+            raise ValueError('Missing actual atlas sprite identities')
         if not 0<=event.get('x',-1)<=320-len(labels)*(size+2)+2 or not 0<=event.get('y',-1)<=240-size:
             raise ValueError('Instruction glyphs exceed screen bounds')
     required=[('PRESS START',['ENTER'],'PRESS ENTER'),('PRESSING START WILL',['ENTER'],'PRESSING ENTER WILL'),('USE Z/R TO MOVE MAP',['SHIFT','E'],'USE SHIFT/E TO MOVE MAP')]
     if controller:
         labels=CONTROLS[controller];required.append(('USE Z/R TO MOVE MAP',labels,'USE '+'/'.join(labels)+' TO MOVE MAP'))
     for original,labels,text in required:
-        if not any(event.get('original')==original and event.get('labels')==labels for event in glyphs):
+        if not any(event.get('original')==original and event.get('labels')==labels and event.get('sprites')==[SPRITES[label] for label in labels] for event in glyphs):
             raise ValueError('Missing glyphs for '+original+' / '+','.join(labels))
         if not any(event.get('event')=='game_action_prompt' and event.get('original')==original and event.get('text')==text for event in events):
             raise ValueError('Mapped instruction text disagrees with glyph labels')

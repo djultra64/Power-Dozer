@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create an audited private Linux diagnostic archive; never marks an RC ready."""
+"""Create an audited Power Dozer v0.8 Linux archive without certifying release readiness."""
 import argparse
 import gzip
 import hashlib
@@ -13,8 +13,14 @@ import tarfile
 import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
+PRODUCT='Power Dozer'
+VERSION='0.8'
+PACKAGE_ROOT='power-dozer-v0.8-linux-x86_64'
+EXECUTABLE='power-dozer'
+LAUNCHER='Run Power Dozer.sh'
+
 LIBRARIES={'libSDL2-2.0.so.0','libSDL3.so.0','libdbus-1.so.3','libdxcompiler.so','libdxil.so'}
-TOP={'blastcorps','Run Blast Corps.sh','README.txt','BUILD.json','gamecontrollerdb.txt'}
+TOP={EXECUTABLE,LAUNCHER,'blastcorps','Run Blast Corps.sh','README.txt','BUILD.json','gamecontrollerdb.txt'}
 PRIVATE={'.z64','.v64','.n64','.rom','.eep','.pak','.state','.wav','.png','.jpg','.bin'}
 
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -92,13 +98,48 @@ def portable_rpath(path,work):
     script.write_text('file(RPATH_CHANGE FILE "'+quote(str(path))+'" OLD_RPATH "'+quote(matches[0])+'" NEW_RPATH "$ORIGIN")\n')
     subprocess.run(['cmake','-P',str(script)],check=True,stdout=subprocess.DEVNULL)
 
+def launcher_text():
+    return ('#!/usr/bin/env bash\nset -euo pipefail\n'
+            'package_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"\n'
+            'export LD_LIBRARY_PATH="$package_dir/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\n'
+            'exec "$package_dir/power-dozer" "$@"\n')
+
+def runtime_readme():
+    return """Power Dozer v0.8 — experimental Linux beta.
+Extract the complete archive into a writable directory, then run:
+  ./"Run Power Dozer.sh"
+Or select your own ROM explicitly:
+  ./"Run Power Dozer.sh" --rom "/path/to/Blast Corps USA Rev 1.zip"
+ROM: original USA Rev 1, z64/v64/n64 or ZIP containing one valid ROM.
+Normalized ROM SHA-1: 483f7161aea39de8b45c9fbc70a2c3883c4dea8c.
+No ROM, extracted overlays, saves or private evidence are supplied.
+ROM cache, saves, Pak and preferences normally live in data beside the executable.
+Use --data-dir PATH to select another writable directory. To import prior progress:
+  ./"Run Power Dozer.sh" --data-dir "/path/new-data" --import-data "/path/old-data"
+Close the previous installation first. The destination must be new or empty;
+import copies progress/preferences/remaps and leaves the source unchanged.
+Provide your own ROM separately. Keep the bundled lib and licenses directories.
+Linux x86-64, SSSE3/SSE4.1, glibc >= 2.38, GLIBCXX_3.4.31, libz.so.1,
+Vulkan drivers, X11/XWayland and a desktop file chooser are required.
+Default keyboard: arrows move, Z primary/confirm, X secondary/back, Enter Start,
+Shift brake/exit, I/J/K/L camera, Q/E horn. Alt+Enter toggles fullscreen.
+PC options provide help, graphics/audio settings and remapping by action.
+Prompts follow the last active device; Xbox/PlayStation/Switch family can be
+selected manually. Switch face positions south/east/west/north are B/A/Y/X.
+Intermittent loss of audio remains under investigation.
+Physical-controller checks, sustained 4K/120-Hz presentation and broad mission
+coverage remain manual. Complete license/source review remains unresolved;
+BUILD.json preserves ready_for_release=false and license_review_complete=false.
+Third-party notices and their recorded provenance are in licenses.
+"""
+
 def build(args):
     output=args.output.resolve();output.parent.mkdir(parents=True,exist_ok=True)
     tetra=args.tetrisphere.resolve();deps=tetra/'.local/deps'
-    with tempfile.TemporaryDirectory(prefix='blastcorps-package-',dir=output.parent) as scratch:
-        work=Path(scratch);stage=work/'blastcorps-private-linux-x86_64';stage.mkdir()
+    with tempfile.TemporaryDirectory(prefix='power-dozer-package-',dir=output.parent) as scratch:
+        work=Path(scratch);stage=work/PACKAGE_ROOT;stage.mkdir()
         subprocess.run(['cmake','--install',str(args.build.resolve()),'--prefix',str(stage),'--strip'],check=True)
-        (stage/'blastcorps-prototype').rename(stage/'blastcorps')
+        (stage/'blastcorps-prototype').rename(stage/EXECUTABLE)
         (stage/'lib').mkdir();(stage/'licenses').mkdir()
         sources={name:Path('/home/linuxbrew/.linuxbrew/lib')/name for name in ('libSDL2-2.0.so.0','libSDL3.so.0','libdbus-1.so.3')}
         sources.update({name:deps/'rt64/src/contrib/dxc/lib/x64'/name for name in ('libdxcompiler.so','libdxil.so')})
@@ -121,16 +162,21 @@ def build(args):
             if source.stat().st_size!=entry['bytes'] or digest(source)!=entry['sha256']:raise ValueError('Controller database provenance mismatch: '+name)
         shutil.copyfile(controller,stage/'gamecontrollerdb.txt')
         shutil.copytree(tetra/'licenses/controller-db',stage/'licenses/controller-db')
+        own_notices=stage/'licenses/Power-Dozer';own_notices.mkdir()
+        for name in ('LICENSE','NOTICE'):
+            source=ROOT/name
+            if source.is_symlink() or not source.is_file():raise ValueError('Missing host notice: '+name)
+            shutil.copyfile(source,own_notices/name)
         license_count=sum(1 for path in (stage/'licenses').rglob('*') if path.is_file() and path.suffix.lower()!='.json')
-        launcher=stage/'Run Blast Corps.sh'
-        launcher.write_text('#!/usr/bin/env bash\nset -euo pipefail\npackage_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"\nexport LD_LIBRARY_PATH="$package_dir/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\nexec "$package_dir/blastcorps" "$@"\n');launcher.chmod(0o755)
-        (stage/'README.txt').write_text('Blast Corps private experimental beta; release acceptance is incomplete.\nRun: ./Run Blast Corps.sh\nSupply your own unmodified USA Rev 1 ROM when prompted, or use --rom PATH.\nProgress and private ROM cache live in data beside the executable.\n--import-data OLD_DIRECTORY copies progress/preferences into a new or empty data folder.\nLinux x86-64 with SSSE3/SSE4.1, glibc >= 2.38, a C++ runtime providing GLIBCXX_3.4.31, zlib (libz.so.1), Vulkan drivers, X11 or XWayland, and a desktop file chooser are required.\nThis archive has not verified other Linux distributions or Windows.\n4K/120-Hz performance, physical presentation and broad mission/vehicle coverage require manual testing.\nKnown graphics/stability defects and final source/license review still block release.\nAlt+Enter toggles fullscreen. Default keyboard: arrows move, Z primary/confirm, X secondary/back, Enter Start.\nUse in-game PC options for graphics, audio, help and action remapping.\nNo ROM, extracted overlays, progress or screenshots are included.\n')
-        manifest={'schema':1,'ready_for_release':False,'license_review_complete':False,'platform':'linux-x86_64','commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'worktree_dirty':bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),'dependencies':json.loads((ROOT/'config/dependencies.json').read_text()),'controller_database':provenance,'license_files':license_count,'files':audit(stage)}
+        launcher=stage/LAUNCHER
+        launcher.write_text(launcher_text());launcher.chmod(0o755)
+        (stage/'README.txt').write_text(runtime_readme())
+        manifest={'schema':1,'product':PRODUCT,'version':VERSION,'release_tag':'v'+VERSION,'ready_for_release':False,'license_review_complete':False,'platform':'linux-x86_64','commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'worktree_dirty':bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),'dependencies':json.loads((ROOT/'config/dependencies.json').read_text()),'controller_database':provenance,'license_files':license_count,'files':audit(stage)}
         (stage/'BUILD.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n');audit(stage)
         with output.open('wb') as raw,gzip.GzipFile(fileobj=raw,mode='wb',mtime=0,filename='') as zipped,tarfile.open(fileobj=zipped,mode='w') as archive:
             for path in sorted(stage.rglob('*')):
                 if not path.is_file():continue
-                payload=path.read_bytes();info=tarfile.TarInfo(stage.name+'/'+path.relative_to(stage).as_posix());info.size=len(payload);info.mode=0o755 if path.name in ('blastcorps','Run Blast Corps.sh') else 0o644;info.mtime=0;archive.addfile(info,io.BytesIO(payload))
+                payload=path.read_bytes();info=tarfile.TarInfo(stage.name+'/'+path.relative_to(stage).as_posix());info.size=len(payload);info.mode=0o755 if path.name in (EXECUTABLE,LAUNCHER) else 0o644;info.mtime=0;archive.addfile(info,io.BytesIO(payload))
         output.with_suffix(output.suffix+'.sha256').write_text(digest(output)+'  '+output.name+'\n')
         print(json.dumps({'archive':str(output),'sha256':digest(output),'members':len(manifest['files'])+1,'ready_for_release':False}))
 

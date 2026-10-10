@@ -145,7 +145,7 @@ def run(args):
             pad('button',name,1);time.sleep(hold);pad('button',name,0);time.sleep(.3)
         try:
             wait(lambda value:'rt64_device_ready' in value)
-            window=subprocess.check_output(['xdotool','search','--pid',str(process.pid),'--name','Blast Corps'],env=env,text=True).split()[-1]
+            window=subprocess.check_output(['xdotool','search','--pid',str(process.pid),'--name','Blast Corps|Power Dozer'],env=env,text=True).split()[-1]
             command('windowfocus',window)
             wait(lambda value:'game mode switch from 4 to 5' in value)
             time.sleep(1);screenshot('title-controls');key('Return')

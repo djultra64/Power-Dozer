@@ -1,6 +1,8 @@
 import hashlib
 import importlib.util
+import json
 from pathlib import Path
+import tarfile
 import tempfile
 import unittest
 
@@ -8,6 +10,31 @@ spec=importlib.util.spec_from_file_location('source_package',Path(__file__).reso
 module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 
 class SourcePrivacy(unittest.TestCase):
+    def test_host_export_includes_public_release_notices_and_omits_private_qa(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            files={'LICENSE':'license','NOTICE':'asset scope','CHANGELOG.md':'release notes','Run Power Dozer.sh':'#!/bin/sh\n',
+                   'include/control_atlas_data.h':'constexpr int sprite=0;', 'config/control-atlas.json':'{}',
+                   'docs/install.md':'installation','docs/build-source.md':'recipe',
+                   'docs/qa/private-checkpoint.md':'private home path','docs/evidence/capture.md':'private evidence',
+                   '.local/rom.z64':'private ROM','build/main.cpp':'private generated code'}
+            for name,data in files.items():
+                path=root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(data)
+            inventory=module.host_inventory(root)
+            self.assertEqual(set(inventory),set(files)-{'docs/qa/private-checkpoint.md','docs/evidence/capture.md','.local/rom.z64','build/main.cpp'})
+            output=root/'source.tar.gz'
+            module.write_archive(output,[(root,inventory,'host')],{'product':'Power Dozer','version':'0.8','ready_for_release':False})
+            with tarfile.open(output) as archive:
+                self.assertTrue(all(name.startswith('power-dozer-v0.8-source/') for name in archive.getnames()))
+                manifest=json.load(archive.extractfile('power-dozer-v0.8-source/SOURCES.json'))
+                self.assertFalse(manifest['ready_for_release'])
+                for name,entry in inventory.items():
+                    data=archive.extractfile('power-dozer-v0.8-source/host/'+name).read()
+                    self.assertEqual(hashlib.sha256(data).hexdigest(),entry['sha256'])
+    def test_host_export_requires_license_and_scope_notice(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);(root/'LICENSE').write_text('license')
+            with self.assertRaisesRegex(ValueError,'Missing host notice: NOTICE'):module.host_inventory(root)
     def test_export_keeps_exact_synthetic_fixture_but_rejects_other_hex_progress(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);fixture=root/'tests/fixtures/legacy-completed.hex';fixture.parent.mkdir(parents=True);fixture.write_text('00112233')

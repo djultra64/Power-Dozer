@@ -45,12 +45,13 @@ void annotate(uint8_t* rdram,recomp_context* ctx,size_t index,const bc::InputMod
  bool foreground=false;
  for(auto offset:{0x28,0x2C,0x30,0x38,0x3C,0x40,0x48,0x4C,0x50,0x58,0x5C,0x60})foreground|=MEM_W(offset,S32(stack))!=0;
  if(!foreground)return;
- // Map/page hints begin at x=24. Smaller cells keep both controls before
- // the original text instead of clipping one of the two action glyphs.
- int size=std::min(std::clamp(height-2,8,16),(int(x)-2)/int(actions.size())-2);
- if(size<8)return;
- int origin=int(x)-int(actions.size())*(size+2);
- if(!hud){
+ // Keep source lettering readable. If two icons need extra space, reserve
+ // a prefix while preserving the original line right edge.
+ int size=std::clamp(height-2,8,16);
+ int prefix=int(actions.size())*(size+2);
+ int origin=hud?std::max(2,int(x)-prefix):int(x);
+ int shift=hud?std::max(0,origin+prefix-int(x)):prefix;
+ if(shift){
   // Original tutorial sprites occupy the decorative left column. Reserve
   // an inline prefix at the existing text anchor instead of covering them.
   // All verified window instruction sites use the normal 0.6 advance mode.
@@ -59,11 +60,9 @@ void annotate(uint8_t* rdram,recomp_context* ctx,size_t index,const bc::InputMod
   auto width=std::bit_cast<float>(uint32_t(MEM_W(0x1C,S32(stack))));
   if(!std::isfinite(advance)||advance<=0||advance>1||!std::isfinite(width)||width<=0)return;
   float factor=1+float(replacement.size()-1)*advance,span=width*factor;
-  int prefix=int(actions.size())*(size+2);
-  if(span<=prefix)return;
-  MEM_W(0x14,S32(stack))=std::bit_cast<uint32_t>(local_x+prefix);
-  MEM_W(0x1C,S32(stack))=std::bit_cast<uint32_t>((span-prefix)/factor);
-  origin=int(x);
+  if(span<=shift)return;
+  MEM_W(0x14,S32(stack))=std::bit_cast<uint32_t>(local_x+shift);
+  MEM_W(0x1C,S32(stack))=std::bit_cast<uint32_t>((span-shift)/factor);
  }
  Annotation value{frame,index,origin,y+(height-size)/2,size,alpha,view.family(),{}};
  for(auto action:actions)value.prompts.push_back(view.prompt(action));
@@ -90,7 +89,7 @@ extern "C" void bc_game_prompt_text(uint8_t* rdram,recomp_context* ctx){
   const auto stack=uint32_t(ctx->r29);
   if(replacement->size()>length&&stack>=0x80000000&&stack<=0x807FFFE0){
    auto width=std::bit_cast<float>(uint32_t(MEM_W(0x1C,S32(stack))));
-   if(std::isfinite(width)&&width>0)MEM_W(0x1C,S32(stack))=std::bit_cast<uint32_t>(width*float(length)/float(replacement->size()));
+   if(std::isfinite(width)&&width>0)MEM_W(0x1C,S32(stack))=std::bit_cast<uint32_t>(width*(1+float(length-1)*.6f)/(1+float(replacement->size()-1)*.6f));
   }
   annotate(rdram,ctx,index,view,*replacement);
   if(std::getenv("BC_TRACE_INPUT")){
@@ -112,31 +111,19 @@ extern "C" void bc_game_prompt_flush(uint8_t* rdram,uint32_t reference,uint32_t 
  auto pointer=uint32_t(MEM_W(0,S32(reference)));const auto begin=frame+0x48B0,end=frame+0xA3A0;
  if(pointer<begin||pointer>end||(pointer&7))return;
  for(auto& site:pending){
-  std::vector<bc::GlyphRectangle> rectangles;
+  std::vector<bc::GlyphDraw> draws;
   for(size_t i=0;i<site.prompts.size();++i){
-   auto glyph=bc::input_glyph(site.prompts[i],site.family);
-   std::array<std::array<uint32_t,16>,16> pixels{};
-   for(auto rect:glyph){
-    int x0=rect.x*site.size/16,y0=rect.y*site.size/16;
-    int x1=((rect.x+rect.w)*site.size+15)/16,y1=((rect.y+rect.h)*site.size+15)/16;
-    auto colour=(rect.rgba&0xFFFFFF00)|uint32_t((rect.rgba&255)*site.alpha/255);
-    for(int y=y0;y<y1;++y)for(int x=x0;x<x1;++x)pixels[y][x]=colour;
-   }
-   // Preserve thin borders while reducing cells, and merge overlaps so a
-   // partially faded pixel blends once rather than becoming more opaque.
-   for(int y=0;y<site.size;++y)for(int x=0;x<site.size;){
-    auto colour=pixels[y][x];if(!colour){++x;continue;}
-    int begin=x;while(x<site.size&&pixels[y][x]==colour)++x;
-    rectangles.push_back({site.x+int(i)*(site.size+2)+begin,site.y+y,x-begin,1,colour});
-   }
+   if(auto glyph=bc::input_glyph(site.prompts[i],site.family))
+    draws.push_back({*glyph,site.x+int(i)*(site.size+2),site.y,site.size,site.alpha});
   }
-  auto commands=bc::glyph_commands(rectangles);
+  auto commands=bc::glyph_commands(draws);
   if(commands.empty()||commands.size()*8+256>end-pointer)continue;
   for(auto command:commands){MEM_W(0,S32(pointer))=command[0];MEM_W(4,S32(pointer))=command[1];pointer+=8;}
   if(std::getenv("BC_TRACE_INPUT")){
    static std::array<std::string,bc::original_game_prompts.size()> last;
-   std::vector<std::string> labels;for(auto& prompt:site.prompts)labels.push_back(prompt.label);
-   auto event=nlohmann::json{{"event","game_action_glyphs"},{"original",bc::original_game_prompts[site.index].text},{"labels",labels},{"x",site.x},{"y",site.y},{"size",site.size},{"alpha",site.alpha},{"commands",commands.size()}}.dump();
+   std::vector<std::string> labels,sprites;for(auto& prompt:site.prompts)labels.push_back(prompt.label);
+   for(auto& draw:draws)sprites.emplace_back(bc::glyph_name(draw.sprite));
+   auto event=nlohmann::json{{"event","game_action_glyphs"},{"original",bc::original_game_prompts[site.index].text},{"labels",labels},{"x",site.x},{"y",site.y},{"size",site.size},{"alpha",site.alpha},{"commands",commands.size()},{"sprites",sprites}}.dump();
    if(last[site.index]!=event){fprintf(stderr,"%s\n",event.c_str());last[site.index]=std::move(event);}
   }
  }

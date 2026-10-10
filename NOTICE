@@ -1,0 +1,24 @@
+Power Dozer v0.8
+A community native port of Blast Corps USA Rev 1.
+
+Original host code and project-specific modifications are distributed under
+the GNU General Public License, version 3 or later; see LICENSE. Third-party
+code retains its original license and notices. Dependency revisions and
+provenance are recorded in config/source-build.json and licenses/.
+
+N64Recomp and RT64: MIT. N64ModernRuntime: GPL version 3.
+See bundled dependency sources/notices for their exact terms and contributors.
+
+Blast Corps is a game by Rare/Nintendo. This project is unaffiliated with
+Rare or Nintendo and includes no ROM, extracted game assets, or save data.
+Game code and resources are generated locally from a user-supplied ROM.
+
+Control glyph artwork was supplied by the user in two image atlases.
+config/control-atlas.json records exact hashes and extraction boxes;
+include/control_atlas_data.h contains the extracted control artwork.
+The host-code GPL notice does not relicense this supplied artwork; its
+original author/license has not been identified.
+
+The v0.8 release is a prerelease for testing. Runtime/source manifests retain
+their audit flags: they do not certify a completed source/license audit,
+bit-for-bit reconstruction, or full-game/platform acceptance.

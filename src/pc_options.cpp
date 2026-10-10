@@ -4,6 +4,7 @@
 #include "funcs.h"
 #include "controls_menu.h"
 #include "input.h"
+#include "input_glyph.h"
 #include <json.hpp>
 #include <algorithm>
 #include <array>
@@ -81,6 +82,32 @@ extern "C" void bc_pc_options_draw(uint8_t* rdram){
  const auto state=uint32_t(MEM_W(0,address(0x80364A94)));
  if(MEM_W(0,address(0x80364A90))!=0||(state!=4&&state!=256)){restore(rdram);return;}
  paint(rdram);
+}
+extern "C" void bc_pc_options_glyphs(uint8_t* rdram,recomp_context* ctx,uint32_t frame){
+ std::lock_guard lock(mutex);
+ if(!menu||!controls||MEM_H(0,address(0x8036BB1C))!=2)return;
+ if(frame<0x80000000||frame>0x807DEB68)return;
+ auto pointer=uint32_t(ctx->r2);const auto begin=frame+0x48B0,end=frame+0xA3A0;
+ if(pointer<begin||pointer>end||(pointer&7))return;
+ auto view=bc_input_view();auto prompts=controls->prompts(view);
+ if(prompts.empty())return;
+ auto opacity=std::clamp<int>(MEM_H(0,address(0x8036BB20)),0,255);
+ if(!opacity)return;
+ std::vector<bc::GlyphRectangle> rectangles;
+ for(size_t i=0;i<prompts.size();i++){
+  auto row=custom+(i+1)*28;
+  // Match the original selected-row blink. Help information rows never blink.
+  if(MEM_HU(0x18,address(window))==i+1&&(MEM_HU(0,address(row))&0x40)&&uint32_t(MEM_W(0,address(0x803156C4)))%15>=11)continue;
+  int x=MEM_H(4,address(window))+MEM_H(2,address(row))-18;
+  int y=MEM_H(6,address(window))+MEM_H(4,address(row))+2;
+  auto glyph=bc::input_glyph(prompts[i],view.family());
+  for(auto rect:glyph){rect.x+=x;rect.y+=y;rect.rgba=(rect.rgba&0xFFFFFF00)|uint32_t((rect.rgba&255)*opacity/255);rectangles.push_back(rect);}
+ }
+ auto commands=bc::glyph_commands(rectangles);
+ // Reserve space for the original caller's end-of-frame commands as well.
+ if(commands.empty()||commands.size()*8+256>end-pointer)return;
+ for(auto command:commands){MEM_W(0,address(pointer))=command[0];MEM_W(4,address(pointer))=command[1];pointer+=8;}
+ ctx->r2=address(pointer);
 }
 extern "C" bool bc_pc_options_selection(uint8_t* rdram,recomp_context* ctx){
  std::lock_guard lock(mutex);

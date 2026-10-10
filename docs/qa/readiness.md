@@ -346,3 +346,50 @@ pause/resume. `mission-action-prompt-next.png` reviewed: PRESS ENTER is visible
 and fits the original location. Both sources remained unchanged; software
 Vulkan/dummy audio only. Other tutorial lines have guest-memory test coverage,
 but their native screenshots and actual device glyph rendering are pending.
+
+Device glyph implementation: actual vector cells are now integrated into the
+original control editor/help rows. The guest-table test observes RED for the
+missing post-draw bridge, then GREEN for bounded commands, no write when there
+is insufficient display-list space, closed-window suppression and opacity.
+The raster/command suite covers four distinct face buttons in all three
+families plus unknown positions, remapping, all default control types,
+unbound actions, cell/screen bounds and paired graphics state restoration.
+SDK macros were compiled independently to verify the RDP encodings. Normalizer
+validates the original return instructions before inserting the post-draw hook.
+Current suites: 20 native / 26 Python passed.
+
+Native keyboard glyph regression: `.local/qa/gameplay-l9rj1ddt`, 180 seconds,
+10,801 VI / 10,467 graphics / 5,398 audio tasks. Remap/cancel/help, changed-key
+movement, pause/resume and Restart accepted. `controls-saved.png` reviewed:
+keycap cells align beside the actual labels; the original map/page instruction
+also reflects the configured keyboard bindings.
+
+Manual-family editor rendering captures: PlayStation `.local/qa/gameplay-k2bx7xpg`
+130 seconds, 7,801 VI / 7,470 graphics / 3,899 audio; Xbox
+`.local/qa/gameplay-x54q6gt1` 150 seconds, 9,001 VI / 8,655 graphics / 4,499 audio;
+Switch `.local/qa/gameplay-6slspflu` 150 seconds, 9,001 VI / 8,663 graphics /
+4,498 audio. All five editor pages, movement and pause/resume accepted.
+Reviewed first pages: PS cross/circle, Xbox green A/red B and Switch B/A/PLUS
+match their captions. PS camera/stick direction and shoulder page plus final
+movement page also reviewed. These software Vulkan/dummy audio runs use manual
+family selection and keyboard navigation, not actual controller actions.
+
+Final polish following these captures: read the original 16-bit opacity field
+as a halfword (regression explicitly checks alpha 127 and alpha 0) and rename
+HORN L/R to SPECIAL L/R because the same actions skid/launch in other vehicles.
+Current-build PlayStation rerun `.local/qa/gameplay-aei22ros` passed 130 seconds,
+7,801 VI / 7,474 graphics / 3,899 audio tasks. All five pages, movement and
+pause/resume accepted; reviewed the new SPECIAL L caption with its L1 glyph.
+Source progress stays unchanged. Full suites pass.
+
+Remaining Task 4 work: native device-driven help/tutorial glyph captures,
+glyphs beside original HUD/tutorial instructions (currently adapted names),
+device-specific menu/stick-click naming, and physical button/prompt acceptance.
+Kernel inventory announces a physical Xbox-compatible controller and HHD/Steam
+virtual devices; enumerating those does not count as pressing physical buttons.
+
+Task 5 source finding: pinned RT64 `rt64_workload_queue.cpp` lines 221–226
+clamps manual refresh to the detected swap-chain rate. Xvfb's 60-Hz surface
+therefore gives effective target 60 despite --refresh 120. Do not bypass this
+with a fake physical acceptance claim; validate actual supported display modes
+and geometry interpolation separately before the graphics release gate.

@@ -1,6 +1,13 @@
 #include "controls_menu.h"
 #include <algorithm>
 namespace bc {
+std::vector<InputPrompt> ControlsMenu::prompts(const InputModel& view) const{
+ if(page_!=Page::Actions&&page_!=Page::Help)return {};
+ auto model=view;if(page_==Page::Actions)model.activity(source_);
+ std::vector<InputPrompt> result;
+ for(unsigned i=part_*3;i<std::min<unsigned>(part_*3+3,input_action_labels.size());i++)result.push_back(model.prompt(InputAction(i)));
+ return result;
+}
 bool ControlsMenu::interactive(unsigned row) const{
  if(page_==Page::Help)return row>=std::min<unsigned>(3,input_action_labels.size()-part_*3);
  if(page_==Page::Capture)return row==unsigned(source_==InputSource::Keyboard?1:2);

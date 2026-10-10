@@ -5,6 +5,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <cstdio>
+#include <bit>
 static unsigned shown=0;
 static bc::InputModel input_view;
 bc::InputModel bc_input_view(){return input_view;}
@@ -18,6 +19,9 @@ int main(){
  MEM_W(0,a(0x80364A94))=4;MEM_H(0,a(0x8036BB18))=0;
  MEM_W(8,a(0x802F8BDC))=0xF1000039;MEM_H(0x10,a(0x802F8BDC))=5;MEM_H(0x18,a(0x802F8BDC))=1;
  MEM_W(0,a(0x8036BB24))=0x12345678;
+ MEM_H(0,a(0x802F8BDC))=256;MEM_H(2,a(0x802F8BDC))=208;
+ MEM_H(4,a(0x802F8BDC))=32;MEM_H(6,a(0x802F8BDC))=16;
+ for(int row=1;row<=4;row++){MEM_H(2,a(0x802F5804+row*28))=80;MEM_H(4,a(0x802F5804+row*28))=82+(row-1)*20;}
  // The original pause greys out View Stats while driving. Custom PC rows
  // remain available even when their cloned original row was disabled.
  MEM_B(0x18,a(0x802F5804+2*28))=8;
@@ -59,6 +63,17 @@ int main(){
  check(choose(0xFFFF),"action list Back returns devices");check(choose(0xFFFF),"device picker Back returns parent");check(choose(3),"Help opens");
  input_view.activity(bc::InputSource::Controller);input_view.manual_family(bc::ControllerFamily::Switch);bc_pc_options_draw(rdram);
  check(row_string(1)=="ACCEL/OK: B","in-game help follows physical Switch south");
+ MEM_H(0,a(0x8036BB1C))=2;MEM_W(0,a(0x8036BB34))=std::bit_cast<uint32_t>(1.f);MEM_W(0,a(0x8036BB38))=std::bit_cast<uint32_t>(1.f);MEM_H(0,a(0x8036BB20))=255;
+ constexpr uint32_t frame=0x80500000,list=frame+0x48B0,end=frame+0xA3A0;
+ ctx.r2=a(list);bc_pc_options_glyphs(rdram,&ctx,frame);
+ check(uint32_t(ctx.r2)>list&&uint32_t(ctx.r2)<end,"glyph commands stay in original main display list");
+ check(uint32_t(MEM_W(0,a(list)))==0x00525464&&uint32_t(MEM_W(-4,ctx.r2))==0x20000000,"glyph block enables and disables extended GBI");
+ MEM_H(0,a(0x8036BB20))=127;ctx.r2=a(list);bc_pc_options_glyphs(rdram,&ctx,frame);
+ bool faded=false;for(uint32_t p=list;p<uint32_t(ctx.r2);p+=8)if(uint32_t(MEM_W(0,a(p)))==0xFA000000){check((uint32_t(MEM_W(4,a(p)))&255)==127,"glyph opacity follows original 16-bit window alpha");faded=true;}
+ check(faded,"partially transparent glyph emits a colour");
+ MEM_H(0,a(0x8036BB20))=0;ctx.r2=a(list);bc_pc_options_glyphs(rdram,&ctx,frame);check(uint32_t(ctx.r2)==list,"zero alpha has no glyphs");MEM_H(0,a(0x8036BB20))=255;
+ ctx.r2=a(end-8);bc_pc_options_glyphs(rdram,&ctx,frame);check(uint32_t(ctx.r2)==end-8,"insufficient display-list capacity leaves the guest untouched");
+ MEM_H(0,a(0x8036BB1C))=1;ctx.r2=a(list);bc_pc_options_glyphs(rdram,&ctx,frame);check(uint32_t(ctx.r2)==list,"closed animation has no stray glyph commands");
  bc::take_pc_controls_cancel();MEM_W(0,a(0x80364A94))=1;bc_pc_options_draw(rdram);check(bc::take_pc_controls_cancel(),"leaving pause cancels editor state");
  puts("PC options guest bridge passed");
 }

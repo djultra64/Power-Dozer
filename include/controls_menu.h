@@ -12,6 +12,7 @@ public:
  bool interactive(unsigned row) const;
  std::string title(const InputModel&) const;
  std::vector<std::string> rows(const InputModel&) const;
+ std::vector<InputPrompt> prompts(const InputModel&) const;
  void select(int);
  void back();
  void acknowledge(const RemapResult&);

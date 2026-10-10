@@ -21,6 +21,7 @@ def run(args):
     qa=ROOT/'.local/qa';qa.mkdir(parents=True,exist_ok=True)
     directory=Path(tempfile.mkdtemp(prefix='gameplay-',dir=qa))
     data=directory/'data';data.mkdir()
+    if args.glyphs:(data/'settings.json').write_text(json.dumps({'family':args.glyphs})+'\n')
     source_hash=None
     pak_hash=None
     if args.seed_save:
@@ -158,6 +159,19 @@ def run(args):
                     key(confirm);time.sleep(1);screenshot('controls-help-camera')
                     key('x');time.sleep(1);key('x');time.sleep(1);key('x');time.sleep(1)
                     print('Controls remap, cancellation and in-game help verified',flush=True)
+                if args.glyphs:
+                    key(confirm);time.sleep(1);key('Down');key('Down');key(confirm);time.sleep(1)
+                    key('Down');key(confirm);time.sleep(1);key('Down');key(confirm)
+                    labels={'xbox':'A','playstation':'CROSS','switch':'B'}
+                    wait(lambda value:control_view(value,'PAD 1/5','ACCEL/OK: '+labels[args.glyphs]))
+                    for part in range(5):
+                        time.sleep(1);screenshot(f'{args.glyphs}-actions-{part+1}')
+                        time.sleep(.13);screenshot(f'{args.glyphs}-actions-{part+1}-next')
+                        if part<4:
+                            key('Down');key('Down');key('Down');key(confirm)
+                            wait(lambda value:control_view(value,f'PAD {part+2}/5'))
+                    for _ in range(4):key('x');time.sleep(1)
+                    print('Manual-family controller editor pages captured: '+args.glyphs,flush=True)
                 key('Return');time.sleep(1);key('Right',1);key(confirm,2);screenshot('resume')
                 if states()[-1]['paused']:raise ValueError('Start did not resume the guest')
                 print('Guest position changed; pause and resume confirmed by guest state',flush=True)
@@ -193,6 +207,7 @@ def run(args):
             result['options_verified']=args.options
             result['controls_verified']=args.controls
             result['prompt_captured']=prompt_captured
+            result['manual_family_glyphs_captured']=args.glyphs
             if args.prompts and not prompt_captured:raise ValueError('Original mission prompt was not adapted and captured')
             result['restart_verified']=args.retry
             result['failure_verified']=args.wait_failure
@@ -219,9 +234,10 @@ if __name__=='__main__':
     parser.add_argument('--options',action='store_true')
     parser.add_argument('--controls',action='store_true')
     parser.add_argument('--prompts',action='store_true')
+    parser.add_argument('--glyphs',choices=('xbox','playstation','switch'),help='Capture controller editor glyphs using the manual family fallback')
     parser.add_argument('--wait-failure',action='store_true')
     args=parser.parse_args()
     if args.seconds<90:parser.error('At least 90 seconds are required for the mission transition')
-    if (args.retry or args.wait_failure or args.options or args.controls) and not args.exercise:parser.error('Retry/failure/options needs --exercise')
+    if (args.retry or args.wait_failure or args.options or args.controls or args.glyphs) and not args.exercise:parser.error('Retry/failure/options/controls/glyphs needs --exercise')
     try:run(args)
     except (ValueError,subprocess.SubprocessError) as error:parser.exit(1,str(error)+'\n')

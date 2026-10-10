@@ -158,7 +158,8 @@ def normalize(folder):
     for address,expected in (
         (0x802F8BDC,'010000d000200010f1000039000000000005001b001c001d00000000'),
         (0x8024BDA4,'27bdffd03c0e8036'),(0x8026BCE0,'3c0f80313c188037'),
-        (0x80259EC4,'27bdffc0afa500448fae0044')):
+        (0x80259EC4,'27bdffc0afa500448fae0044'),
+        (0x8026EF68,'03e0000827bd0150')):
         at=address-0x802447C0
         if rom[at:at+len(expected)//2].hex()!=expected:
             raise ValueError(f'Original PC options hook layout changed at {address:08X}')
@@ -196,6 +197,11 @@ def normalize(folder):
                 body=body[:at]+f'    bc_guest_window_trace(rdram,ctx,{draw});\n'+body[at:]
         if body.startswith('RECOMP_FUNC void func_8026BCE0(') and 'bc_pc_options_draw' not in body:
             at=body.index('\n')+1;body=body[:at]+'    bc_pc_options_draw(rdram);\n'+body[at:]
+        if body.startswith('RECOMP_FUNC void func_8026BCE0(') and 'bc_pc_options_glyphs' not in body:
+            at=body.index('\n')+1;body=body[:at]+'    const uint32_t bc_glyph_frame = uint32_t(ctx->r5);\n'+body[at:]
+            final='    ctx->r29 = ADD32(ctx->r29, 0X150);\n    return;'
+            if body.count(final)!=1:raise ValueError('Original PC glyph return layout changed')
+            body=body.replace(final,'    ctx->r29 = ADD32(ctx->r29, 0X150);\n    bc_pc_options_glyphs(rdram,ctx,bc_glyph_frame);\n    return;')
         if body.startswith('RECOMP_FUNC void func_80259EC4(') and 'bc_game_prompt_text' not in body:
             at=body.index('\n')+1;body=body[:at]+'    bc_game_prompt_text(rdram,ctx);\n'+body[at:]
         if body.startswith('RECOMP_FUNC void func_8024BDA4(') and 'bc_pc_options_selection' not in body:

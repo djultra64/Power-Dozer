@@ -67,6 +67,29 @@ Start uses the written name PLUS because the original font omits the + sign.
 This stage supplies device names; actual controller glyph drawing and native
 captures for the other tutorial pages remain required.
 
+## Device glyph drawing decision
+
+Draw 16×16 vector cells beside controller/keyboard rows in the original editor
+and help. Resolve each cell from the same InputPrompt as its label: coloured
+Xbox A/B/X/Y, monochrome Switch B/A/Y/X, PlayStation shapes, and explicit
+position marks for unknown families. Stick direction, triggers, shoulders,
+menu and keyboard caps have distinct cells. An unbound action has no physical
+glyph. Controller editor rows use the selected editor device; help follows the
+last device active in the game.
+
+Append bounded RDP rectangles after the original window draws its text, using
+the original computed row positions and selected-row blink. Match the original
+window's opacity; emit no cells while its opening/closing animation is active.
+Use RT64's paired combiner/primitive-colour stacks to restore exact prior state.
+Do not allocate or replace guest vertices/textures. Verify available room in the
+original main display list and reserve space for the caller's remaining commands.
+The special shoulder actions are labelled SPECIAL L/R: their effect is vehicle
+dependent (horn, skid or launch), so calling every use a horn is misleading.
+
+Editor captures under manual-family fallback establish rendering, not physical
+controller detection or button presses. Add native device-driven captures and
+glyphs for the original HUD/tutorial instructions before closing Task 4.
+
 ## Settings menu implementation decision
 
 Reuse the original pause window's fonts, animation and selection behavior.

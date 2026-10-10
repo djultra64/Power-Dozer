@@ -10,8 +10,8 @@ keyboard and three virtual controller families, stereo audio recovery, Alt+Enter
 and playable Simian Acres with movement/pause/Continue/Restart/failure. Corrected
 interpolated presentation passes measured 720p/1080p120 on a virtual120Hz output;
 4K120 sustained performance and intermittent native startup freezes remain
-under investigation. New objective
-completion, broader missions, physical controls/output audio, complete licenses
+under investigation. New Simian Acres objective completion is verified; its
+cold save/reload, broader missions, physical controls/output audio, complete licenses
 and final package/independent review remain pending. Detailed chronological
 evidence below retains each earlier checkpoint and its scope.
 
@@ -1358,3 +1358,28 @@ bc___osSpGetStatus. It reads yielded bit0x100 and updates the original OSTask
 flags. Changing the dead stub cannot resolve a native freeze. A repeat batch
 with pre-teardown debugger capture is prepared; causal freeze closure still
 requires a real stalled-native backtrace, not repeated successful runs.
+
+
+Original-aspect segment-arrival trial gameplay-fwgzfm90 terminal exit0
+(handle80184):240seconds14401VI/14048gfx/7200audio,9buildings/$438970/66RDUs,
+failed1 atVI8948. Source EEPROM preserved. Presented 4:3 capture reviewed;
+large diagonal translucent polygons also appear with original aspect, so
+widescreen alone does not explain them. Base rendering fidelity remains open.
+The approximate navigation experiment remains outside standard exercise gates.
+
+NEW ORIGINAL MISSION COMPLETION: gameplay-thyz2my6 terminal exit0(handle34256),
+240seconds14401VI/14162gfx/7199audio. Private virtual Xbox route advanced from
+observed major demolition value changes rather than any incidental building,
+then continued observing/dismissing original roadside tutorials through inputs.
+Original state atVI11350:level0,state_lo512,paused1,failed0,COMPLETE1,window5,
+9buildings,$598520,53RDUs. Actual compositor objective-result.png reviewed:
+CONGRATULATIONS and carrier at the cleared endpoint. This is a new success
+latched by the original CPU game logic after gameplay, not injected save bits,
+synthetic fixture replay or an assumption from counters alone.
+Six physical keyboard Confirm edges traversed the original completion flow;
+native Pak atomic write events occurred, and a subsequent mission in that same
+process retained $598520/9buildings/53RDUs. Standard exercise_verified stays
+false for the exploratory script. Source user EEPROM remained untouched.
+Cold process reload from this newly produced private Pak/EEPROM is now running;
+completion is verified, durability across restart is not accepted until that
+separate result is inspected. No native production code changed in these trials.

@@ -1458,3 +1458,22 @@ CMAKE_CONFIGURE_DEPENDS now tracks both transform and pinned SDK timer source.
 Touching only generator mtime caused automatic reconfiguration; identical output
 retained its mtime. Evidence timer-cmake-regeneration-oct10.log. Full30 native
 checks pass after rebuilding. Native-freeze causality and release gates remain open.
+
+Post-timer cold completed-level reload gameplay-te41jz_7 terminal exit0
+(handle67168),180seconds10801VI/10953gfx/5399audio. Original ALF completed
+Simian stats loaded and replayed; movement/pause/Continue verified, source
+EEP/Pak unchanged. Audio22050Hz,5398buffers,3901056frames,rejected0,maxqueue3968.
+Strict1080p120 gate passed67 unpaused windows/134.00458seconds,
+min119.421/max120.146fps; physical output and visual interpolation remain separate. No native stall triggered.
+
+Independent original reference runs are QA-only: Mupen64Plus2.6.0 with
+Angrylion RDP Plus v1.6 and source-built CXD4 LLE, official release fingerprints
+recorded privately. They are not the native product and are not packaged.
+Original guest initial Simian state was produced by ordinary controls and saved
+through original emulator F5:mode2,paused1,window87,x71680/y4480/z65568,
+camera135. Original route destroyed first2 buildings ($100280), then damaged
+the third while circling. Actual compositor images reviewed; this is reference
+coverage, not fidelity acceptance. Direct original RAM reads use O_RDONLY and
+fingerprinted core layout; no guest writes/inferior function calls. Original
+initial and final saved-state motion-blur mode/count/max/FOV all zero; native
+effect-state comparison is in progress. User EEPROM remains untouched.

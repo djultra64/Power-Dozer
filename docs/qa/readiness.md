@@ -1441,3 +1441,12 @@ replacement/deadline order,cancellation,zero-countdown periodic tests and
 Six-minute cold-cache4K native exercise/retry trial is now running. This fixes
 an independently demonstrated race; the previously observed native startup
 freeze remains open until its cause is separately established.
+
+Post-snapshot native cold-cache4K trial gameplay-lnyrl0o_ terminal exit0
+(handle48804):360seconds21601VI/21297gfx/10799audio, standard movement/pause/
+Continue and original Restart passed. Source EEPROM unchanged. Native stereo
+summary22050Hz,10798buffers,7779536frames,zero rejected buffers,peak32768,
+maximum queue3712bytes. This is audio processing/queue evidence, not physical
+speaker verification. No live-health stall triggered. Strict4K120 sustained
+acceptance remains open; late private paused windows measure about117fps.
+No visual fidelity claim from stale X11 window screenshots.

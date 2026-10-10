@@ -1304,3 +1304,26 @@ The probe now also requires replacement text events after each device event,
 and requires the same paused original tutorial throughout. This narrow trace
 acceptance is separate from full controller remap/reconnect/physical acceptance.
 79 Python tests pass; native production code is unchanged in this investigation.
+
+
+Switch tutorial repeat gameplay-yknbi78l terminal exit0(handle57834):90seconds
+5401VI/5104gfx/2699audio, original paused window87 throughout device handover.
+Canonical compositor captures reviewed: PLUS text and plus-shaped glyph,
+then ENTER/keycap; device and prompt replacement traces pass the explicit
+handover assertions. Normal keyboard movement/pause/Continue and EEPROM
+preservation pass. This closes the suspected original-window87 handover gap
+for all three virtual families; physical hardware remains a separate gate.
+
+Private multi-target exploratory route gameplay-qghnm3cl terminal exit0
+(handle30241):180seconds10801VI/10503gfx/5398audio,8 newly destroyed buildings/$504910/60RDUs. Seven input targets
+follow nearby placed structures; advancement currently accepts any new
+building, so target selection alone does not prove the whole carrier corridor
+cleared. Presented captures now show actual rubble, fire/smoke and destruction
+geometry. Some fading geometry deserves comparison against original-rate
+rendering before visual interpolation acceptance. Normal movement/pause/
+Continue passed. The passive tail remained paused in original roadside window73;
+missionComplete/missionFailed never latched, so objective completion and save-
+reload are NOT accepted by this run. A separate private experiment now dismisses
+such roadside tutorials via actual virtual-pad Confirm inputs while observing
+the original objective result. It does not patch guest state or count as the
+standard exercise/controller gate.

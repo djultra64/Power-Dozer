@@ -813,3 +813,56 @@ for any package-level graphics claim. Its final clean-tree archive SHA256
 1b648a9d617a4518ed5fe0fd6298e5f0463a023e6a443e2bfa885f8b97b62474 retained
 all 70 accepted payload hashes; only BUILD.json metadata changed after its
 initial tested draft. Package manifest audit passed. Goal remains active.
+
+Task 5 actual-frame observer now compiled from two local generated RT64 queue
+copies. prepare_render_observer.py verifies full pinned source SHA256 and
+unique hook sites before any build. Original present/workload sources remain
+byte-identical (90df4e9c... and 6e53030e...). Completed-render callback is after
+threadRenderFrame; present callback is after swapChain->present and records its
+actual success result. Transform mappings are counted on the render thread
+that owns the current frame map. Optional BC_TRACE_RENDER disables callbacks'
+recording in normal launches; native QA enables it. Host mutex/counters collect
+bounded elapsed-time windows instead of per-frame output. Local queue objects
+precede the prebuilt archive; nm shows one strong PresentQueue::threadPresent
+and one WorkloadQueue::renderThreadLoop definition. No guest/ROM changes.
+
+RED: observer stub failed success/error counts over actual elapsed time.
+GREEN fake-clock native cases verify present/failure/elapsed/FPS arithmetic,
+window reset, empty/zero-time finite results, actual quarter/half/three-quarter
+weights and mapping totals. An intermediate compiler error came from naming
+collision with Plume RenderWindow; prefixing observer types repaired it. That
+compiler error is not behavioral RED. Mechanical generator tests prove local
+only changes, fingerprint rejection, unique-site rejection and idempotent
+reconfigure without file rewrite. Suites: 27 native / 51 Python passed.
+
+Actual observer Radeon acceptance: .local/qa/gameplay-zpnljjb6, virtual headless
+1920x1080@120 output, actual internal 3840x2160/target120. Two-minute gameplay
+completed 7,201 VI / 6,901 graphics / 3,599 audio, movement/pause/Continue and
+instruction checker accepted, source EEPROM/Pak unchanged. GPU identity remains
+RADV PHOENIX. No failed swapchain submissions in the seventeen windows recorded
+in mode 2 while unpaused/window -1. Across these windows: 1,020 successful
+present submissions, 1,854 completed renders, 834 fractional renders, weights
+quarter/half/three-quarter exactly 278 each, 113,724 mapped transform observations
+out of 127,110 total transform observations. Counts are repeated per-render
+observations, not unique entities or guaranteed visually correct matrices.
+
+Critical new evidence: mission present-submission rate is 29.998..30.002 FPS,
+despite target120 and real fractional render weights. Thus generation is active
+but the current presentation path does not deliver a 120-FPS swapchain stream.
+This contradicts any "interpolation ready" claim based on target/pool snapshots.
+Successful submissions on a virtual output are still not physical scans, but
+the measured 30-FPS stream alone prevents claiming the requested output.
+Existing generic gameplay checker passes scheduling/input; it is not a 120-FPS
+acceptance gate. Do not call this a completed graphics/performance task.
+
+Next causal investigation: instrument present selection (interpolationEnabled,
+framesToPresent, batch count/available and displayed framebuffer) at the same
+verified queue copy, then compare original/120 and a lower render-cost profile.
+RT64 present queue selects framesToPresent=frameCounters.count only when the
+presented framebuffer has interpolation enabled; otherwise it renders one.
+Blast Corps submits multiple graphics lists per frame. This suggests a workload/
+framebuffer/present association issue, but that is a hypothesis until selection
+trace and a targeted experiment establish it. Keep the original SP/DP/FullSync
+semantics, avoid globally stretching/replaying frames to fake smoothness, and
+require actual intermediate geometry and presentation after any correction.
+The private package predates observer objects and needs regeneration later.

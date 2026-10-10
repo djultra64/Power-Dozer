@@ -3,6 +3,7 @@
 #include "l3d.h"
 #include "settings.h"
 #include "pc_options.h"
+#include "render_observer.h"
 #include "hle/rt64_application.h"
 #include "hle/rt64_workload_queue.h"
 #include "ultramodern/ultramodern.hpp"
@@ -130,6 +131,7 @@ Context(uint8_t* rdram,ultramodern::renderer::WindowHandle window) {
         };
         auto g=summarize(std::move(gpu)),c=summarize(std::move(cpu));
         fprintf(stderr,"{\"event\":\"rt64_render_cost\",\"vi\":%llu,\"gpu_samples\":%.0f,\"gpu_mean_ms\":%.4f,\"gpu_p95_ms\":%.4f,\"gpu_max_ms\":%.4f,\"cpu_samples\":%.0f,\"cpu_mean_ms\":%.4f,\"cpu_p95_ms\":%.4f,\"cpu_max_ms\":%.4f}\n",(unsigned long long)vi,g[0],g[1],g[2],g[3],c[0],c[1],c[2],c[3]);
+        bc_render_report(vi);
     }
     void shutdown() override { app_->end(); }
     uint32_t get_display_framerate() const override { return app_->presentQueue->ext.sharedResources->swapChainRate; }

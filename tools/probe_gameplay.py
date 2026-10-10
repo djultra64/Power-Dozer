@@ -38,7 +38,7 @@ def run(args):
         pak_hash=hashlib.sha256(args.seed_pak.read_bytes()).hexdigest()
         shutil.copyfile(args.seed_pak,data/'controller-pak.bin')
     driver={'software':'/usr/share/vulkan/icd.d/lvp_icd.x86_64.json','radv':'/usr/share/vulkan/icd.d/radeon_icd.x86_64.json'}[args.gpu]
-    env=dict(os.environ,BC_TRACE_INPUT='1',BC_TRACE_GAMEPLAY='1',SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',VK_DRIVER_FILES=driver)
+    env=dict(os.environ,BC_TRACE_INPUT='1',BC_TRACE_GAMEPLAY='1',BC_TRACE_RENDER='1',SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',VK_DRIVER_FILES=driver)
     if args.audio_loss:
         subprocess.run(['c++','-std=c++20','-shared','-fPIC','-I/home/linuxbrew/.linuxbrew/include/SDL2','tools/qa_audio_fault.cpp','-ldl','-L/home/linuxbrew/.linuxbrew/lib','-lSDL2','-Wl,-rpath,/home/linuxbrew/.linuxbrew/lib','-o',str(directory/'libaudio-fault.so')],cwd=ROOT,check=True)
         # ld.so splits LD_PRELOAD on spaces, including spaces inside paths.

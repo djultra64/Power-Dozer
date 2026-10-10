@@ -199,3 +199,18 @@ copy acceptance, before removing the legacy default. The final executable
 must run from a clean directory with no dependency on this source checkout.
 Missing/invalid ROM must lead to useful selection/error flow without touching
 progress. No bundled ROM or overlays in the RC archive.
+
+Task 5 observer boundary: frame-pool sums cannot measure presented FPS. The
+pinned RT64 present source calls swapChain->present then presentProfiler.log;
+its workload source calls threadRenderFrame with computed fractional weights
+then advances actual framesRendered. Generate local build-directory copies of
+these two files only, after verifying complete SHA256 and unique hook sites.
+Compile those copies before the prebuilt archive to replace the same objects,
+keeping the reference read-only and preserving ABI/build flags. Optional host
+callbacks count successful/failed present submissions, completed renders,
+fractional-weight renders and actual transform mappings. Aggregate timestamps
+and counters under a host mutex; report bounded windows instead of per-frame
+JSON. Verify count/elapsed/reset/error arithmetic with a fake-clock model,
+hook/fingerprint failure before build, link uniqueness and native GPU profiles.
+Successful swapchain submissions in a headless output remain virtual evidence,
+not physical display scans or proof of visual interpolation correctness.

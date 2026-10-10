@@ -9,6 +9,9 @@ static bc::InputModel input_view;
 bc::InputModel bc_input_view(){return input_view;}
 static void check(bool value,const char* message){if(!value)throw std::runtime_error(message);}
 int main(){
+ check(bc::game_prompt_actions("USE Z/R TO MOVE MAP").size()==2,"two glyphs use the two actual map actions");
+ check(bc::game_prompt_actions("PRESS START").size()==1,"pause instruction has one glyph action");
+ check(bc::game_prompt_actions("FOR A HOLIDAY.").empty(),"narrative prose has no control glyphs");
  auto& model=input_view;
  auto prompt=[&](const char* text){return bc::game_prompt(text,model);};
  check(prompt("PRESS START")=="PRESS ENTER","keyboard pause tutorial");

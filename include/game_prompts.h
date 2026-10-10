@@ -4,6 +4,7 @@
 #include <string_view>
 #include <array>
 #include <cstdint>
+#include <span>
 namespace bc {
 struct OriginalGamePrompt {uint32_t address;const char* text;};
 inline constexpr std::array<OriginalGamePrompt,13> original_game_prompts={{
@@ -16,5 +17,6 @@ inline constexpr std::array<OriginalGamePrompt,13> original_game_prompts={{
  {0x80308240,"USE Z/R TO MOVE MAP"}
 }};
 // Exact original instructions only: ordinary narrative text stays untouched.
+std::span<const InputAction> game_prompt_actions(std::string_view);
 std::optional<std::string> game_prompt(std::string_view,const InputModel&);
 }

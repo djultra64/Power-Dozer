@@ -14,6 +14,7 @@ from check_gameplay_probe import check
 from check_pak_save import check as check_pak
 from check_audio_recovery import check as check_audio_recovery
 from check_controller_probe import check as check_controller_probe
+from check_instruction_probe import check as check_instruction_probe
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -266,6 +267,7 @@ def run(args):
             result=check(log,required_modes=(14,2))
             if args.audio_loss:result['audio_recovery']=check_audio_recovery(log)
             if args.controller:result['controller_actions']=check_controller_probe(log,args.controller)
+            if args.instruction_glyphs:result['instruction_glyphs']=check_instruction_probe(log,args.controller)
             result['seconds_requested']=args.seconds
             result['exercise_verified']=args.exercise
             result['options_verified']=args.options
@@ -299,13 +301,14 @@ if __name__=='__main__':
     parser.add_argument('--options',action='store_true')
     parser.add_argument('--controls',action='store_true')
     parser.add_argument('--prompts',action='store_true')
+    parser.add_argument('--instruction-glyphs',action='store_true',help='Check original HUD/tutorial glyph commands and matching action names; captures still require visual review')
     parser.add_argument('--audio-loss',choices=('queue','removal'),help='Privately simulate startup output unavailability and mid-game audio loss')
     parser.add_argument('--controller',choices=('xbox360','ps5','switch'),help='Exercise native UI and guest actions using an SDL virtual controller')
     parser.add_argument('--glyphs',choices=('xbox','playstation','switch'),help='Capture controller editor glyphs using the manual family fallback')
     parser.add_argument('--wait-failure',action='store_true')
     args=parser.parse_args()
     if args.seconds<90:parser.error('At least 90 seconds are required for the mission transition')
-    if (args.retry or args.wait_failure or args.options or args.controls or args.glyphs or args.controller) and not args.exercise:parser.error('Retry/failure/options/controls/glyphs/controller needs --exercise')
+    if (args.retry or args.wait_failure or args.options or args.controls or args.glyphs or args.controller or args.instruction_glyphs) and not args.exercise:parser.error('Retry/failure/options/controls/glyphs/controller/instruction-glyphs needs --exercise')
     if args.controller and args.glyphs:parser.error('Virtual device detection and manual-family rendering need separate runs')
     try:run(args)
     except (ValueError,subprocess.SubprocessError) as error:parser.exit(1,str(error)+'\n')

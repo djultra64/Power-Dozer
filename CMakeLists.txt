@@ -93,6 +93,7 @@ target_include_directories(game_prompts_test PRIVATE include .local/generated/fu
  "${RUNTIME}/librecomp/include" "${RUNTIME}/librecomp/include/librecomp"
  "${RUNTIME}/thirdparty/json" /home/linuxbrew/.linuxbrew/include/SDL2)
 target_link_libraries(game_prompts_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+target_sources(game_prompts_test PRIVATE src/input_glyph.cpp)
 add_test(NAME original_game_prompts_follow_actions COMMAND game_prompts_test)
 add_executable(input_glyph_test tests/input_glyph.cpp src/input_glyph.cpp src/input_model.cpp)
 target_include_directories(input_glyph_test PRIVATE include /home/linuxbrew/.linuxbrew/include/SDL2)
@@ -144,3 +145,9 @@ target_include_directories(audio_sdl_test PRIVATE include /home/linuxbrew/.linux
 target_link_libraries(audio_sdl_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
 add_test(NAME real_sdl_audio_output_loss_and_recovery COMMAND audio_sdl_test)
 set_tests_properties(real_sdl_audio_output_loss_and_recovery PROPERTIES ENVIRONMENT "SDL_AUDIODRIVER=dummy")
+
+add_executable(game_prompt_glyphs_test tests/game_prompt_glyphs.cpp src/game_prompts.cpp src/game_prompt_runtime.cpp src/input_model.cpp src/input_glyph.cpp)
+target_include_directories(game_prompt_glyphs_test PRIVATE include .local/generated/functions
+ "${RUNTIME}/N64Recomp/include" "${RUNTIME}/ultramodern/include" "${RUNTIME}/librecomp/include" "${RUNTIME}/librecomp/include/librecomp" "${RUNTIME}/thirdparty/json" /home/linuxbrew/.linuxbrew/include/SDL2)
+target_link_libraries(game_prompt_glyphs_test PRIVATE /home/linuxbrew/.linuxbrew/lib/libSDL2.so)
+add_test(NAME original_instruction_glyph_queue_and_bounds COMMAND game_prompt_glyphs_test)

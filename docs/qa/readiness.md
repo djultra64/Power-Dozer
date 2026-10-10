@@ -21,14 +21,14 @@ change the user's progress — incorrect migration could otherwise lose saves.
 - Complete: durable EEPROM storage and isolated data paths, including native reload.
 - In progress: gameplay/failure/pause/progress harness and assertion detection.
 - In progress: persistent graphics options and original-style settings menu.
-- Pending: complete controls, in-game family-correct glyphs and remapping.
+- In progress: controls/remapping and family-correct native glyphs implemented; physical acceptance pending.
 - Pending: aspect/interpolation/L3D/audio acceptance across representative missions.
 - Pending: portable ROM bootstrap, clean package and platform verification.
 - Pending: independent release review.
 
-Latest controls acceptance: editor and help are integrated into the original
-pause window. Task 4 remains in progress: original tutorial/HUD prompts and
-drawn device glyphs are not yet integrated, and physical acceptance is pending.
+Latest controls acceptance: editor/help and original HUD/tutorial instruction
+names and glyphs are integrated. Keyboard and virtual SDL families have native
+evidence; physical button acceptance remains pending.
 
 Task 1 tests: missing save, raw import, persistence, damaged-primary recovery,
 both copies invalid (no reset), oversized image, checksum corruption, interrupted
@@ -498,5 +498,59 @@ The primary display's listed modes peak around 60 Hz and the secondary's
 around 75 Hz (`xrandr --query`, read-only, no display settings changed). Neither
 currently offers a listed 120-Hz mode. Virtual device and Xvfb tests do not
 verify physical controller presses or physical 120-Hz presentation. Native
-controller Help glyphs/handover are accepted; glyphs beside original HUD and
-tutorial instructions plus physical button acceptance remain open.
+controller Help glyphs/handover are accepted. The following original-instruction
+acceptance extends that evidence; physical button acceptance remains open.
+
+Original-instruction glyph bridge: the existing exact-address/exact-string
+font hook now records action-resolved annotations alongside the replacement
+names. Verified 80259450 resets them per frame; verified 80259824 consumes them
+at text-queue flush and appends graphics commands through Gfx**, within the
+FrameContext main-DL bounds and a 256-byte caller reserve. State scopes restore
+RDP state; no guest texture/vertex storage is repurposed. Window icons follow
+the current window coordinates only in stable phase 2. Foreground color and
+alpha follow the original text; black shadows cannot keep blink-hidden icons
+alive. Inline prefixes preserve tutorial right edges and avoid original
+decorative sprites. Map/page hints retain both action glyphs before x=24.
+
+RED evidence: action-span stub omitted the second map action; actual queued
+glyph stub emitted no commands. Subsequent regression checks exposed shadow
+passes retaining colored icons and floor-downsampling losing the small trigger
+bottom border. GREEN: shared declarative action rules, consumed/reset annotations,
+foreground filtering and area-based cell reduction pass the corresponding
+assertions. Tests also cover exact matching, alpha, animated windows, bounds,
+nonfinite positions, full-context validation and actual remapped Square raster.
+An early compile failure was repaired before the valid runtime RED; it was
+not accepted as evidence of expected behavior. Normalizer ROM fingerprints
+and a second normalization preserve the generated CPU files byte-for-byte.
+
+Polished native keyboard run `.local/qa/gameplay-yyyyrgt_`, 120 seconds:
+7,201 VI / 6,865 graphics / 3,599 audio tasks, movement/pause/Continue and
+original PRESS ENTER accepted. PS5 `.local/qa/gameplay-2922n01c`, 140 seconds:
+8,401 VI / 8,049 graphics / 4,199 audio. Switch `.local/qa/gameplay-q_e3uqv8`,
+140 seconds: 8,401 VI / 8,056 graphics / 4,198 audio. Both controller runs
+accepted automatic help, keyboard handover, held-button reconnect suppression,
+steering/acceleration and native pause/Continue. Original-instruction command
+checker passed all three logs (three keyboard sites plus family-resolved map
+controls for each controller). Source EEPROM/Pak hashes remained unchanged.
+Reviewed PS5 mission-start and active-help captures: tutorial keycap no longer
+touches the original question mark; the small L2/R1 map cells retain borders
+and matching labels. Pre-polish captures are diagnostic evidence only.
+
+The permanent probe now has --instruction-glyphs to verify emitted original
+HUD/tutorial commands together with mapped text. Its checker explicitly keeps
+visual capture review separate, rejects missing/invalid/out-of-bounds commands
+and mismatched labels; virtual-controller checks do not claim physical devices.
+Current suites: 23 native and 44 Python tests passed. Software Vulkan and dummy
+audio evidence does not establish 4K performance, physical 120-Hz output or
+speaker audibility. Mission objective completion and portable bootstrap remain
+open release gates.
+
+Xbox 360 polished original-instruction acceptance:
+`.local/qa/gameplay-yej0967t`, 140 seconds, 8,401 VI / 8,066 graphics /
+4,198 audio tasks. This run used --instruction-glyphs; the integrated checker
+accepted four original sites including actual LT/RB map glyph commands. Native
+controller help/handover/reconnect, movement and pause/Continue also passed.
+Reviewed active-help capture: actual A/B/Start controls and closed LT/RB map
+cells match labels. Source EEPROM/Pak remained unchanged. All three prioritized
+controller families now have native original-map glyph evidence; physical
+presses and wider vehicle/tutorial coverage remain separately pending.

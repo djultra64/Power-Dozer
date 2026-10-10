@@ -167,5 +167,35 @@ font arguments. Multi-action instructions need both resolved glyphs, without
 changing guest vertex/texture allocation. Verify ROM entry/return instructions
 and layout before inserting any new normalizer hooks; test bounds, queue
 reset/consumption, exact-string matching, blinking, alpha and two-action sites
-before native keyboard/controller captures. This design has not yet been
-implemented or accepted.
+before native keyboard/controller captures. Implemented with shared action
+rules, foreground-only annotations, inline tutorial prefixes and small-cell
+area reduction. Native keyboard/PS5/Switch evidence and regression tests are
+recorded in docs/qa/readiness.md; physical-device acceptance remains open.
+
+Task 6 next implementation boundary: current main loads three source-root
+private files; changing the data directory alone cannot make the binary
+portable. Introduce a native ROM input/overlay service first, independently
+of save migration and GUI selection. Reuse the established Tetrisphere approach
+(read-only reference src/platform/rom_input.cpp): bound archive bytes and entries,
+accept exactly one 8-MiB z64/v64/n64 candidate, normalize byte order, reject
+encrypted/unsupported/ambiguous ZIPs, validate the complete canonical SHA-1,
+and inflate the two overlays from verified ROM slices into exact-size buffers.
+Use the pinned runtime miniz sources already available locally, avoiding a new
+external dependency. ZIP paths are never extracted to the filesystem.
+
+The native service should expose separate read/validate/extract operations
+for deterministic unit fixtures and a composed operation for real private-ROM
+acceptance. Test wrong sizes/revisions, swapped formats, ZIP ambiguity, bounded
+expansion, CRC/errors and overlay sizes before shipping main uses it. Compare
+real extracted overlay bytes against the existing preparation outputs. Do not
+write or migrate any progress in these loader tests.
+
+After this isolated service passes, replace source-root asset reads with an
+explicit --rom input and a validated data-directory cache; revalidate cached ROM
+and regenerate overlays on launch instead of trusting separate stale binaries.
+Cache writes use the existing durable writer. Plan default data location and
+legacy EEPROM/Pak/settings/remap migration separately, with interrupted/corrupt
+copy acceptance, before removing the legacy default. The final executable
+must run from a clean directory with no dependency on this source checkout.
+Missing/invalid ROM must lead to useful selection/error flow without touching
+progress. No bundled ROM or overlays in the RC archive.

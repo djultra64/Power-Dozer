@@ -159,6 +159,8 @@ def normalize(folder):
         (0x802F8BDC,'010000d000200010f1000039000000000005001b001c001d00000000'),
         (0x8024BDA4,'27bdffd03c0e8036'),(0x8026BCE0,'3c0f80313c188037'),
         (0x80259EC4,'27bdffc0afa500448fae0044'),
+        (0x80259450,'3c01802fac208c703c01802fac208c743c01802f03e00008ac208c78'),
+        (0x80259824,'27bdffa83c18802f'),(0x802E8C84,'3f19999a3f733333'),(0x80259BC8,'27bd005803e0000800000000'),
         (0x8026EF68,'03e0000827bd0150')):
         at=address-0x802447C0
         if rom[at:at+len(expected)//2].hex()!=expected:
@@ -202,6 +204,13 @@ def normalize(folder):
             final='    ctx->r29 = ADD32(ctx->r29, 0X150);\n    return;'
             if body.count(final)!=1:raise ValueError('Original PC glyph return layout changed')
             body=body.replace(final,'    ctx->r29 = ADD32(ctx->r29, 0X150);\n    bc_pc_options_glyphs(rdram,ctx,bc_glyph_frame);\n    return;')
+        if body.startswith('RECOMP_FUNC void func_80259450(') and 'bc_game_prompt_reset' not in body:
+            at=body.index('\n')+1;body=body[:at]+'    bc_game_prompt_reset();\n'+body[at:]
+        if body.startswith('RECOMP_FUNC void func_80259824(') and 'bc_game_prompt_flush' not in body:
+            at=body.index('\n')+1
+            body=body[:at]+'    const uint32_t bc_prompt_reference = uint32_t(ctx->r4), bc_prompt_frame = uint32_t(ctx->r5);\n'+body[at:]
+            if body.count('    return;')!=1 or 'ctx->r29 = ADD32(ctx->r29, 0X58);' not in body:raise ValueError('Original instruction glyph flush return layout changed')
+            body=body.replace('    return;','    bc_game_prompt_flush(rdram,bc_prompt_reference,bc_prompt_frame);\n    return;')
         if body.startswith('RECOMP_FUNC void func_80259EC4(') and 'bc_game_prompt_text' not in body:
             at=body.index('\n')+1;body=body[:at]+'    bc_game_prompt_text(rdram,ctx);\n'+body[at:]
         if body.startswith('RECOMP_FUNC void func_8024BDA4(') and 'bc_pc_options_selection' not in body:

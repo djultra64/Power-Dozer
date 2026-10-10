@@ -98,7 +98,13 @@ def run(args):
                 with (directory/'native-hang.txt').open('w') as dump:
                     if debugger:
                         try:
-                            subprocess.run([debugger,'--batch','-ex','set pagination off','-ex','thread apply all bt 12','-p',str(process.pid)],stdout=dump,stderr=subprocess.STDOUT,timeout=25,check=False)
+                            subprocess.run([debugger,'--batch','-ex','set pagination off','-ex','thread apply all bt 12',
+                                            '-ex','p/x events_context.rdram',
+                                            '-ex','x/6wx events_context.rdram+0x315440',
+                                            '-ex','x/6wx events_context.rdram+0x368238',
+                                            '-ex','x/6wx events_context.rdram+0x368270',
+                                            '-ex','x/9wx events_context.rdram+0x3156a4',
+                                            '-p',str(process.pid)],stdout=dump,stderr=subprocess.STDOUT,timeout=25,check=False)
                         except subprocess.TimeoutExpired:dump.write('Debugger timed out; native transition still failed\n')
                     else:dump.write('gdb unavailable; native transition still failed\n')
             raise ValueError('Native transition timed out: '+text()[-1800:])

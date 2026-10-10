@@ -1142,3 +1142,20 @@ source EEPROM preservation passed. Original damage max30, buildingsDestroyed0:
 still NOT new destruction/objective acceptance. Last tutorial window73 pauses
 normal guest simulation, but audio tasks continue. No backtrace generated
 because no transition timed out in this trial. Startup freeze remains open.
+
+Authorized three-startup sequence reached terminal exit0 (handle94026):
+.local/qa/gameplay-u_wrjqbd90seconds5401VI/5100gfx/2699audio;
+.local/qa/gameplay-ucwkleh690seconds5401VI/5101gfx/2699audio;
+.local/qa/gameplay-e73291qe90seconds5401VI/5103gfx/2699audio. All reached
+Simian Acres and passed movement/pause/Continue/source EEPROM preservation.
+No startup freeze reproduced, no actual failing-native backtrace captured.
+Optional gdb failure dump now also reads bounded original scheduler/frame/reply
+queues and active-task words through the debug symbol events_context.rdram;
+that symbol exists in the unstripped native executable. These bounded reads
+remain unverified on a frozen native process and do not repair the freeze.
+No native process from this sequence remains live.
+
+Navigation source research: D_hd_code_80364456 is a vehicle/control type selector
+(45BB0.c switch/snapping masks), not a camera angle. Generated8028B734 reads
+16-bit80370C70 while rotating the original stick; further semantic confirmation
+is required before using it to guide private physical-input waypoints.

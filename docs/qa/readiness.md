@@ -1327,3 +1327,34 @@ reload are NOT accepted by this run. A separate private experiment now dismisses
 such roadside tutorials via actual virtual-pad Confirm inputs while observing
 the original objective result. It does not patch guest state or count as the
 standard exercise/controller gate.
+
+
+Three private objective experiments reached terminal exit0 without a native
+stall, but the original mission failed normally; none is a completion/save-
+reload pass. gameplay-zarm1gq8(handle19449):240seconds14402VI/14052gfx/7199audio,
+7buildings/$437040/53RDUs, failed1/complete0 atVI9335. Roadside window73 was
+observed and dismissed via actual Confirm edges. gameplay-16atyggc(handle17418):
+240seconds14401VI/14050gfx/7199audio at original30fps,5buildings/$335635/58RDUs,
+failed1 atVI8902. gameplay-7nj8n3ts(handle7636), continuous carrier-center route:
+240seconds14402VI/14053gfx/7199audio,3buildings/$110325/37RDUs,failed1 atVI8455.
+All preserve source EEPROM. Private result explicitly exercise_verified=false;
+no standard control/mission-completion gate is claimed. Merely driving beyond
+the carrier endpoint or increasing destruction counters does not clear the
+corridor; incomplete building sections can remain.
+
+Presented original30fps captures also show large diagonal translucent world
+polygons (route-building-3/4). These cannot be attributed solely to fractional
+interpolation; base rendering/reference/aspect behavior needs investigation.
+Do not declare destruction animation fidelity accepted from the first viewed
+120fps frame. Next private experiment uses 4:3 and arrival along the segment
+between guest position samples, because the standard read-only15VI trace can
+skip a narrow arrival circle at full vehicle speed. No production gameplay or
+save data is patched by these navigation experiments.
+
+Source inspection rejected an unrelated speculative SP-yield fix: unused
+bc_osSpTaskYielded stub returns0, but the scheduler actually calls generated
+func_802DAC80, preserving original osSpTaskYielded behavior through
+bc___osSpGetStatus. It reads yielded bit0x100 and updates the original OSTask
+flags. Changing the dead stub cannot resolve a native freeze. A repeat batch
+with pre-teardown debugger capture is prepared; causal freeze closure still
+requires a real stalled-native backtrace, not repeated successful runs.

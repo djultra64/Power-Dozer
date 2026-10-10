@@ -1,0 +1,13 @@
+{
+  "rom_sha1": "483f7161aea39de8b45c9fbc70a2c3883c4dea8c",
+  "sources": {
+    "reference": "https://github.com/retroplastic/blastcorps",
+    "mapping": {
+      "url": "https://github.com/SlaveOfIDO/blastcorps",
+      "commit": "1ab6616edb6c16b642c229ab6d55c3c8687c7945"
+    },
+    "N64Recomp": "ffb39cdad1da5de07eaaa48bd1db4a89a7986771",
+    "N64ModernRuntime": "cdf5abbd5026fef5c364c676e4667c45e42b6863",
+    "RT64": "43373749dac9bbc1b653e6a02aed40a9e1783bed"
+  }
+}

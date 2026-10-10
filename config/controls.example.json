@@ -1,0 +1,11 @@
+{
+  "confirm": "a",
+  "back": "b",
+  "start": "start",
+  "camera_left": "x",
+  "camera_down": "y",
+  "camera_up": "dpup",
+  "camera_right": "dpright",
+  "l": "leftshoulder",
+  "r": "rightshoulder"
+}

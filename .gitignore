@@ -1,0 +1,9 @@
+.local/
+build/
+*.z64
+*.v64
+*.n64
+*.zip
+*.7z
+__pycache__/
+config/controls.json

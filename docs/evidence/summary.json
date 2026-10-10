@@ -1,0 +1,131 @@
+{
+  "rom_id": "Blast Corps USA Rev 1",
+  "rom_sha1": "483f7161aea39de8b45c9fbc70a2c3883c4dea8c",
+  "symbols": 1594,
+  "generated_guest_functions": 1464,
+  "tests": {
+    "rom_contract": 2,
+    "audio_fifo": 1,
+    "rsp_audio_preemption": 1,
+    "audio_stereo_channels": 1,
+    "audio_probe_contract": 3,
+    "l3d_line_geometry": 1
+  },
+  "verified_internal_render_target": [
+    3840,
+    2160
+  ],
+  "requested_refresh_rate": 120,
+  "observed_target_rates": [
+    60,
+    75
+  ],
+  "physical_controllers_tested": false,
+  "completed_probes": [
+    {
+      "profile": "baseline",
+      "seconds": 35,
+      "vi": 2101,
+      "gfx_tasks": 2042,
+      "audio_tasks": 9,
+      "exit_code": 0
+    },
+    {
+      "profile": "4k_16_9_requested_120",
+      "seconds": 35,
+      "vi": 2101,
+      "gfx_tasks": 1052,
+      "audio_tasks": 12,
+      "exit_code": 0,
+      "renderer": "llvmpipe",
+      "observed_target_rate": 60
+    },
+    {
+      "profile": "audio_baseline",
+      "seconds": 90,
+      "vi": 5402,
+      "gfx_tasks": 5830,
+      "audio_tasks": 2699,
+      "exit_code": 0,
+      "renderer": "llvmpipe",
+      "audio_backend": "dummy",
+      "audio_summary": {
+        "hz": 22050,
+        "buffers": 2698,
+        "frames": 2022976,
+        "peak": 32768,
+        "empty_queue_observations": 959,
+        "rejected_buffers": 0,
+        "max_queue_bytes": 5952
+      }
+    },
+    {
+      "profile": "audio_4k_16_9_requested_120",
+      "seconds": 35,
+      "vi": 2101,
+      "gfx_tasks": 1048,
+      "audio_tasks": 1049,
+      "exit_code": 0,
+      "renderer": "llvmpipe",
+      "audio_backend": "dummy",
+      "audio_summary": {
+        "hz": 22050,
+        "buffers": 1047,
+        "frames": 791984,
+        "peak": 32138,
+        "empty_queue_observations": 41,
+        "rejected_buffers": 1,
+        "max_queue_bytes": 4672
+      }
+    },
+    {
+      "profile": "audio_desktop",
+      "seconds": 25,
+      "vi": 1503,
+      "gfx_tasks": 1446,
+      "audio_tasks": 748,
+      "exit_code": 0,
+      "renderer": "llvmpipe",
+      "audio_backend": "pulseaudio",
+      "audio_summary": {
+        "hz": 22050,
+        "buffers": 747,
+        "frames": 548608,
+        "peak": 32768,
+        "empty_queue_observations": 1,
+        "rejected_buffers": 0,
+        "max_queue_bytes": 4564
+      }
+    },
+    {
+      "profile": "beta_menu_map_simian_acres_load",
+      "seconds": 110,
+      "vi": 6601,
+      "gfx_tasks": 6350,
+      "audio_tasks": 3299,
+      "exit_code": 0,
+      "renderer": "llvmpipe",
+      "audio_backend": "dummy",
+      "alt_enter_held_does_not_send_start": true,
+      "audio_summary": {
+        "hz": 22050,
+        "buffers": 3298,
+        "frames": 2474720,
+        "peak": 32768,
+        "empty_queue_observations": 1583,
+        "rejected_buffers": 0,
+        "max_queue_bytes": 4224
+      }
+    }
+  ],
+  "audio_status": "Continuous PCM through intro/title/demo: 90 s baseline, 35 s 4K; actual PulseAudio output verified for 25 s. Perceptual fidelity and mission audio pending.",
+  "full_gameplay_verified": false,
+  "actual_audio_output_verified": true,
+  "audio_sample_format": {
+    "hz": 22050,
+    "channels": 2,
+    "bits": 16
+  },
+  "desktop_gpu_observed": "AMD Ryzen Z1 Extreme (RADV PHOENIX)",
+  "l3d_status": "Specific fingerprint-checked frontend adapter; map and mission load tested. Rasterization fidelity and clipping remain unverified."
+}

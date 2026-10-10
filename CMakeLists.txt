@@ -83,3 +83,6 @@ target_include_directories(pc_options_test PRIVATE include .local/generated/func
  "${RUNTIME}/N64Recomp/include" "${RUNTIME}/ultramodern/include"
  "${RUNTIME}/librecomp/include" "${RUNTIME}/librecomp/include/librecomp" "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/json")
 add_test(NAME pc_options_guest_bridge COMMAND pc_options_test)
+add_executable(pak_store_test tests/pak_store.cpp src/pak_store.cpp src/atomic_file.cpp)
+target_include_directories(pak_store_test PRIVATE include)
+add_test(NAME controller_pak_files_and_recovery COMMAND pak_store_test)

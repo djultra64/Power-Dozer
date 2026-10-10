@@ -161,3 +161,21 @@ expanded harness sent consecutive Back edges during the original animation,
 so it remained on Graphics and then failed its Audio assertion. Its log has
 no guest fault, but this is not an accepted complete menu regression. The
 harness now waits for each page animation; a full rerun is required.
+
+Completed live-filter regression: `.local/qa/gameplay-lquhyjws`, 180 seconds,
+exit 0, 10,801 VI / 10,480 graphics / 5,398 audio tasks. Saved scale 4.5,
+presentation pixel, texture linear and volume 0; the renderer acknowledged
+both filter changes. Original pause return and mission resumption passed.
+Captures reviewed, source EEPROM SHA-256 unchanged. Software Vulkan/dummy
+audio only; physical output performance remains pending.
+
+Controller Pak foundation: a bounded 16-slot/123-page file model and atomic
+checked primary/backup store now pass their tests. Coverage includes duplicate
+identity, page rounding, directory/data capacity, allocation overflow,
+unwritten-file Bad Data, aligned partial writes, index/range errors, metadata,
+reload, backup recovery, checksum damage, oversized input and refusal to replace
+two invalid copies. Initial RED was the missing Pak implementation; GREEN is
+`controller_pak_files_and_recovery`, with 10/10 native tests passing.
+The guest services still report no Pak; native allocation/progress acceptance
+must follow the high-level service bridge implementation. Structural malformed
+directory fixtures and interrupted-write injection also remain to be added.

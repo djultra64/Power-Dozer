@@ -18,14 +18,14 @@ class WindowsPackagePrivacy(unittest.TestCase):
             for name,data in {'power-dozer.exe':b'MZfixture','SDL2.dll':b'MZSDL','Run Power Dozer.cmd':b'launcher','licenses/Power-Dozer/NOTICE':b'rights unresolved'}.items():
                 p=stage/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(data)
             output=Path(d)/'package.zip'
-            manifest=package.write_archive(stage,output,version='0.81',commit='a'*40)
+            manifest=package.write_archive(stage,output,version='0.82',commit='a'*40)
             self.assertFalse(manifest['ready_for_release']);self.assertFalse(manifest['license_review_complete'])
             with zipfile.ZipFile(output) as archive:
-                self.assertTrue(all(name.startswith('power-dozer-v0.81-windows-x86_64/') for name in archive.namelist()))
-                packaged=json.loads(archive.read('power-dozer-v0.81-windows-x86_64/BUILD.json'))
+                self.assertTrue(all(name.startswith('power-dozer-v0.82-windows-x86_64/') for name in archive.namelist()))
+                packaged=json.loads(archive.read('power-dozer-v0.82-windows-x86_64/BUILD.json'))
                 self.assertEqual(packaged['files'],manifest['files'])
                 self.assertNotIn(str(stage),json.dumps(packaged))
-            repeated=Path(d)/'again.zip';package.write_archive(stage,repeated,version='0.81',commit='a'*40)
+            repeated=Path(d)/'again.zip';package.write_archive(stage,repeated,version='0.82',commit='a'*40)
             self.assertEqual(output.read_bytes(),repeated.read_bytes())
     def test_zip_rejects_private_members_and_disguised_rom(self):
         for name,data in [('rom.z64',b'private'),('data/eeprom.bin',b'private'),('capture.png',b'private'),('licenses/ROM.txt',bytes.fromhex('80371240'))]:
@@ -37,5 +37,5 @@ class WindowsPackagePrivacy(unittest.TestCase):
         self.assertIn('"%~dp0power-dozer.exe" %*',text)
     def test_untrusted_version_cannot_escape_archive_root(self):
         with tempfile.TemporaryDirectory() as d:
-            for version in ('../0.81','0.81/other',''):
+            for version in ('../0.82','0.82/other',''):
                 with self.subTest(version=version),self.assertRaises(ValueError):package.write_archive(Path(d),Path(d)/'bad.zip',version=version,commit='a'*40)

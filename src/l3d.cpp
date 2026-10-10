@@ -1,6 +1,8 @@
 #include "l3d.h"
 #include "line_quad.h"
 #include "carrier_arrow.h"
+#include "vehicle_pivots.h"
+#include <optional>
 #include "input_glyph.h"
 #include "prototype.h"
 #ifdef _WIN32
@@ -64,13 +66,51 @@ void atlas_glyph(RT64::State* state,RT64::DisplayList** dl) {
  state->drawCall.textureLevels=textureLevels;
  state->updateDrawStatusAttribute(RT64::DrawAttribute::Texture);
 }
+std::array<std::optional<hlslpp::float3>,RSP_MATRIX_STACK_SIZE> part_pivots{};
+std::set<uint32_t> rebased_transforms;
+bc::VehicleSkins vehicle_skins;
+void model_matrix(RT64::State* state,RT64::DisplayList** dl) {
+ RT64::GBI_F3D::matrix(state,dl);
+ auto& rsp=*state->rsp;
+ if((*dl)->p0(16,8)&rsp.projMask)return;
+ auto& pivot=part_pivots.at(rsp.modelMatrixStackSize-1);
+ pivot.reset();
+ if(((*dl)->w1>>24)!=7)return;
+ const auto skin=vehicle_skins.find(rsp.segments[7]&0x7FFFFFFF);
+ if(skin==vehicle_skins.end())return;
+ const auto part=skin->second.find((*dl)->w1&0x00FFFFFF);
+ if(part==skin->second.end())return;
+ pivot=part->second;
+ if(std::getenv("BC_TRACE_WHEELS")){
+  static std::set<std::pair<uint32_t,uint32_t>> seen;
+  const auto model=rsp.segments[6]&0x7FFFFFFF;
+  if(seen.size()<256 && seen.insert({model,(*dl)->w1}).second){
+   auto word=[&](uint32_t address){return *reinterpret_cast<const uint32_t*>(state->RDRAM+address);};
+   uint32_t vehicle=0xFFFFFFFF;
+   for(uint32_t slot=0x364460;slot<(word(0x3649D0)&0x7FFFFFFF);slot+=0x74)
+    if((word(slot)&0x7FFFFFFF)==model){vehicle=word(slot+0x5C);break;}
+   fprintf(stderr,"{\"event\":\"vehicle_part_pivot\",\"vi\":%llu,\"vehicle\":%u,\"model\":%u,\"offset\":%u,\"matrix\":%u,\"pivot\":[%.3f,%.3f,%.3f]}\n",(unsigned long long)bc_vis.load(),vehicle,model,(*dl)->w1&0x00FFFFFF,rsp.fromSegmentedMasked((*dl)->w1),float(pivot->x),float(pivot->y),float(pivot->z));
+  }
+ }
+}
 void hud_vertex(RT64::State* state,RT64::DisplayList** dl) {
  auto& rsp=*state->rsp;
  const auto address=rsp.fromSegmentedMasked((*dl)->w1);
  const auto count=(*dl)->p0(20,4)+1,first=(*dl)->p0(16,4);
- RT64::GBI_F3D::vertex(state,dl);
- if(!bc::carrier_arrow_vertices(address,count,first))return;
  auto& data=state->ext.workloadQueue->workloads[state->ext.workloadQueue->writeCursor].drawData;
+ const auto first_vertex=data.vertexCount();
+ RT64::GBI_F3D::vertex(state,dl);
+ if(const auto& pivot=part_pivots.at(rsp.modelMatrixStackSize-1)){
+  if(rebased_transforms.insert(rsp.curTransformIndex).second)
+   data.worldTransforms.at(rsp.curTransformIndex)=bc::rebase_pivot_transform(data.worldTransforms.at(rsp.curTransformIndex),*pivot);
+  for(uint32_t i=first_vertex;i<data.vertexCount();++i){
+   const auto index=i*3;
+   const auto position=bc::rebase_pivot_vertex(hlslpp::float3(data.posFloats[index],data.posFloats[index+1],data.posFloats[index+2]),*pivot);
+   data.posFloats[index]=float(position.x);data.posFloats[index+1]=float(position.y);data.posFloats[index+2]=float(position.z);
+  }
+ }
+
+ if(!bc::carrier_arrow_vertices(address,count,first))return;
  if(rsp.curTransformIndex>=data.worldTransformGroups.size()||rsp.curViewProjIndex>=data.viewProjTransformGroups.size())
   bc_fatal("carrier_arrow_transform");
  bc::annotate_carrier_arrow(data.transformGroups,
@@ -137,9 +177,13 @@ void bc_load_l3d(RT64::Interpreter& interpreter,unsigned text,unsigned data) {
 }
 void bc_load_hud_annotations(RT64::Interpreter& interpreter,unsigned text) {
  // The verified USA Rev 1 main F3D program. L3D and other GBIs retain their
- // own vertex handlers. Only the carrier's exact ten-vertex mesh is tagged.
+ // own vertex handlers. Animated parts carry their original model pivot;
+ // carrier HUD tagging still requires its exact ten-vertex mesh.
  if(text!=0x2E53F0||!interpreter.hleGBI||interpreter.hleGBI->ucode!=RT64::GBIUCode::F3D)return;
+ part_pivots.fill(std::nullopt);rebased_transforms.clear();
+ vehicle_skins=bc::snapshot_vehicle_pivots();
  hud_gbi=*interpreter.hleGBI;
+ hud_gbi.map[F3D_G_MTX]=model_matrix;
  hud_gbi.map[F3D_G_VTX]=hud_vertex;
  hud_gbi.map[0xD4]=menu_background_rectangle;
  hud_gbi.map[0xD5]=atlas_glyph;

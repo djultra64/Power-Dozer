@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.82 — 2026-10-10
+
+- Correct wheel interpolation for animated vehicle parts, including Backlash
+  and other wheeled vehicles during attract mode and gameplay. Wheel geometry
+  and transforms now interpolate around the original axle pivot, preserving
+  the tire radius and keeping the wheel attached at high speeds.
+- Preserve each bind pivot in both vehicle skin buffers and after an
+  animation stops; invalidate it when a new model loads.
+- Regression coverage exercises actual RT64 fractional-frame interpolation,
+  bind recovery, buffer reuse and the shared vehicle animation producer.
+
+
 ## v0.81 — 2026-10-10
 
 - English repository documentation, including installation, rebuild, audio and

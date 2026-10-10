@@ -7,7 +7,7 @@
       1122,
       1402
     ],
-    "rights_review": "unresolved; no license or ownership claim",
+    "rights_review": "User confirmed redistribution permission; original author/license not identified; no ownership or relicensing claim",
     "sources": {
       "complete": {
         "file": "source.png",
@@ -25,6 +25,11 @@
           1086
         ]
       }
+    },
+    "distribution_authorization": {
+      "confirmed_on": "2026-10-10",
+      "confirmed_by": "Project owner in this conversation",
+      "scope": "Public djultra64/Power-Dozer repository and v0.8 runtime/source release"
     }
   },
   "extraction": {

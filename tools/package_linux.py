@@ -5,7 +5,7 @@ import gzip
 import hashlib
 import io
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import shutil
 import subprocess
@@ -18,6 +18,32 @@ TOP={'blastcorps','Run Blast Corps.sh','README.txt','BUILD.json','gamecontroller
 PRIVATE={'.z64','.v64','.n64','.rom','.eep','.pak','.state','.wav','.png','.jpg','.bin'}
 
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def verified_licenses(source,destination):
+    source,destination=Path(source),Path(destination)
+    provenance=source/'provenance.json'
+    if source.is_symlink() or provenance.is_symlink():raise ValueError('License source/provenance symlink')
+    manifest=json.loads(provenance.read_text())
+    files=manifest.get('files')
+    if not isinstance(files,dict) or not 1<=len(files)<=32:raise ValueError('Invalid license inventory')
+    verified=[]
+    for name,entry in files.items():
+        relative=PurePosixPath(name)
+        if relative.is_absolute() or not relative.parts or '..' in relative.parts or str(relative)!=name or '\\' in name or ':' in name:
+            raise ValueError('Unsafe license path: '+name)
+        path=source.joinpath(*relative.parts)
+        if any(source.joinpath(*relative.parts[:i]).is_symlink() for i in range(1,len(relative.parts)+1)):
+            raise ValueError('License symlink: '+name)
+        size=entry.get('bytes')
+        if not isinstance(size,int) or not 0<size<=65536 or not path.is_file() or path.stat().st_size!=size or digest(path)!=entry.get('sha256'):
+            raise ValueError('License provenance mismatch: '+name)
+        verified.append(relative)
+    destination.mkdir(parents=True,exist_ok=True)
+    for relative in verified:
+        target=destination.joinpath(*relative.parts);target.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copyfile(source.joinpath(*relative.parts),target)
+    shutil.copyfile(provenance,destination/'provenance.json')
+    return len(verified)
 
 def audit(stage):
     inventory={}
@@ -55,7 +81,6 @@ def build(args):
         sources.update({name:deps/'rt64/src/contrib/dxc/lib/x64'/name for name in ('libdxcompiler.so','libdxil.so')})
         for name,source in sources.items():
             shutil.copyfile(source,stage/'lib'/name);portable_rpath(stage/'lib'/name,work)
-        license_count=0
         vendors={name:deps/name for name in ('N64Recomp','N64ModernRuntime','rt64')}
         for name in ('sdl2-compat','sdl3','dbus'):
             vendors[name]=(Path('/home/linuxbrew/.linuxbrew/opt')/name).resolve()
@@ -64,7 +89,10 @@ def build(args):
                 if not source.is_file() or '.git' in source.parts:continue
                 name=source.name.lower()
                 if not (name.startswith('license') or name.startswith('copying') or name=='copyright'):continue
-                target=stage/'licenses'/vendor/source.relative_to(base);target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source,target);license_count+=1
+                target=stage/'licenses'/vendor/source.relative_to(base);target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source,target)
+        # Homebrew's DBus notice points to texts omitted from its installed
+        # bottle. Include the exact upstream version with verified provenance.
+        verified_licenses(ROOT/'licenses/dbus',stage/'licenses/dbus')
         controller=tetra/'assets/controllers/gamecontrollerdb.txt'
         provenance=json.loads((tetra/'licenses/controller-db/provenance.json').read_text())
         for name,source in {'gamecontrollerdb.txt':controller,'LICENSE':tetra/'licenses/controller-db/LICENSE'}.items():
@@ -72,6 +100,7 @@ def build(args):
             if source.stat().st_size!=entry['bytes'] or digest(source)!=entry['sha256']:raise ValueError('Controller database provenance mismatch: '+name)
         shutil.copyfile(controller,stage/'gamecontrollerdb.txt')
         shutil.copytree(tetra/'licenses/controller-db',stage/'licenses/controller-db')
+        license_count=sum(1 for path in (stage/'licenses').rglob('*') if path.is_file() and path.suffix.lower()!='.json')
         launcher=stage/'Run Blast Corps.sh'
         launcher.write_text('#!/usr/bin/env bash\nset -euo pipefail\npackage_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"\nexport LD_LIBRARY_PATH="$package_dir/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\nexec "$package_dir/blastcorps" "$@"\n');launcher.chmod(0o755)
         (stage/'README.txt').write_text('Blast Corps private experimental beta; release acceptance is incomplete.\nRun: ./Run Blast Corps.sh\nSupply your own unmodified USA Rev 1 ROM when prompted, or use --rom PATH.\nProgress and private ROM cache live in data beside the executable.\n--import-data OLD_DIRECTORY copies progress/preferences into a new or empty data folder.\nLinux x86-64, Vulkan drivers, X11/Wayland, standard C/C++ runtime and a desktop file chooser are required.\nThis archive has not verified other Linux distributions or Windows.\n4K performance, 120-Hz presentation, interpolation quality and mission completion remain under test.\nNo ROM, extracted overlays, progress or screenshots are included.\n')

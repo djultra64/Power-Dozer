@@ -986,3 +986,33 @@ Native queue snapshots are present (e.g. VI3480/audio1738, frame/reply counts0,
 audio frame waiter80368088). Fresh handle59089 remains running after an explicit
 poll; continue waiting/polling this handle, do not restart on an observation
 timeout. Its eventual terminal result and coverage remain to be inspected.
+
+Long bounded-state trial .local/qa/gameplay-vonw694u finished normally:
+360 seconds,21602VI/21295graphics/10799audio, private movement/pause/Continue
+and Restart accepted. Actual mode8→13→2 sequence observed; restarted capture
+reviewed, vehicle/world/HUD intact. Source EEPROM/Pak unchanged. No fatal/guest
+assertion diagnostics. Audio_guest_state snapshots continued throughout; final
+state counts retain normal frame wait and no stuck pending replies. The known
+audio loss in gameplay-ja976uzj remains unresolved: a successful six-minute
+repeat cannot prove a race repaired. 4K120 gate still fails atVI3720/116.503FPS.
+No actual speaker or physical display acceptance in this SDL-dummy trial.
+
+Task6 DBus notice gap repaired for the private package builder. Installed DBus
+1.16.2_1 COPYING references LICENSES/AFL-2.1.txt, GPL-2.0-or-later.txt and MIT.txt,
+but the bottle omitted those texts. Downloaded the exact official source
+archive https://dbus.freedesktop.org/releases/dbus/dbus-1.16.2.tar.xz and verified
+SHA2560ba2a1a4b16afe7bceb2c07e9ce99a8c2c3508e5dec290dbb643384bd6beb7e2
+against its installed SPDX source-package entry. Extracted only regular bounded
+known notice files, preserving LICENSES/ paths; COPYING byte-identical to the
+installed binary's notice. Repository licenses/dbus/provenance.json records
+archive origin and each notice's bytes/hash. Builder validates every file and
+path before copying anything, rejects mismatches/traversal/symlinks, and includes
+provenance. License count now counts unique staged non-JSON notice files rather
+than duplicate copy operations. RED stub could not package verified valid
+notices; GREEN four new tests cover correct copy and invalid provenance/path/
+symlink rejection before target creation. All62 Python tests passed;27 native
+tests passed for unchanged current runtime. Real four-file provenance validation
+and five-member privacy/hash audit passed in a disposable private staging area.
+No claim of whole-dependency license review or corresponding-source completion;
+ready_for_release and license_review_complete remain false. Existing archive
+predates these updates and remains diagnostic until rebuilt/tested.

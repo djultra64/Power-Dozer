@@ -1,0 +1,29 @@
+{
+  "checksum_reference": "installed dbus 1.16.2_1 Homebrew sbom.spdx.json source package",
+  "complete_dependency_license_review": false,
+  "dependency": "dbus",
+  "files": {
+    "COPYING": {
+      "bytes": 1134,
+      "sha256": "150e5d08e1cb5e62b65967d7931acad2c42d98ec1bbb584bebb01921cbc853c2"
+    },
+    "LICENSES/AFL-2.1.txt": {
+      "bytes": 8948,
+      "sha256": "93bb4f7417aa775bab9026cc3d0af28aeb64451fc5a8ec651876785edd8eaf9b"
+    },
+    "LICENSES/GPL-2.0-or-later.txt": {
+      "bytes": 17337,
+      "sha256": "aaf135472f81c5b4a0dca9367e5bb5e9750032b5bebe5442b36e4c0a47430df3"
+    },
+    "LICENSES/MIT.txt": {
+      "bytes": 1078,
+      "sha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0"
+    }
+  },
+  "schema": 1,
+  "source_archive": {
+    "sha256": "0ba2a1a4b16afe7bceb2c07e9ce99a8c2c3508e5dec290dbb643384bd6beb7e2",
+    "url": "https://dbus.freedesktop.org/releases/dbus/dbus-1.16.2.tar.xz"
+  },
+  "version": "1.16.2"
+}

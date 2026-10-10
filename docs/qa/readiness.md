@@ -10,8 +10,8 @@ keyboard and three virtual controller families, stereo audio recovery, Alt+Enter
 and playable Simian Acres with movement/pause/Continue/Restart/failure. Corrected
 interpolated presentation passes measured 720p/1080p120 on a virtual120Hz output;
 4K120 sustained performance and intermittent native startup freezes remain
-under investigation. New Simian Acres objective completion is verified; its
-cold save/reload, broader missions, physical controls/output audio, complete licenses
+under investigation. New Simian Acres objective completion and cold save/reload
+are verified; broader missions, physical controls/output audio, complete licenses
 and final package/independent review remain pending. Detailed chronological
 evidence below retains each earlier checkpoint and its scope.
 
@@ -1383,3 +1383,29 @@ false for the exploratory script. Source user EEPROM remained untouched.
 Cold process reload from this newly produced private Pak/EEPROM is now running;
 completion is verified, durability across restart is not accepted until that
 separate result is inspected. No native production code changed in these trials.
+
+
+COLD RELOAD OF THE NEW VICTORY VERIFIED: gameplay-guumjo0j terminal exit0
+(handle54957),180seconds10801VI/10952gfx/5399audio. A separate native process
+loaded the private EEPROM/Pak produced by gameplay-thyz2my6, selected existing
+ALF, showed original completed-level statistics and replayed Simian Acres.
+Restored state atVI1595:level0,state_lo128,window15,$598520/9buildings/53RDUs;
+active replay atVI1967 and lastVI10799 retained those values. Presented
+completed-level-stats.png reviewed: SIMIAN ACRES,9buildings,$598520,53RDUs,
+and original gold medal. No new-player name entry was reached. Both seed files
+and the user's source EEPROM remained unchanged; private BCPK CRC was valid,
+ALF file3584bytes and original completion byte atPlayer+0x18 was5.
+Standard exercise_verified,existing_player_loaded,completed_level_replayed all
+true. Strict1080p120 submission gate passed:68 unpaused mission windows,
+136.000023seconds,min119.489/max120.008fps,zero failed presentation. Physical
+display and visual interpolation acceptance remain false in the result.
+This closes new mission victory plus durability across a cold process restart;
+it does not close broader mission/rendering/physical-controller acceptance.
+
+Live-hang debugger capture now includes bounded read-only rsp_scheduler,
+dp_status,pending_gfx,bc_dp_sync values, in addition to native thread stacks and
+original scheduler queue/task words. Types were confirmed against the current
+unstripped binary. No inferior function calls or global ptrace-policy changes.
+79 Python tests pass after this QA-only addition; production binary unchanged.
+Eight sequential90second private4K startup trials are in progress with this
+capture enabled. Repeated success alone will not causally close the known freeze.

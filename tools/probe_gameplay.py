@@ -86,6 +86,10 @@ def run(args):
                                         '-ex','x/6wx events_context.rdram+0x368238',
                                         '-ex','x/6wx events_context.rdram+0x368270',
                                         '-ex','x/9wx events_context.rdram+0x3156a4',
+                                        '-ex','p rsp_scheduler',
+                                        '-ex','p dp_status',
+                                        '-ex','p pending_gfx',
+                                        '-ex','p bc_dp_sync',
                                         '-p',str(process.pid)],stdout=dump,stderr=subprocess.STDOUT,timeout=25,check=False)
                     except subprocess.TimeoutExpired:dump.write('Debugger timed out; native transition still failed\n')
                 else:dump.write('gdb unavailable; native transition still failed\n')

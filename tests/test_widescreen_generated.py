@@ -46,3 +46,14 @@ class WidescreenGenerated(unittest.TestCase):
         changed=recompile.normalize_widescreen_body(init)
         self.assertIn('(bc_wide ? 0X24 : 0X1B)',changed)
         self.assertEqual(recompile.normalize_widescreen_body(changed),changed)
+
+    def test_menu_background_marks_only_its_two_rectangle_paths(self):
+        body=('RECOMP_FUNC void func_80200BE0(uint8_t* rdram, recomp_context* ctx) {\n'
+              '    ctx->r1 = S32(0XE400 << 16);\n    ctx->r1 = S32(0XE400 << 16);\n    return;\n;}')
+        changed=recompile.normalize_widescreen_body(body)
+        self.assertEqual(changed.count('S32(0XD400 << 16)'),2)
+        self.assertEqual(recompile.normalize_widescreen_body(changed),changed)
+        unrelated=body.replace('func_80200BE0','func_80200BE4')
+        self.assertEqual(recompile.normalize_widescreen_body(unrelated),unrelated)
+        with self.assertRaisesRegex(ValueError,'background'):
+            recompile.normalize_widescreen_body(body.replace('0XE400','0XE401',1))

@@ -12,6 +12,16 @@ namespace {
 RT64::GBI l3d;
 bool initialized=false;
 RT64::GBI hud_gbi;
+void menu_background_rectangle(RT64::State* state,RT64::DisplayList** dl) {
+ // Private opcode D4 is emitted only by the verified frontend backdrop
+ // producer. Its 64x16 tiles cannot trigger RT64's full-width heuristic.
+ // Explicit stretch preserves their common texture coordinates and edges.
+ auto& rdp=*state->rdp;
+ const auto previous=rdp.extended.global.rectAspect;
+ if(bc_wide)rdp.setRectAspect(G_EX_ASPECT_STRETCH);
+ RT64::GBI_RDP::texrect(state,dl);
+ rdp.setRectAspect(previous);
+}
 void hud_vertex(RT64::State* state,RT64::DisplayList** dl) {
  auto& rsp=*state->rsp;
  const auto address=rsp.fromSegmentedMasked((*dl)->w1);
@@ -89,6 +99,7 @@ void bc_load_hud_annotations(RT64::Interpreter& interpreter,unsigned text) {
  if(text!=0x2E53F0||!interpreter.hleGBI||interpreter.hleGBI->ucode!=RT64::GBIUCode::F3D)return;
  hud_gbi=*interpreter.hleGBI;
  hud_gbi.map[F3D_G_VTX]=hud_vertex;
+ hud_gbi.map[0xD4]=menu_background_rectangle;
  interpreter.hleGBI=&hud_gbi;
  interpreter.state->rsp->setGBI(&hud_gbi);
 }

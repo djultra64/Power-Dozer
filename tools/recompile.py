@@ -147,6 +147,17 @@ def main():
 
 def normalize_widescreen_body(body):
     """Scope original 4:3 geometry changes to known fullscreen/ticker producers."""
+    if body.startswith('RECOMP_FUNC void func_80200BE0('):
+        # This producer draws the menu backdrop in 75 texture rectangles.
+        # Mark its copy/blended paths for explicit RT64 rectangle stretching;
+        # the logo, menu text and other texture rectangles keep their aspect.
+        original='    ctx->r1 = S32(0XE400 << 16);'
+        marked='    ctx->r1 = S32(0XD400 << 16);'
+        if body.count(marked)==2 and original not in body:
+            return body
+        if body.count(original)!=2 or marked in body:
+            raise ValueError('Original widescreen menu background layout changed')
+        body=body.replace(original,marked)
     def once(before,after,label):
         nonlocal body
         if body.count(before)!=1:raise ValueError('Original widescreen '+label+' layout changed')
@@ -217,7 +228,9 @@ def normalize(folder):
         (front,0x801E7000,0x801E9FB4,'0c096733afb00034'),
         (front,0x801E7000,0x801EA0C0,'0c096772afad0044'),
         (front,0x801E7000,0x801F968C,'0c09cbb6e7a40018'),
-        (front,0x801E7000,0x801F96F4,'0c09cbb6e7a60018')):
+        (front,0x801E7000,0x801F96F4,'0c09cbb6e7a60018'),
+        (front,0x801E7000,0x80201034,'3c01e400'),
+        (front,0x801E7000,0x80201118,'3c01e400')):
         at=address-base
         if data[at:at+len(expected)//2].hex()!=expected:
             raise ValueError(f'Original widescreen hook layout changed at {address:08X}')

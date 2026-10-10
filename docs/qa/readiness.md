@@ -264,3 +264,34 @@ statistics/GO (14→7→13→2), movement/pause/resume and Restart (2→13→2) 
 Captures reviewed. The synthetic EEPROM seed and original user EEPROM stayed
 unchanged. This establishes migrated completed-progress acceptance; it does
 not establish completing a new objective during gameplay, still pending.
+
+
+Task 4 input foundation: logical action bindings now own keyboard, physical
+buttons and signed axes, including D-pad movement/right-stick camera, optional
+multiple bindings and validated remaps. Label/glyph resolution shares those
+bindings: Switch south B/east A/west Y/north X, PlayStation shapes, Xbox labels,
+unknown physical positions and manual-family fallback. Last keyboard/pad press
+changes prompts; releases do not steal them. The source-independent model
+covers invalid remaps, dead zone/nonfinite axes, focus loss, held regain,
+shortcut suppression and disconnection. This is not yet the in-game prompt or
+remapping-editor implementation; window title is still its current UI consumer.
+Legacy controls JSON is bounded and errors preserve the source; the complete
+versioned remapping store remains pending.
+
+Virtual SDL regression: all Xbox/PlayStation/Switch descriptor fixtures plus an
+ambiguous controller pass with matched physical south action and prompt.
+Manual fallback, D-pad/right-stick/trigger actions, focus loss/held regain,
+disconnection and reconnect are exercised through actual SDL polling. It found
+two RED regressions: generic SDL virtual Xbox type needed name fallback, and
+already-held buttons fired on connection. Both are corrected and rerun GREEN.
+Physical controllers and native in-game family glyph captures remain pending.
+Current native suite: 15/15; Python: 26/26 passed.
+
+Native keyboard regression after model integration:
+`.local/qa/gameplay-zot6vvgq`, 180 seconds, exit 0, 10,802 VI / 10,471 graphics /
+5,399 audio tasks. ALF legacy upgrade recognized, map/mission entered,
+movement/pause/resume, graphics/audio menu changes and Restart verified.
+Source save and original EEPROM hash unchanged. Software Vulkan/dummy audio.
+The later SDL family-name/hotplug corrections are covered by virtual SDL tests;
+they do not alter the keyboard path, but the final release regression must
+still run against the eventual complete build.

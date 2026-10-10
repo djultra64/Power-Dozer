@@ -96,3 +96,23 @@ and must never be repopulated from the older EEPROM. The original EEPROM is
 retained byte-for-byte. Stage the game's in-progress/complete save sequence
 and persist only a complete transaction, retaining the previous complete image
 for recovery if the process or a write is interrupted.
+
+
+## Input model implementation decision
+
+Keep the proven keyboard actions: Z confirm/accelerate, X back/reverse, Enter
+Start/pause, Shift brake/exit, arrows movement, I/J/K/L camera and Q/E horns.
+Default pad actions use physical south/east for confirm/back, Menu/Options/+
+for Start, left trigger or north for brake/exit, shoulder buttons for horns,
+left stick/D-pad for movement and right stick for the four camera actions.
+Right trigger is an additional accelerator binding. This replaces the prototype
+mapping that used D-pad directions for camera and right trigger for brake.
+All labels and glyph identities resolve from the same actual action bindings.
+Unknown controllers use physical-position labels; manual family affects pad
+prompts while keyboard remains keyboard. Button release does not steal prompts
+from another device. Focus loss clears guest input immediately; held controls
+must release before acting again after regain/reconnection. A newly attached
+pad's already-held controls are also suppressed until release. Alt+Enter
+consumes its physical keys through release, independent of logical remapping.
+The model and SDL adapter are tested separately; virtual SDL tests are software
+acceptance and never substitute for tests with physical hardware.

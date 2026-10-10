@@ -35,8 +35,9 @@ pantalla completa sin activar Start. Controles y límites en
 
 La sesión predeterminada continúa hasta cerrar la ventana; `--seconds N` limita
 una prueba a N segundos. `--scale 3` usa el perfil de investigación de 720p.
-El perfil 4K necesita más recursos: las pruebas automatizadas usaron Vulkan
-por software, no midieron el rendimiento de una GPU dedicada.
+El perfil 4K necesita más recursos. Una prueba aislada con Radeon renderizó
+a 3840×2160 con objetivo de 120 Hz virtuales; algunos costes superaron el
+presupuesto de 8,33 ms. Eso todavía no prueba 120 cuadros sostenidos.
 
 RT64 limita el objetivo al refresco detectado por el entorno. En estas pruebas
 se observaron objetivos de 60 y 75 Hz al pedir 120. **120 fps sostenidos y la

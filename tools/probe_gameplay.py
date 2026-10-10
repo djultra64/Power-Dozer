@@ -21,6 +21,10 @@ ROOT=Path(__file__).resolve().parents[1]
 def run(args):
     if os.environ.get('DISPLAY') in (None,':0',':0.0'):
         raise ValueError('Use xvfb-run -a; this probe must not send input to your desktop')
+    if args.gpu=='radv':
+        extensions=subprocess.check_output(['xdpyinfo'],text=True)
+        if 'DRI3' not in {line.strip() for line in extensions.splitlines()}:
+            raise ValueError('Radeon presentation requires DRI3. Use a private headless cage/Xwayland display; Xvfb supports the software driver only.')
     qa=ROOT/'.local/qa';qa.mkdir(parents=True,exist_ok=True)
     directory=Path(tempfile.mkdtemp(prefix='gameplay-',dir=qa))
     data=directory/'data';data.mkdir()
@@ -33,7 +37,8 @@ def run(args):
     if args.seed_pak:
         pak_hash=hashlib.sha256(args.seed_pak.read_bytes()).hexdigest()
         shutil.copyfile(args.seed_pak,data/'controller-pak.bin')
-    env=dict(os.environ,BC_TRACE_INPUT='1',BC_TRACE_GAMEPLAY='1',SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',VK_DRIVER_FILES='/usr/share/vulkan/icd.d/lvp_icd.x86_64.json')
+    driver={'software':'/usr/share/vulkan/icd.d/lvp_icd.x86_64.json','radv':'/usr/share/vulkan/icd.d/radeon_icd.x86_64.json'}[args.gpu]
+    env=dict(os.environ,BC_TRACE_INPUT='1',BC_TRACE_GAMEPLAY='1',SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',VK_DRIVER_FILES=driver)
     if args.audio_loss:
         subprocess.run(['c++','-std=c++20','-shared','-fPIC','-I/home/linuxbrew/.linuxbrew/include/SDL2','tools/qa_audio_fault.cpp','-ldl','-L/home/linuxbrew/.linuxbrew/lib','-lSDL2','-Wl,-rpath,/home/linuxbrew/.linuxbrew/lib','-o',str(directory/'libaudio-fault.so')],cwd=ROOT,check=True)
         # ld.so splits LD_PRELOAD on spaces, including spaces inside paths.
@@ -49,7 +54,7 @@ def run(args):
     confirm='z'
     prompt_captured=False
     with log.open('w') as output:
-        process=subprocess.Popen([str(ROOT/'build/blastcorps-prototype'),'--rom',str(ROOT/'.local/rom.z64'),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale','1','--wide','--refresh','120'],cwd=ROOT,env=env,stdout=output,stderr=subprocess.STDOUT)
+        process=subprocess.Popen([str(ROOT/'build/blastcorps-prototype'),'--rom',str(ROOT/'.local/rom.z64'),'--seconds',str(args.seconds),'--data-dir',str(data),'--scale',str(args.scale),'--original-aspect' if args.original_aspect else '--wide','--refresh',str(args.refresh)],cwd=ROOT,env=env,stdout=output,stderr=subprocess.STDOUT)
         def text():return log.read_text(errors='replace')
         def states():
             result=[]
@@ -269,6 +274,7 @@ def run(args):
             if args.controller:result['controller_actions']=check_controller_probe(log,args.controller)
             if args.instruction_glyphs:result['instruction_glyphs']=check_instruction_probe(log,args.controller)
             result['seconds_requested']=args.seconds
+            result['graphics_requested']={'gpu_driver':args.gpu,'scale':args.scale,'wide':not args.original_aspect,'refresh':args.refresh}
             result['exercise_verified']=args.exercise
             result['options_verified']=args.options
             result['controls_verified']=args.controls
@@ -293,6 +299,10 @@ def run(args):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--seconds',type=int,default=180)
+    parser.add_argument('--gpu',choices=('software','radv'),default='software',help='Select software Vulkan or the local Radeon GPU; target rates still depend on the private display')
+    parser.add_argument('--scale',type=float,default=1,help='Internal rendering multiplier, 1..9; 9 requests a 2160-line target')
+    parser.add_argument('--refresh',type=int,choices=(0,30,60,120),default=120)
+    parser.add_argument('--original-aspect',action='store_true')
     parser.add_argument('--seed-save',type=Path)
     parser.add_argument('--seed-pak',type=Path)
     parser.add_argument('--require-existing-player',action='store_true')
@@ -308,6 +318,7 @@ if __name__=='__main__':
     parser.add_argument('--wait-failure',action='store_true')
     args=parser.parse_args()
     if args.seconds<90:parser.error('At least 90 seconds are required for the mission transition')
+    if not 1<=args.scale<=9:parser.error('Scale must be finite and between 1 and 9')
     if (args.retry or args.wait_failure or args.options or args.controls or args.glyphs or args.controller or args.instruction_glyphs) and not args.exercise:parser.error('Retry/failure/options/controls/glyphs/controller/instruction-glyphs needs --exercise')
     if args.controller and args.glyphs:parser.error('Virtual device detection and manual-family rendering need separate runs')
     try:run(args)

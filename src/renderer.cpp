@@ -4,9 +4,12 @@
 #include "settings.h"
 #include "pc_options.h"
 #include "hle/rt64_application.h"
+#include "hle/rt64_workload_queue.h"
 #include "ultramodern/ultramodern.hpp"
 #include <array>
 #include <cstdio>
+#include <algorithm>
+#include <cmath>
 namespace {
 std::array<uint8_t,0x40> rom_header{};
 std::array<uint8_t,0x1000> dmem{}, imem{};
@@ -115,6 +118,18 @@ Context(uint8_t* rdram,ultramodern::renderer::WindowHandle window) {
         {std::lock_guard lock(shared.managerMutex);for(auto& [key,fb]:shared.renderTargetManager.targetMap){if(fb->width*fb->height>width*height){width=fb->width;height=fb->height;}}}
         {std::lock_guard lock(shared.interpolatedMutex);for(auto& frames:shared.interpolatedFrames){presented+=frames.presented;count+=frames.count;}}
         fprintf(stderr,"{\"event\":\"rt64_metrics\",\"width\":%u,\"height\":%u,\"target_rate\":%u,\"original_rate\":%u,\"interpolated_count_snapshot\":%u,\"presented_snapshot\":%u}\n",width,height,target,original,count,presented);
+        // RT64 writes these histories within threadRenderFrame's workloadMutex.
+        // Copy under that same lock; these are rendering costs, not output FPS.
+        std::vector<double> gpu,cpu;
+        {std::lock_guard lock(shared.workloadMutex);gpu=app_->workloadQueue->rendererGPUProfiler.history;cpu=app_->workloadQueue->rendererCPUProfiler.history;}
+        auto summarize=[](std::vector<double> samples){
+            samples.erase(std::remove_if(samples.begin(),samples.end(),[](double value){return !std::isfinite(value)||value<=0;}),samples.end());
+            std::sort(samples.begin(),samples.end());double sum=0;for(double value:samples)sum+=value;
+            if(samples.empty())return std::array<double,4>{};
+            return std::array<double,4>{double(samples.size()),sum/samples.size(),samples[size_t(std::ceil(samples.size()*.95))-1],samples.back()};
+        };
+        auto g=summarize(std::move(gpu)),c=summarize(std::move(cpu));
+        fprintf(stderr,"{\"event\":\"rt64_render_cost\",\"vi\":%llu,\"gpu_samples\":%.0f,\"gpu_mean_ms\":%.4f,\"gpu_p95_ms\":%.4f,\"gpu_max_ms\":%.4f,\"cpu_samples\":%.0f,\"cpu_mean_ms\":%.4f,\"cpu_p95_ms\":%.4f,\"cpu_max_ms\":%.4f}\n",(unsigned long long)vi,g[0],g[1],g[2],g[3],c[0],c[1],c[2],c[3]);
     }
     void shutdown() override { app_->end(); }
     uint32_t get_display_framerate() const override { return app_->presentQueue->ext.sharedResources->swapChainRate; }

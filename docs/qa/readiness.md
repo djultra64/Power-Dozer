@@ -761,3 +761,55 @@ the accepted executable/runtime payload hashes. Clean-tree provenance and
 payload comparison must be checked on that final draft. Actual installed portal
 UI, other Linux distributions, Windows, package-based full mission/control/
 GPU/audio regressions and independent review remain open. No public upload.
+
+Task 5 real-GPU acceptance now has a fully isolated route: headless cage with
+WLR_BACKENDS=headless, gles2 renderer and /dev/dri/renderD128, private
+XDG_RUNTIME_DIR, no libinput devices, then its private Xwayland display. No
+physical monitor configuration or desktop input changes. Harness supports
+explicit Radeon/software driver, internal scale, original/wide aspect and
+refresh requests; result metadata identifies requests without claiming proof.
+
+Initial Radeon-on-Xvfb attempt .local/qa/gameplay-2aq9rv9j failed: Mesa reports
+no DRI3, command queue cannot present, then XIO/process abort. It is not 4K
+performance evidence. Xvfb remains software-driver only. New preflight queries
+DRI3, rejects that unsupported combination before creating data/launching the
+game; private Xwayland passes the exact same check.
+
+Real Radeon baseline: .local/qa/gameplay-ak7os82i, two minutes, 7,201 VI /
+6,898 graphics / 3,599 audio. GPU identity AMD Ryzen Z1 Extreme (RADV PHOENIX);
+RT64 actual target 3840x2160, original 30, effective target 60 because initial
+virtual headless output is 60 Hz. Map/Simian Acres, movement, pause/Continue
+and original instruction glyphs passed; source EEPROM/Pak unchanged. Mission
+movement capture reviewed: high-resolution world geometry, vehicle, minimap
+and HUD visible. Screenshot is 1280x720 output; only renderer metrics establish
+the 3840x2160 internal target. No physical 120-Hz claim.
+
+wlroots output manager permits a custom mode on the private HEADLESS-1 only:
+wlr-randr --output HEADLESS-1 --custom-mode 1920x1080@120. Query confirms
+1920x1080@120, without touching real displays. Actual Radeon virtual-120 run:
+.local/qa/gameplay-elt11rt5, 120 seconds, 7,201 VI / 6,904 graphics / 3,598
+audio. Actual RT64 target 3840x2160 and 120 Hz, original 30. Instruction checker,
+movement and pause/Continue accepted; originals unchanged. Frame-pool aggregate
+snapshots reach five; they show additional-frame work but are neither exact
+per-batch generation counts nor an output-FPS measurement.
+
+New rendering-cost diagnostics copy RT64 CPU/GPU profiler histories under the
+same workloadMutex that protects writes in threadRenderFrame. Positive finite
+samples summarize mean, nearest-rank p95 and max; these are renderer costs,
+not matching/presentation cost or final displayed FPS. Seventeen snapshots
+in actual mode 2 while unpaused/window -1 show GPU p95 5.0346..8.1972 ms, CPU
+p95 5.561..8.8 ms, GPU max 17.1076 ms. Histories contain the latest 120 renders,
+so transition windows can overlap prior workload. At least one CPU p95 exceeds
+120 Hz's 8.333-ms budget; sustained 120, pacing and interpolation correctness
+remain unproven and require direct frame/present instrumentation/visual motion
+acceptance. Do not turn these timing samples into a completed performance gate.
+
+Current build/native suite 26 passed, Python suite 47 passed. Later preflight
+change checked both rejecting Xvfb and accepting headless Xwayland; it changes
+only test setup. Audio in these trials uses SDL dummy, not speaker acceptance.
+Warnings on private Xwayland startup/teardown are not guest assertions. The
+private package from commit 67c017e predates this telemetry and must be rebuilt
+for any package-level graphics claim. Its final clean-tree archive SHA256
+1b648a9d617a4518ed5fe0fd6298e5f0463a023e6a443e2bfa885f8b97b62474 retained
+all 70 accepted payload hashes; only BUILD.json metadata changed after its
+initial tested draft. Package manifest audit passed. Goal remains active.

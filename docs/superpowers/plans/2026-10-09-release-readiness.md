@@ -1,4 +1,13 @@
 # Blast Corps Release Readiness Implementation Plan
+**Scope update (2026-10-10, explicit user instruction):** prioritize known graphics
+defects, stability and a reviewable private launch package. Sustained120fps,
+broad mission/vehicle coverage and physical output/device acceptance belong
+to manual testing and do not block this automated preparation stage. Preserve
+the current refresh/interpolation features and report measured limits honestly.
+Known graphical defects and reproducible freezes remain blockers; run targeted
+regressions for affected audio, controls, save/reload and clean-package paths.
+Publishing is still a separate external action.
+
 
 > **For agentic workers:** Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

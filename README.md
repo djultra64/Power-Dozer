@@ -7,7 +7,8 @@ guarda una caché privada y genera los overlays en memoria; estos archivos no
 se incluyen en los paquetes del proyecto.
 
 Se han visto las intros, el título, una escena 3D del modo de demostración,
-el mapa y Simian Acres, con movimiento, pausa y reanudación en pruebas aisladas.
+el mapa y Simian Acres, con movimiento, pausa, reanudación, misión completada
+y conservación del progreso al reiniciar el proceso en pruebas aisladas.
 También hay pruebas nativas de reconexión y acciones con mandos SDL virtuales.
 El port sigue en desarrollo. Las presentaciones interpoladas medidas pasan el
 objetivo de 120 fps en 720p y 1080p sobre una salida virtual de 120 Hz. En 4K,
@@ -17,6 +18,8 @@ Faltan la cobertura de misiones y las comprobaciones en una pantalla física.
 El audio siguió activo durante sesiones aisladas de seis minutos con movimiento,
 pausa y reinicio. Se corrigieron la cesión del RSP, el orden estéreo y la
 inicialización de los reintentos estándar del runtime para eventos críticos.
+Se corrigió también una carrera de datos demostrada en los temporizadores del
+SDK; su planificador trabaja con copias inmutables de los parámetros del juego.
 También se verificó la recuperación con fallos simulados del dispositivo SDL.
 Persisten bloqueos intermitentes: una sesión reciente detuvo gráficos y audio
 durante el arranque. La beta todavía no se considera candidata a lanzamiento.

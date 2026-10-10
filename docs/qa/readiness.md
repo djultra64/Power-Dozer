@@ -24,6 +24,11 @@ Ruling: portable migration is now tested below. Bare executables use adjacent
 installation. All QA imports use private destinations; original progress is
 never changed by acceptance tests.
 
+Latest authorized scope: graphics, stability and launch preparation first.
+Sustained120fps and broad mission/vehicle/physical-output coverage are deferred
+to manual testing; keep their measurements and gaps explicit. Known graphical
+defects and reproducible hangs still block the private release candidate.
+
 ## Work queue
 
 - Complete: durable EEPROM storage and isolated data paths, including native reload.
@@ -1477,3 +1482,22 @@ coverage, not fidelity acceptance. Direct original RAM reads use O_RDONLY and
 fingerprinted core layout; no guest writes/inferior function calls. Original
 initial and final saved-state motion-blur mode/count/max/FOV all zero; native
 effect-state comparison is in progress. User EEPROM remains untouched.
+
+Native read-only fidelity route gameplay-c3qp5vrt terminal exit0(handle18159),
+240seconds;7 major buildings/$545300/42RDUs observed. Later normal mission failure
+was captured, so this is not another victory or standard exercise acceptance.
+Exact current unstripped native ELF fingerprint and file-only symbol layout
+validated before O_RDONLY parent RAM reads; no writes/ptrace calls. At all7
+building progress points original blur mode/count/max/FOV were zero. Actual
+compositor route-building-3 still shows large translucent textured geometry.
+This rules out active original motion blur at observed points, not shadows
+or other renderer/guest causes. Private shadow-draw-isolation variant is
+prepared from a copy of one generated compilation unit; original source,
+production objects/binary and SDK stay unchanged. Not a product fix.
+
+Current private Linux archive rebuilt atd47cbd0:
+SHA7398a4ef2bf6ba333b5405f654f49534912dbe0b2752c45a21a8e3de2519dfcd,
+75members/74payload/63notices,release-readyfalse/licensereviewfalse.
+Extraction into a separate/tmp directory with spaces verified all74 hashes.
+Native package runtime acceptance remains pending. No reference emulator,ROM,
+private saves,captures or shadow-isolation variant is in the archive.

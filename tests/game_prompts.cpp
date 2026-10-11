@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <cstdio>
 static bc::InputModel input_view;
+static bool settings_open=false;
+namespace bc {bool pc_settings_open(){return settings_open;}}
 bc::InputModel bc_input_view(){return input_view;}
 static void check(bool value,const char* message){if(!value)throw std::runtime_error(message);}
 int main(){
@@ -54,5 +56,25 @@ int main(){
   auto width=std::bit_cast<float>(uint32_t(MEM_W(0x1C,ctx.r29)));
   check(std::isfinite(width)&&width>0&&width<=20,"longer device labels fit original line space");
  }
+
+ settings_open=true;
+ for(const auto& original:bc::original_game_prompts){
+  put(original.address,original.text);ctx.r5=S32(original.address);ctx.r6=123;ctx.r7=456;
+  for(int i=0;i<0x68;i++)MEM_B(i,ctx.r29)=uint8_t(i+1);
+  std::vector<uint8_t> layout(0x68);for(size_t i=0;i<layout.size();i++)layout[i]=MEM_BU(i,ctx.r29);
+  bc_game_prompt_text(rdram,&ctx);
+  check(get(uint32_t(ctx.r5)).empty(),"open settings suppress verified original action instruction text");
+  check(uint32_t(ctx.r5)>=0x80803000&&uint32_t(ctx.r5)<0x80804000,"suppressed text uses bounded private CPU storage");
+  check(get(original.address)==original.text&&ctx.r6==123&&ctx.r7==456,"suppression preserves caller text and font arguments");
+  for(size_t i=0;i<layout.size();i++)check(MEM_BU(i,ctx.r29)==layout[i],"suppression leaves caller layout untouched");
+ }
+ ctx.r5=S32(0x80001000);put(0x80001000,"FOR A HOLIDAY.");bc_game_prompt_text(rdram,&ctx);
+ check(uint32_t(ctx.r5)==0x80001000&&get(0x80001000)=="FOR A HOLIDAY.","narrative remains intact under settings");
+ ctx.r5=S32(0x80001000);put(0x80001000,"PRESS START");bc_game_prompt_text(rdram,&ctx);
+ check(uint32_t(ctx.r5)==0x80001000,"unverified copies remain intact under settings");
+ ctx.r5=S32(0x80308240);put(0x80308240,"MODIFIED");bc_game_prompt_text(rdram,&ctx);
+ check(uint32_t(ctx.r5)==0x80308240&&get(0x80308240)=="MODIFIED","changed text at known address remains intact under settings");
+ settings_open=false;model=bc::InputModel{};ctx.r5=S32(0x80308240);put(0x80308240,"USE Z/R TO MOVE MAP");bc_game_prompt_text(rdram,&ctx);
+ check(get(uint32_t(ctx.r5))=="USE SHIFT/E TO MOVE MAP","closing settings restores current device map instruction");
  puts("Original game prompt actions passed");
 }

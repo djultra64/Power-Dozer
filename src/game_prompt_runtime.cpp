@@ -2,6 +2,7 @@
 #include "input.h"
 #include "support.h"
 #include "input_glyph.h"
+#include "pc_settings_input.h"
 #include <bit>
 #include <cmath>
 #include <cstdio>
@@ -76,12 +77,19 @@ extern "C" void bc_game_prompt_text(uint8_t* rdram,recomp_context* ctx){
   if(pointer!=original.address)continue;
   const auto length=std::strlen(original.text);
   for(size_t i=0;i<=length;++i)if(MEM_BU(i,S32(pointer))!=uint8_t(original.text[i]))return;
+  // The original font checks byte zero before any language/layout work
+  // (80259EF4/80259EF8). An empty private slot hides only verified action
+  // instructions under the host overlay without changing caller layout.
+  const uint32_t destination=0x80803000+uint32_t(index)*128;
+  if(bc::pc_settings_open()){
+   MEM_B(0,S32(destination))=0;ctx->r5=S32(destination);
+   bc_game_prompt_reset();return;
+  }
   auto view=bc_input_view();
   auto replacement=bc::game_prompt(original.text,view);
   if(!replacement||replacement->size()>=128)return;
   // CPU-only text slots follow the existing PC menu storage. The guest font
   // consumes each string synchronously into ordinary RSP-visible geometry.
-  const uint32_t destination=0x80803000+uint32_t(index)*128;
   for(size_t i=0;i<=replacement->size();++i)MEM_B(i,S32(destination))=i<replacement->size()?(*replacement)[i]:0;
   ctx->r5=S32(destination);ctx->r6=0;
   // Preserve each original line's space when a device name is longer. arg7
@@ -105,6 +113,8 @@ extern "C" void bc_game_prompt_text(uint8_t* rdram,recomp_context* ctx){
 
 extern "C" void bc_game_prompt_reset(){std::lock_guard lock(annotation_mutex);for(auto& value:annotations)value.reset();}
 extern "C" void bc_game_prompt_flush(uint8_t* rdram,uint32_t reference,uint32_t frame){
+ // Opening the host view may happen after a prompt queued its annotations.
+ if(bc::pc_settings_open()){bc_game_prompt_reset();return;}
  std::vector<Annotation> pending;
  {std::lock_guard lock(annotation_mutex);for(auto& value:annotations)if(value&&value->frame==frame){pending.push_back(std::move(*value));value.reset();}}
  if(pending.empty()||frame<0x80000000||frame>0x807DEB68||(frame&7)||reference<0x80000000||reference>0x807FFFFC||(reference&3))return;

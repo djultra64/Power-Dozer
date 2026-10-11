@@ -8,13 +8,15 @@
 #include <stdexcept>
 #include <cstdio>
 static bc::InputModel model;
+static bool settings_open=false;
+namespace bc {bool pc_settings_open(){return settings_open;}}
 bc::InputModel bc_input_view(){return model;}
 static void check(bool value,const char* message){if(!value)throw std::runtime_error(message);}
 struct Fixture {
  std::vector<uint8_t> memory=std::vector<uint8_t>(9*1024*1024);
  uint8_t* rdram=memory.data();recomp_context ctx{};
  static constexpr uint32_t frame=0x80200000,stack=0x80400000,reference=0x80500000,begin=frame+0x48B0,end=frame+0xA3A0;
- Fixture(){MEM_W(0,S32(0x802E8C84))=std::bit_cast<uint32_t>(0.6f);model=bc::InputModel{};ctx.r29=S32(stack);ctx.r4=S32(frame);MEM_W(0,S32(reference))=begin;bc_game_prompt_reset();}
+ Fixture(){settings_open=false;MEM_W(0,S32(0x802E8C84))=std::bit_cast<uint32_t>(0.6f);model=bc::InputModel{};ctx.r29=S32(stack);ctx.r4=S32(frame);MEM_W(0,S32(reference))=begin;bc_game_prompt_reset();}
  void text(uint32_t address,const char* value){for(size_t i=0;;++i){MEM_B(i,S32(address))=value[i];if(!value[i])break;}}
  void layout(uint32_t address,const char* value,float x,int y,int height=20,int alpha=255,bool shadow=false){
   text(address,value);ctx.r4=S32(frame);ctx.r5=S32(address);ctx.r6=0;ctx.r29=S32(stack);
@@ -96,6 +98,20 @@ int main(){
   model.replace(bc::InputAction::Confirm,bc::InputSource::Controller,{{bc::BindingKind::Button,SDL_CONTROLLER_BUTTON_X}});
   f.layout(0x8030AECC,"USE A TO THRUST",-88,-64);f.flush();check(f.commands()!=cross,"action remapping changes the actual tutorial glyph raster");
   auto glyphs=f.glyphs();check(glyphs.size()==1&&bc::glyph_name(glyphs.front().sprite)=="playstation_square","remapped PlayStation instruction draws supplied Square artwork instead of Cross");
+ }
+
+ {
+  Fixture f;f.layout(0x80308240,"USE Z/R TO MOVE MAP",24,20,16);
+  settings_open=true;f.flush();check(f.pointer()==f.begin,"opening settings drops map glyphs queued before overlay opened");
+  settings_open=false;f.flush();check(f.pointer()==f.begin,"suppressed annotations cannot reappear after close");
+  settings_open=true;f.layout(0x80308240,"USE Z/R TO MOVE MAP",24,20,16);f.flush();check(f.pointer()==f.begin,"map instruction cannot queue glyphs while settings is open");
+  settings_open=false;f.layout(0x80308240,"USE Z/R TO MOVE MAP",24,20,16);f.flush();auto glyphs=f.glyphs();
+  check(glyphs.size()==2&&bc::glyph_name(glyphs[0].sprite)=="key_shift"&&bc::glyph_name(glyphs[1].sprite)=="key_e","closed settings restore map glyphs from current bindings");
+ }
+ {
+  Fixture f;f.layout(0x80308240,"USE Z/R TO MOVE MAP",24,20,16);
+  settings_open=true;f.window();f.layout(0x8030AECC,"USE A TO THRUST",-88,-64);
+  settings_open=false;f.flush();check(f.pointer()==f.begin,"suppressed text also clears pending annotations before a rapid close");
  }
  puts("Original instruction glyph queue and display-list bounds passed");
 }

@@ -87,7 +87,10 @@ PcSettingsDrawData pc_settings_draw_data(const PcSettingsSnapshot& snapshot,cons
   b.text(tabs[i],layout.tabs[i],20,selected||focused?red:white,1);
   if(focused)b.text("-",{layout.tabs[i].x,layout.tabs[i].y,12*scale,layout.tabs[i].height},18,red);
  }
- for(size_t i=0;i<snapshot.rows.size();++i){
+ // Keep the view state intact, but expose only the game backdrop through the
+ // original translucent modal shadow instead of overlapping option text.
+ const bool show_options=snapshot.modal==PcSettingsModal::None;
+ for(size_t i=0;show_options&&i<snapshot.rows.size();++i){
   const auto& row=snapshot.rows[i];const bool controls=snapshot.section==SettingsMenu::Page::Controls;
   if(i>=(controls?layout.actions.size():layout.rows.size()))break;
   const auto r=controls?layout.actions[i]:layout.rows[i];
@@ -101,7 +104,7 @@ PcSettingsDrawData pc_settings_draw_data(const PcSettingsSnapshot& snapshot,cons
   else b.text(row.value,value,22,tint,2);
   if(row.restart_required)b.text("RESTART REQUIRED",{r.x,r.y+25*scale,r.width,14*scale},12,grey);
  }
- for(size_t i=0;i<std::min(snapshot.controls.size(),layout.controls.size());++i){
+ for(size_t i=0;show_options&&i<std::min(snapshot.controls.size(),layout.controls.size());++i){
   const auto& c=snapshot.controls[i];auto r=layout.controls[i];
   const auto tint=snapshot.focus_target==PcSettingsFocusTarget::Control&&snapshot.focus==i?red:white;
   const auto label=i==0?"DEVICE: "+c.value:i==1?"FAMILY: "+c.value:c.label;
@@ -119,9 +122,18 @@ PcSettingsDrawData pc_settings_draw_data(const PcSettingsSnapshot& snapshot,cons
  if(snapshot.modal!=PcSettingsModal::None){
   b.box(layout.modal);
   b.text(snapshot.modal==PcSettingsModal::Capture?"PRESS AN INPUT":"RESTORE DEFAULTS?",rect(96,172,448,32),24,red,1);
-  const auto message=snapshot.modal==PcSettingsModal::Capture?"ESC: CANCEL":"ENTER: CONFIRM   ESC: CANCEL";
-  b.text(message,rect(96,254,448,24),18,white,1);
-  if(snapshot.modal==PcSettingsModal::Capture&&snapshot.focus<snapshot.rows.size())b.text(snapshot.rows[snapshot.focus].label,rect(96,216,448,24),20,white,1);
+  if(snapshot.modal==PcSettingsModal::Capture){
+   b.text("ESC: CANCEL",rect(96,254,448,24),18,white,1);
+   if(snapshot.focus<snapshot.rows.size())b.text(snapshot.rows[snapshot.focus].label,rect(96,216,448,24),20,white,1);
+  }else{
+   for(size_t i=0;i<2;++i){
+    auto r=rect(104+i*224,230,208,26);
+    b.binding(snapshot.prompts[i],snapshot.controller_family,{r.x,r.y,110*scale,r.height},white);
+    r.x+=118*scale;r.width-=118*scale;b.text(i==0?"CONFIRM":"CANCEL",r,16,white);
+   }
+   // Fixed keyboard recovery remains available even after remapping Back.
+   b.text("ESC: CANCEL",rect(96,292,448,24),16,grey,1);
+  }
  }
  return std::move(b.out);
 }

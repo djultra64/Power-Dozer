@@ -164,5 +164,46 @@ int main(){
   check(found,"actual confirm position uses active family atlas sprite including Switch B");
   check(std::count_if(draw.batches.begin(),draw.batches.end(),[](const auto& b){return b.primitive==PcSettingsPrimitive::BoxShadow;})==2,"capture modal adds original shadow mesh over same rows");
  }
+ // Inspect only geometry after the modal's shadow; the dynamic footer must
+ // not make a hardcoded modal pass this test.
+ auto defaults_prompts=[&](const char* confirm_glyph,const char* back_glyph,const char* confirm_label,const char* back_label){
+  state.modal=PcSettingsModal::RestoreDefaults;
+  const auto snapshot=pc_settings_snapshot(menu,input,state);
+  const auto draw=pc_settings_draw_data(snapshot,assets,960,720);
+  auto no_options=snapshot;no_options.rows.clear();no_options.controls.clear();
+  check(pc_settings_draw_data(no_options,assets,960,720).vertices.size()==draw.vertices.size(),
+   "modal hides underlying option text while retaining its snapshot and focus");
+  std::vector<std::string> labels,glyphs;bool in_modal=false;int boxes=0;
+  // Original font tile order, decoded from the emitted texture coordinates.
+  constexpr std::string_view tiles="0123456789ABCD\x7f" "EFGHIJKLMNOPQRSTUVWXYZ\x7f'):,$!.-(%?#/";
+  for(const auto& batch:draw.batches){
+   if(batch.primitive==PcSettingsPrimitive::BoxShadow){in_modal=++boxes==2;continue;}
+   if(!in_modal)continue;
+   if(batch.glyph)glyphs.emplace_back(glyph_name(*batch.glyph));
+   if(batch.primitive==PcSettingsPrimitive::Text){
+    std::string text;
+    for(size_t i=batch.first;i<batch.first+batch.count;i+=6){
+     const auto& v=draw.vertices[i];const size_t tile=size_t(std::lround(v.v*1024/32))*8+size_t(std::lround(v.u*512/32));
+     check(tile<tiles.size(),"modal text addresses original font tile");text+=tiles[tile];
+    }
+    labels.push_back(text);
+   }
+  }
+  check(glyphs==std::vector<std::string>{confirm_glyph,back_glyph},"defaults modal uses remapped active-device confirm and back glyphs");
+  for(const auto* expected:{confirm_label,back_label,"CONFIRM","CANCEL","ESC:CANCEL"})
+   check(std::find(labels.begin(),labels.end(),expected)!=labels.end(),"defaults modal names actual bindings and retains fixed Escape recovery");
+ };
+ input.replace(InputAction::Confirm,InputSource::Controller,{{BindingKind::Button,SDL_CONTROLLER_BUTTON_Y}});
+ input.replace(InputAction::Back,InputSource::Controller,{{BindingKind::Button,SDL_CONTROLLER_BUTTON_X}});
+ input.controller_family(ControllerFamily::Switch);
+ defaults_prompts("switch_x","switch_y","X","Y");
+ input.controller_family(ControllerFamily::Xbox);
+ defaults_prompts("xbox_y","xbox_x","Y","X");
+ input.controller_family(ControllerFamily::PlayStation);
+ defaults_prompts("playstation_triangle","playstation_square","TRIANGLE","SQUARE");
+ input.activity(InputSource::Keyboard);
+ input.replace(InputAction::Confirm,InputSource::Keyboard,{{BindingKind::Key,SDL_SCANCODE_K}});
+ input.replace(InputAction::Back,InputSource::Keyboard,{{BindingKind::Key,SDL_SCANCODE_H}});
+ defaults_prompts("key_k","key_h","K","H");
  check(pc_settings_draw_data(controller,assets,0,0).vertices.empty(),"minimized framebuffer emits nothing");
 }

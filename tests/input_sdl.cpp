@@ -86,6 +86,38 @@ int main(){
  SDL_JoystickClose(joystick);check(SDL_JoystickDetachVirtual(index)==0,"detach while capturing");sync();outcome=bc_input_take_remap_result();check(outcome&&outcome->cancelled,"controller disconnect cancels capture");bc::acknowledge_pc_remap(*outcome);
  auto host=bc::pc_settings_current(bc_input_view());check(host->modal==bc::PcSettingsModal::None&&host->focus==0&&host->device==bc::InputSource::Controller,"disconnect restores same row and editing device");
  key.key.keysym.scancode=SDL_SCANCODE_ESCAPE;bc_input_event(key);sync();
+
+ // Accept the remaps through the real capture/store path, then compare the
+ // published instruction with both ordinary-page and confirmation behavior.
+ auto assign_key=[&](bc::InputAction action,SDL_Scancode code){
+  bc_input_begin_remap({action,bc::InputSource::Keyboard});key.key.keysym.scancode=code;bc_input_event(key);sync();
+  auto result=bc_input_take_remap_result();check(result&&result->success,"navigation-key remap is accepted and saved");
+ };
+ struct RemapCase {bc::InputAction action;SDL_Scancode code;const char* label;};
+ for(auto test:{RemapCase{bc::InputAction::Confirm,SDL_SCANCODE_TAB,"TAB"},RemapCase{bc::InputAction::Back,SDL_SCANCODE_TAB,"TAB"},RemapCase{bc::InputAction::Back,SDL_SCANCODE_RETURN,"ENTER"},RemapCase{bc::InputAction::Confirm,SDL_SCANCODE_UP,"UP"}}){
+  bc::pc_settings_close();bc_input_begin_remap({bc::InputAction::Confirm,bc::InputSource::Keyboard,true});bc_input_take_remap_result();
+  if(test.code==SDL_SCANCODE_RETURN)assign_key(bc::InputAction::Start,SDL_SCANCODE_F1);
+  if(test.code==SDL_SCANCODE_UP)assign_key(bc::InputAction::MoveUp,SDL_SCANCODE_F2);
+  assign_key(test.action,test.code);
+  check(bc::ControlsStore(bc_data_directory/"controls.json").load().prompt(test.action).label==test.label,"accepted navigation-key remap persists its prompt");
+  bc::initialize_pc_options({});bc::pc_settings_begin();
+  const auto prompt_index=test.action==bc::InputAction::Confirm?0:1;
+  check(bc::pc_settings_current(bc_input_view())->prompts[prompt_index].label==test.label,"normal settings prompt uses accepted remap");
+  key.key.keysym.scancode=test.code;key.key.repeat=1;bc_input_event(key);
+  check(bc::pc_settings_open()&&bc::pc_settings_current(bc_input_view())->focus==0&&!bc::take_pc_change(),"held logical key cannot fall through to navigation or re-activate");
+  key.key.repeat=0;bc_input_event(key);
+  if(test.action==bc::InputAction::Confirm){
+   auto changed=bc::take_pc_change();check(changed&&changed->field==bc::SettingsField::Scale,"advertised remapped select activates row rather than navigation shortcut");bc::acknowledge_pc_change(changed->settings,true);
+  }else check(!bc::pc_settings_open(),"advertised remapped back closes normal settings page");
+  bc::initialize_pc_options({});bc::pc_settings_begin();
+  mouse.button.x=510;mouse.button.y=75;bc_input_event(mouse);mouse.button.x=40;mouse.button.y=390;bc_input_event(mouse);
+  host=bc::pc_settings_current(bc_input_view());check(host->modal==bc::PcSettingsModal::RestoreDefaults&&host->prompts[prompt_index].label==test.label,"defaults modal advertises accepted logical key");
+  bc_input_event(key);host=bc::pc_settings_current(bc_input_view());auto reset=bc::take_pc_remap_request();
+  check(host&&host->modal==bc::PcSettingsModal::None,"advertised logical key dismisses confirmation modal");
+  if(test.action==bc::InputAction::Confirm)check(reset&&reset->reset,"remapped select confirms device defaults");
+  else check(!reset&&host->focus==2,"remapped back cancels defaults without resetting bindings");
+ }
+ bc::pc_settings_close();
  puts("Virtual SDL input families, focus, axes and reconnect passed");
  return 0;
 

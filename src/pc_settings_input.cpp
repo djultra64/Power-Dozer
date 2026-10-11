@@ -137,15 +137,7 @@ bool pc_settings_event(const SDL_Event& event,const InputModel& input){
  }
  std::optional<InputBinding> binding;
  if(event.type==SDL_KEYDOWN){
-  const auto key=event.key.keysym.scancode;
-  if(state.modal==PcSettingsModal::None){
-   if(key==SDL_SCANCODE_TAB){move(event.key.keysym.mod&KMOD_SHIFT?-1:1);return true;}
-   if(key==SDL_SCANCODE_UP||key==SDL_SCANCODE_DOWN){move(key==SDL_SCANCODE_UP?-1:1);return true;}
-   if(key==SDL_SCANCODE_LEFT||key==SDL_SCANCODE_RIGHT){select(key==SDL_SCANCODE_LEFT?-1:1,false);return true;}
-  }
-  if(event.key.repeat)return true;
-  if(key==SDL_SCANCODE_RETURN){confirm();return true;}
-  binding=InputBinding{BindingKind::Key,key};
+  binding=InputBinding{BindingKind::Key,event.key.keysym.scancode};
  }else if(event.type==SDL_CONTROLLERBUTTONDOWN)binding=InputBinding{BindingKind::Button,event.cbutton.button};
  else if(event.type==SDL_CONTROLLERAXISMOTION){
   if(event.caxis.axis>=axis_directions.size())return true;
@@ -154,8 +146,21 @@ bool pc_settings_event(const SDL_Event& event,const InputModel& input){
   binding=InputBinding{BindingKind::Axis,event.caxis.axis,direction};
  }
  if(!binding)return event.type==SDL_KEYUP||event.type==SDL_CONTROLLERBUTTONUP||event.type==SDL_MOUSEWHEEL;
- if(bound(input,InputAction::Back,*binding)){cancel();return true;}
- if(bound(input,InputAction::Confirm,*binding)){confirm();return true;}
+ // Accepted Confirm/Back bindings own their keys, matching the published
+ // prompts. Only the fixed Escape recovery above overrides those actions.
+ const bool repeat=event.type==SDL_KEYDOWN&&event.key.repeat;
+ if(bound(input,InputAction::Back,*binding)){if(!repeat)cancel();return true;}
+ if(bound(input,InputAction::Confirm,*binding)){if(!repeat)confirm();return true;}
+ if(event.type==SDL_KEYDOWN){
+  const auto key=event.key.keysym.scancode;
+  if(state.modal==PcSettingsModal::None){
+   if(key==SDL_SCANCODE_TAB){move(event.key.keysym.mod&KMOD_SHIFT?-1:1);return true;}
+   if(key==SDL_SCANCODE_UP||key==SDL_SCANCODE_DOWN){move(key==SDL_SCANCODE_UP?-1:1);return true;}
+   if(key==SDL_SCANCODE_LEFT||key==SDL_SCANCODE_RIGHT){select(key==SDL_SCANCODE_LEFT?-1:1,false);return true;}
+  }
+  if(repeat)return true;
+  if(key==SDL_SCANCODE_RETURN){confirm();return true;}
+ }
  if(state.modal!=PcSettingsModal::None)return true;
  if(bound(input,InputAction::L,*binding))next_section(-1);
  else if(bound(input,InputAction::R,*binding))next_section(1);

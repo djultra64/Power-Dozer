@@ -70,6 +70,15 @@ This follow-up uses manual family selection; actual virtual-controller behavior
 is covered by the three earlier runs. The arrows additionally have draw-data
 regressions across all three families, remaps and non-directional glyphs.
 
+The arrows were then centered inside the stick illustrations. A further
+120-second native image check used SHA-256
+`64ba40f9e0b6c22302187a204da1ef311dff12bb65ad35b5bbb3d99de53288c8`.
+Its reviewed Switch Controls compositor capture shows all eight white arrows
+inside their LS/RS circles, matching the physical directions. The run exited
+normally with 7,201 VI / 6,897 graphics / 3,599 audio tasks; complete screens,
+modals and reopening passed, and original save/Pak hashes stayed unchanged.
+This rendering-only follow-up retains the manual-family scope above.
+
 ## Limits
 
 Virtual SDL Xbox, PlayStation and Switch layouts exercise physical-position

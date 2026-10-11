@@ -401,3 +401,8 @@ add_test(NAME original_audio_pending_dispatch_recovery COMMAND audio_dispatch_te
 add_test(NAME original_audio_healthy_dispatch_protocol COMMAND audio_dispatch_test healthy)
 set_tests_properties(original_audio_pending_dispatch_recovery original_audio_healthy_dispatch_protocol PROPERTIES TIMEOUT 5)
 endif()
+
+add_executable(pc_settings_assets_test tests/pc_settings_assets.cpp src/pc_settings_assets.cpp)
+target_include_directories(pc_settings_assets_test PRIVATE include)
+add_test(NAME original_pc_settings_asset_decoding COMMAND pc_settings_assets_test)
+target_sources(blastcorps-prototype PRIVATE src/pc_settings_assets.cpp)

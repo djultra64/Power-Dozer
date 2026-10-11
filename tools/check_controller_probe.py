@@ -20,10 +20,12 @@ def check(path,device):
         raise ValueError('Missing virtual-controller disconnection')
     if any(event.get('event')=='qa_controller_request' and event.get('ok') is not True for event in events):
         raise ValueError('A private controller request failed')
-    expected=['ACCEL/OK: '+south,'BACK/REVERSE: '+east,'PAUSE: '+start,'NEXT PAGE']
-    views=[event for event in events if event.get('event')=='pc_controls_view']
-    if not any(event.get('title')==title and event.get('rows')==expected for event in views):
-        raise ValueError('Detected controller action captions disagree with its layout')
+    expected=[('ACCEL/OK',south),('BACK/REVERSE',east),('PAUSE',start)]
+    sprites={'xbox360':['xbox_a','xbox_b','xbox_menu'],'ps5':['playstation_cross','playstation_circle','playstation_options'],'switch':['switch_b','switch_a','switch_plus']}[device]
+    views=[event for event in events if event.get('event')=='pc_settings_view' and event.get('open') and event.get('section')=='CONTROLS' and event.get('device')=='CONTROLLER']
+    if not any(len(event.get('rows',[]))==14 and all(row.get('label')==label and row.get('value')==value and row.get('binding',{}).get('label')==value and row.get('binding',{}).get('glyph')==sprite
+               for row,(label,value),sprite in zip(event['rows'],expected,sprites)) for event in views):
+        raise ValueError('Detected controller action captions or glyphs disagree with its layout')
     source='keyboard';confirm=False;pause=False;steering=False;keyboard_return=False;held=False;acks=0
     for event in events:
         kind=event.get('event')

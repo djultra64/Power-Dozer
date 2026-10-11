@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <cstring>
 #include <mutex>
+#include <json.hpp>
 #include <cmath>
 #include "audio_fifo.h"
 #include "audio_sdl.h"
@@ -30,6 +31,36 @@
 #include "data_import.h"
 #include "data_directory.h"
 #include "rom_selection.h"
+
+// Optional acceptance telemetry from the same immutable value sent to RT64.
+// Serialize only when requested; unchanged frames never produce log traffic.
+static void trace_pc_settings(const std::shared_ptr<const bc::PcSettingsSnapshot>& view,int width,int height){
+ static const bool enabled=std::getenv("BC_TRACE_PC_SETTINGS")!=nullptr;
+ if(!enabled)return;
+ nlohmann::json event={{"event","pc_settings_view"},{"open",bool(view)}};
+ if(view){
+  const auto family=view->controller_family;
+  auto prompt=[&](const bc::InputPrompt& value){
+   auto sprite=bc::input_glyph(value,family);
+   return nlohmann::json{{"label",value.label},{"source",value.source==bc::InputSource::Keyboard?"keyboard":"controller"},{"glyph",sprite?std::string(bc::glyph_name(*sprite)):""}};
+  };
+  event["width"]=width;event["height"]=height;event["section"]=view->title;
+  event["focus"]=view->focus;event["focus_target"]=int(view->focus_target);
+  event["device"]=view->device_label;event["family"]=view->family_label;
+  event["modal"]=view->modal==bc::PcSettingsModal::Capture?"capture":view->modal==bc::PcSettingsModal::RestoreDefaults?"defaults":"none";
+  event["status"]=view->status;event["saving"]=view->saving;
+  event["prompts"]={prompt(view->prompts[0]),prompt(view->prompts[1])};
+  event["rows"]=nlohmann::json::array();
+  for(const auto& row:view->rows){
+   nlohmann::json item={{"label",row.label},{"value",row.value},{"restart",row.restart_required}};
+   if(row.binding)item["binding"]=prompt(*row.binding);
+   event["rows"].push_back(std::move(item));
+  }
+ }
+ static std::string previous;
+ const auto text=event.dump();if(text==previous)return;previous=text;
+ std::fprintf(stderr,"%s\n",text.c_str());
+}
 
 double bc_scale=3;
 bool bc_wide=false;
@@ -235,7 +266,9 @@ int main(int argc,char** argv){
   if(auto request=bc::take_pc_remap_request())bc_input_begin_remap(*request);
   bc_input_update(window);
   if(auto result=bc_input_take_remap_result())bc::acknowledge_pc_remap(*result);
-  bc::publish_pc_settings_snapshot(bc::pc_settings_current(bc_input_view()));
+  auto settings_view=bc::pc_settings_current(bc_input_view());
+  trace_pc_settings(settings_view,settings_width,settings_height);
+  bc::publish_pc_settings_snapshot(std::move(settings_view));
   auto now=std::chrono::steady_clock::now();
   if(now>=next){fprintf(stderr,"{\"event\":\"progress\",\"vi\":%llu,\"gfx\":%llu,\"audio\":%llu,\"polls\":%llu}\n",(unsigned long long)bc_vis.load(),(unsigned long long)bc_gfx.load(),(unsigned long long)bc_audio.load(),(unsigned long long)bc_polls.load());fflush(stderr);next=now+std::chrono::seconds(5);}
   if(seconds>0&&std::chrono::duration<double>(now-start).count()>=seconds)break;

@@ -9,14 +9,14 @@ module=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(module)
 class NativeControllerEvidence(unittest.TestCase):
     def events(self,device='switch'):
         family,title,south,east,start=module.LAYOUTS[device]
-        return [dict(event='qa_controller',phase='attached',family=device,held=False),dict(event='active_device',family=family),dict(event='pc_controls_view',title=title,rows=['ACCEL/OK: '+south,'BACK/REVERSE: '+east,'PAUSE: '+start,'NEXT PAGE']),dict(event='input',buttons=32768,stick_x=.666),dict(event='input',buttons=4096,stick_x=0),dict(event='active_device',family='keyboard'),dict(event='qa_controller',phase='detached'),dict(event='qa_controller',phase='attached',family=device,held=True),dict(event='qa_controller_request',serial=8,ok=True),dict(event='input',buttons=0,stick_x=0),dict(event='qa_controller_request',serial=9,ok=True)]
+        return [dict(event='qa_controller',phase='attached',family=device,held=False),dict(event='active_device',family=family),dict(event='pc_settings_view',open=True,section='CONTROLS',device='CONTROLLER',rows=[dict(label=label,value=value,binding=dict(label=value,glyph=glyph)) for label,value,glyph in [('ACCEL/OK',south,{'xbox360':'xbox_a','ps5':'playstation_cross','switch':'switch_b'}[device]),('BACK/REVERSE',east,{'xbox360':'xbox_b','ps5':'playstation_circle','switch':'switch_a'}[device]),('PAUSE',start,{'xbox360':'xbox_menu','ps5':'playstation_options','switch':'switch_plus'}[device])]]+[dict(label='ACTION',value='VALUE') for _ in range(11)]),dict(event='input',buttons=32768,stick_x=.666),dict(event='input',buttons=4096,stick_x=0),dict(event='active_device',family='keyboard'),dict(event='qa_controller',phase='detached'),dict(event='qa_controller',phase='attached',family=device,held=True),dict(event='qa_controller_request',serial=8,ok=True),dict(event='input',buttons=0,stick_x=0),dict(event='qa_controller_request',serial=9,ok=True)]
     def check(self,events,device='switch'):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'native.log';path.write_text('\n'.join(json.dumps(event) for event in events));return module.check(path,device)
     def test_all_layouts(self):
         for device in module.LAYOUTS:self.assertFalse(self.check(self.events(device),device)['physical_hardware_tested'])
     def test_swapped_nintendo_letters_rejected(self):
-        events=self.events();events[2]['rows'][0]='ACCEL/OK: A'
+        events=self.events();events[2]['rows'][0]['value']='A'
         with self.assertRaisesRegex(ValueError,'layout'):self.check(events)
     def test_manual_only_capture_rejected(self):
         events=self.events();del events[0]
@@ -30,3 +30,10 @@ class NativeControllerEvidence(unittest.TestCase):
     def test_no_keyboard_return_rejected(self):
         events=self.events();del events[5]
         with self.assertRaisesRegex(ValueError,'handover'):self.check(events)
+
+    def test_old_paginated_view_rejected(self):
+        events=self.events();events[2]=dict(event='pc_controls_view',title='SWITCH HELP',rows=['ACCEL/OK: B','BACK/REVERSE: A','PAUSE: PLUS','NEXT PAGE'])
+        with self.assertRaisesRegex(ValueError,'layout'):self.check(events)
+    def test_wrong_family_sprite_rejected(self):
+        events=self.events();events[2]['rows'][0]['binding']['glyph']='xbox_a'
+        with self.assertRaisesRegex(ValueError,'layout'):self.check(events)

@@ -17,6 +17,7 @@ from check_audio_recovery import check as check_audio_recovery
 from check_controller_probe import check as check_controller_probe
 from check_instruction_probe import check as check_instruction_probe
 from check_render_probe import check as check_render_probe
+from check_pc_settings_probe import check as check_pc_settings_probe, check_reload, filters_applied, check_live_filters
 from check_demolition_probe import check as check_demolition_probe
 from probe_health import stalled_progress
 from waypoint_input import axes as waypoint_axes, relative_axes
@@ -47,7 +48,7 @@ def run(args):
         pak_hash=hashlib.sha256(args.seed_pak.read_bytes()).hexdigest()
         shutil.copyfile(args.seed_pak,data/'controller-pak.bin')
     driver={'software':'/usr/share/vulkan/icd.d/lvp_icd.x86_64.json','radv':'/usr/share/vulkan/icd.d/radeon_icd.x86_64.json'}[args.gpu]
-    env=dict(os.environ,BC_TRACE_INPUT='1',BC_TRACE_GAMEPLAY='1',BC_TRACE_RENDER='1',SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',VK_DRIVER_FILES=driver)
+    env=dict(os.environ,BC_TRACE_INPUT='1',BC_TRACE_GAMEPLAY='1',BC_TRACE_RENDER='1',BC_TRACE_PC_SETTINGS='1',SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',VK_DRIVER_FILES=driver)
     preload_aliases=tempfile.TemporaryDirectory(prefix='blastcorps-qa-preload-',dir='/tmp') if args.audio_loss or args.controller else None
     def preload_path(path):
         # ld.so splits on spaces. A private alias also works when the tested
@@ -113,13 +114,33 @@ def run(args):
                 time.sleep(.1)
             capture_hang()
             raise ValueError('Native transition timed out: '+text()[-1800:])
-        def control_view(content,title,first=None):
-            for line in reversed(content.splitlines()):
+        def settings_view(content=None):
+            for line in reversed((text() if content is None else content).splitlines()):
                 try:event=json.loads(line)
                 except json.JSONDecodeError:continue
-                if isinstance(event,dict) and event.get('event')=='pc_controls_view':
-                    return event.get('title')==title and (first is None or event.get('rows',[None])[0]==first)
-            return False
+                if isinstance(event,dict) and event.get('event')=='pc_settings_view':return event
+            return {}
+        def wait_view(section=None,modal='none',**expected):
+            wait(lambda content:(view:=settings_view(content)).get('open') and
+                 (section is None or view.get('section')==section) and view.get('modal')==modal and
+                 all(view.get(k)==v for k,v in expected.items()))
+        def saved_field(field,value):
+            def matches(_):
+                try:return json.loads((data/'settings.json').read_text()).get(field)==value
+                except (OSError,ValueError):return False
+            wait(matches)
+        def mouse(x,y,click=False):
+            view=settings_view();width,height=view['width'],view['height'];scale=min(width/640,height/480)
+            command('mousemove','--window',window,str(round((width-640*scale)/2+x*scale)),str(round((height-480*scale)/2+y*scale)))
+            if click:command('click','1')
+            time.sleep(.15)
+        def tab(index):
+            mouse(102+144*index,76,True);wait_view(('DISPLAY','GRAPHICS','AUDIO','CONTROLS')[index])
+        def resize(width,height):
+            if args.compositor_capture:
+                subprocess.run(['wlr-randr','--output','HEADLESS-1','--custom-mode',f'{width}x{height}@60Hz'],env=env,check=True)
+            else:command('windowsize',window,str(width),str(height))
+            wait_view(width=width,height=height);time.sleep(.3)
         def command(*values):subprocess.run(['xdotool',*values],env=env,check=True,stdout=subprocess.DEVNULL)
         def key(name,hold=.4):
             command('keydown',name);time.sleep(hold);command('keyup',name);time.sleep(.3)
@@ -275,89 +296,120 @@ def run(args):
                 if (before['x'],before['z'])==(after['x'],after['z']):raise ValueError('Vehicle position did not change during acceleration')
                 key('Return');time.sleep(1);screenshot('pause')
                 if not states()[-1]['paused']:raise ValueError('Start did not pause the guest')
-                if args.options:
-                    key(confirm);wait(lambda value:'"event":"pc_options_selection"' in value);time.sleep(2);screenshot('pc-options-root')
-                    key(confirm);time.sleep(2);screenshot('pc-options-graphics')
-                    key(confirm);time.sleep(2);screenshot('pc-options-saved')
-                    settings=json.loads((data/'settings.json').read_text())
-                    if settings.get('scale')!=4.5:raise ValueError('PC resolution selection was not saved')
-                    key('Down');key('Down');key('Down');key(confirm);time.sleep(1)
-                    key('Down');key('Down');key(confirm);time.sleep(2);screenshot('pc-options-filter')
-                    wait(lambda value:'"event":"pc_filters_applied","presentation":"pixel"' in value)
-                    key('Down');key('Down');key('Down');key(confirm);time.sleep(1)
-                    key(confirm);time.sleep(2);screenshot('pc-options-texture')
-                    wait(lambda value:'"event":"pc_filters_applied","presentation":"pixel","texture":"linear"' in value)
-                    settings=json.loads((data/'settings.json').read_text())
-                    if settings.get('presentation')!='pixel' or settings.get('texture')!='linear':raise ValueError('PC filters were not saved')
-                    # Each page reuses the original closing/opening animation;
-                    # wait for it before sending the next Back edge.
-                    key('x');time.sleep(1);key('x');time.sleep(1)
-                    key('x');time.sleep(1);key('Down');key(confirm);time.sleep(1);screenshot('pc-options-audio')
-                    key(confirm);time.sleep(2)
-                    settings=json.loads((data/'settings.json').read_text())
-                    if settings.get('volume')!=0:raise ValueError('PC volume selection was not saved')
-                    key('x');time.sleep(1);key('x');time.sleep(2);screenshot('pc-options-return')
-                if args.controls:
-                    key(confirm);time.sleep(2)
-                    key('Down');key('Down');key(confirm);time.sleep(1)
-                    key('Down');key(confirm);time.sleep(1);screenshot('controls-devices')
-                    key(confirm);time.sleep(1);screenshot('controls-keyboard')
-                    key(confirm)
-                    wait(lambda value:control_view(value,'REMAP ACCEL/OK'));time.sleep(1);screenshot('controls-capture')
-                    key('t');confirm='t'
-                    wait(lambda value:control_view(value,'SAVED','ACCEL/OK: T'))
-                    time.sleep(1);screenshot('controls-saved')
-                    controls=(data/'controls.json').read_bytes()
-                    saved=json.loads(controls)
-                    if saved.get('schema')!=1 or saved['actions']['confirm']['keyboard']!=[{'key':'T'}]:raise ValueError('Keyboard confirm remap was not persisted')
-                    key('Down');key(confirm)
-                    wait(lambda value:control_view(value,'REMAP BACK/REVERSE'));time.sleep(1);key('Escape')
-                    wait(lambda value:control_view(value,'CANCELLED'));time.sleep(1);screenshot('controls-cancelled')
-                    if (data/'controls.json').read_bytes()!=controls:raise ValueError('Cancel changed the saved controls')
-                    key('x');time.sleep(1);key('x');time.sleep(1)
-                    key('Down');key('Down');key(confirm)
-                    wait(lambda value:control_view(value,'KEYBOARD HELP','ACCEL/OK: T'));time.sleep(1);screenshot('controls-help')
-                    key(confirm);time.sleep(1);screenshot('controls-help-camera')
-                    key('x');time.sleep(1);key('x');time.sleep(1);key('x');time.sleep(1)
-                    print('Controls remap, cancellation and in-game help verified',flush=True)
-                if args.glyphs:
-                    key(confirm);time.sleep(1);key('Down');key('Down');key(confirm);time.sleep(1)
-                    key('Down');key(confirm);time.sleep(1);key('Down');key(confirm)
-                    labels={'xbox':'A','playstation':'CROSS','switch':'B'}
-                    wait(lambda value:control_view(value,'PAD 1/5','ACCEL/OK: '+labels[args.glyphs]))
-                    for part in range(5):
-                        time.sleep(1);screenshot(f'{args.glyphs}-actions-{part+1}')
-                        time.sleep(.13);screenshot(f'{args.glyphs}-actions-{part+1}-next')
-                        if part<4:
-                            key('Down');key('Down');key('Down');key(confirm)
-                            wait(lambda value:control_view(value,f'PAD {part+2}/5'))
-                    for _ in range(4):key('x');time.sleep(1)
-                    print('Manual-family controller editor pages captured: '+args.glyphs,flush=True)
-                if full_controller_flow:
-                    family,caption,south,trigger={'xbox360':('xbox','XBOX HELP','A','LT'),'ps5':('playstation','PLAYSTATION HELP','CROSS','L2'),'switch':('switch','SWITCH HELP','B','ZL')}[args.controller]
-                    key(confirm);time.sleep(1);key('Down');key('Down');key(confirm);time.sleep(1)
-                    key('Down');key('Down');key(confirm)
-                    wait(lambda content:control_view(content,'KEYBOARD HELP','ACCEL/OK: '+confirm.upper()))
-                    button('guide')
-                    wait(lambda content:control_view(content,caption,'ACCEL/OK: '+south))
-                    time.sleep(1);screenshot(args.controller+'-active-help');time.sleep(.13);screenshot(args.controller+'-active-help-next')
-                    # Physical South performs Confirm and advances the Help page.
-                    button('a');wait(lambda content:control_view(content,caption,'BRAKE/EXIT: '+trigger))
-                    screenshot(args.controller+'-active-help-camera')
-                    # An unbound keyboard key changes prompts without navigating.
-                    key('v');wait(lambda content:control_view(content,'KEYBOARD HELP','BRAKE/EXIT: SHIFT'))
-                    screenshot(args.controller+'-keyboard-handover')
-                    button('guide');wait(lambda content:control_view(content,caption,'BRAKE/EXIT: '+trigger))
-                    pad('detach');wait(lambda content:control_view(content,'KEYBOARD HELP','BRAKE/EXIT: SHIFT'))
-                    screenshot(args.controller+'-disconnected')
-                    pad('attach',value=1);time.sleep(1)
-                    if not control_view(text(),'KEYBOARD HELP','BRAKE/EXIT: SHIFT'):raise ValueError('Held South changed the Help page when reconnecting')
-                    pad('button','a',0);button('guide')
-                    wait(lambda content:control_view(content,caption,'BRAKE/EXIT: '+trigger));button('a')
-                    wait(lambda content:control_view(content,caption) and 'CAM UP:' in content.split('"event":"pc_controls_view"')[-1])
-                    screenshot(args.controller+'-reconnected')
-                    for _ in range(3):key('x');time.sleep(1)
-                    print('Native SDL controller help, keyboard handover and held-button reconnect verified: '+args.controller,flush=True)
+                if args.options or args.controls or args.glyphs or full_controller_flow:
+                    key(confirm);wait_view('DISPLAY');time.sleep(1)
+                    screenshot('pc-settings-first-open')
+                    # Every complete section and both modals at both native extents.
+                    for width in (960,1280):
+                        resize(width,720)
+                        for index,section_name in enumerate(('display','graphics','audio','controls')):
+                            tab(index);time.sleep(.25);screenshot(f'pc-settings-{section_name}-{width}')
+                        mouse(80,166,True);wait_view('CONTROLS','capture');screenshot(f'pc-settings-capture-{width}')
+                        key('Escape',.1);wait_view('CONTROLS',focus=0)
+                        mouse(130,394,True);wait_view('CONTROLS','defaults');screenshot(f'pc-settings-defaults-{width}')
+                        key('Escape',.1);wait_view('CONTROLS')
+                    tab(0);key('Tab',.1);wait_view('DISPLAY',focus=1)
+                    key('shift+Tab',.1);wait_view('DISPLAY',focus=0)
+                    if args.options:
+                        tab(0);mouse(100,140);key('Right',.1);saved_field('scale',4.5)
+                        key('Left',.1);saved_field('scale',3)
+                        mouse(100,198);key('Left',.1);saved_field('wide',False)
+                        key('Right',.1);saved_field('wide',True)
+                        mouse(100,256);key('Left',.1);saved_field('refresh',60)
+                        key('Right',.1);saved_field('refresh',120)
+                        mouse(100,314);key('Right',.1);saved_field('fullscreen',True)
+                        key('Left',.1);saved_field('fullscreen',False)
+                        tab(1);mouse(100,140);key('Right',.1);saved_field('msaa',2)
+                        key('Left',.1);saved_field('msaa',0)
+                        def change_filter(field,value,presentation,texture,direction):
+                            at=len(text());key(direction,.1);saved_field(field,value)
+                            wait(lambda content:filters_applied(content[at:],presentation,texture))
+                        mouse(100,198);change_filter('presentation','pixel','pixel','three_point','Right')
+                        change_filter('presentation','linear','linear','three_point','Left')
+                        mouse(100,256);change_filter('texture','linear','linear','linear','Left')
+                        change_filter('texture','three_point','linear','three_point','Right')
+                        tab(2);mouse(320,140,True);saved_field('volume',50)
+                        key('Left',.1);saved_field('volume',40);key('Right',.1);saved_field('volume',50)
+                        mouse(50,140);command('mousedown','1');mouse(-100,140);command('mouseup','1');saved_field('volume',0)
+                        mouse(590,140);command('mousedown','1');mouse(740,140);command('mouseup','1');saved_field('volume',100)
+                        mouse(100,198,True);saved_field('mute',True);key('Left',.1);saved_field('mute',False)
+                        screenshot('pc-settings-audio-live')
+                        # Force an actual SettingsStore failure, preserving the private saved file.
+                        path=data/'settings.json';backup=data/'settings-before-failure.json';path.rename(backup);path.mkdir()
+                        try:
+                            key('Right',.1);wait_view('AUDIO',status='SAVE FAILED',focus=1)
+                            if settings_view()['rows'][1]['value']!='OFF':raise ValueError('Failed mute write did not restore the saved value')
+                            screenshot('pc-settings-save-failed')
+                        finally:path.rmdir();backup.rename(path)
+                        key('Right',.1);saved_field('mute',True);key('Left',.1);saved_field('mute',False)
+                    tab(3)
+                    if args.controls:
+                        mouse(80,166,True);wait_view('CONTROLS','capture');key('t',.1);confirm='t'
+                        wait_view('CONTROLS',status='SAVED',focus=0)
+                        stored=json.loads((data/'controls.json').read_text())
+                        if stored['actions']['confirm']['keyboard']!=[{'key':'T'}]:raise ValueError('Keyboard remap was not persisted')
+                        screenshot('pc-settings-remapped-keyboard')
+                        mouse(130,394,True);wait_view('CONTROLS','defaults');screenshot('pc-settings-remapped-defaults')
+                        key('t',.1);wait_view('CONTROLS',status='SAVED')
+                        if settings_view()['rows'][0]['value']!='Z':raise ValueError('Selected keyboard defaults were not restored')
+                        mouse(80,166,True);wait_view('CONTROLS','capture');key('t',.1);wait_view('CONTROLS',status='SAVED',focus=0)
+                        before=(data/'controls.json').read_bytes()
+                        mouse(80,198,True);wait_view('CONTROLS','capture');key('Escape',.1);wait_view('CONTROLS',focus=1)
+                        if (data/'controls.json').read_bytes()!=before:raise ValueError('Capture cancel modified controls')
+                    if args.glyphs or full_controller_flow:
+                        mouse(100,122,True);wait_view('CONTROLS',device='CONTROLLER')
+                        if full_controller_flow:
+                            button('guide');time.sleep(.3)
+                            screenshot(args.controller+'-active-controls')
+                            # South really enters capture; East really cancels defaults.
+                            mouse(80,166);button('a');wait_view('CONTROLS','capture');key('Escape',.1);wait_view('CONTROLS',focus=0)
+                            mouse(130,394);button('a');wait_view('CONTROLS','defaults');screenshot(args.controller+'-defaults-actions')
+                            button('b');wait_view('CONTROLS');key('v',.1)
+                            screenshot(args.controller+'-keyboard-handover')
+                            button('guide');pad('detach');time.sleep(.3);screenshot(args.controller+'-disconnected')
+                            pad('attach',value=1);time.sleep(.5)
+                            if settings_view().get('modal')!='none':raise ValueError('Held reconnect activated settings')
+                            pad('button','a',0);button('guide');screenshot(args.controller+'-reconnected')
+                            # Manual fallback changes glyphs while physical action positions stay fixed.
+                            for family,label in (('xbox','A'),('playstation','CROSS'),('switch','B'),('auto',{'xbox360':'A','ps5':'CROSS','switch':'B'}[args.controller])):
+                                mouse(470,122);key('Right',.1);saved_field('family',family)
+                                if settings_view()['rows'][0]['value']!=label:raise ValueError('Manual family action caption mismatch')
+                                button('guide');screenshot('pc-settings-fallback-'+family)
+                            mouse(470,122);key('Left',.1);saved_field('family','switch')
+                            key('Right',.1);saved_field('family','auto')
+                            # West is unbound by default; remap Confirm and verify the real action.
+                            mouse(80,166,True);wait_view('CONTROLS','capture');button('x');wait_view('CONTROLS',status='SAVED')
+                            west={'xbox360':('X','xbox_x'),'ps5':('SQUARE','playstation_square'),'switch':('Y','switch_y')}[args.controller]
+                            binding=settings_view()['rows'][0]['binding']
+                            if (binding['label'],binding['glyph'])!=west:raise ValueError('Remapped West action does not match family glyph')
+                            screenshot(args.controller+'-remapped-west')
+                            # Remapped West really opens/confirms defaults; other-device remaps survive.
+                            mouse(130,394);button('x');wait_view('CONTROLS','defaults');screenshot(args.controller+'-remapped-defaults')
+                            button('x');wait_view('CONTROLS',status='SAVED')
+                            if settings_view()['rows'][0]['value']!={'xbox360':'A','ps5':'CROSS','switch':'B'}[args.controller]:raise ValueError('Controller defaults did not restore South')
+                            if args.controls and json.loads((data/'controls.json').read_text())['actions']['confirm']['keyboard']!=[{'key':'T'}]:raise ValueError('Controller defaults changed keyboard bindings')
+                            button('rightshoulder');wait_view('DISPLAY');button('leftshoulder');wait_view('CONTROLS')
+                            tab(2);mouse(100,140);pad('axis','leftx',-24000);saved_field('volume',90);pad('axis','leftx',0)
+                            pad('axis','leftx',24000);saved_field('volume',100);pad('axis','leftx',0)
+                        else:screenshot(args.glyphs+'-all-actions')
+                    # Leave distinct saved values for the second launch, without CLI overrides.
+                    if args.options:
+                        tab(0);mouse(100,140);key('Right',.1);saved_field('scale',4.5)
+                        mouse(100,198);key('Left',.1);saved_field('wide',False)
+                        mouse(100,256);key('Left',.1);saved_field('refresh',60)
+                        tab(1);mouse(100,140);key('Right',.1);saved_field('msaa',2)
+                    # Existing held-confirm suppression must preserve paused guest state.
+                    tab(2);mouse(100,140)
+                    command('keydown',confirm);key('Escape',.1);time.sleep(.4)
+                    if settings_view().get('open') or not states()[-1]['paused']:raise ValueError('Held confirm leaked while closing settings')
+                    # The guest pause window reopens with its original rotating animation.
+                    command('keyup',confirm);time.sleep(2);screenshot('pc-settings-return-to-pause')
+                    key(confirm);wait_view('DISPLAY');screenshot('pc-settings-reopened')
+                    tab(3);mouse(475,394,True);wait(lambda content:not settings_view(content).get('open'));time.sleep(1)
+                    if not states()[-1]['paused']:raise ValueError('Original Game Options handoff unpaused gameplay')
+                    screenshot('pc-settings-original-game-options')
+                    key('x',.1);time.sleep(1);screenshot('pc-settings-original-options-return')
+                    print('Complete sections, modals, resize, persistence, return and original options exercised; screenshots require review',flush=True)
                 key('Return');time.sleep(1);key('Right',1);key(confirm,2);screenshot('resume')
                 if states()[-1]['paused']:raise ValueError('Start did not resume the guest')
                 print('Guest position changed; pause and resume confirmed by guest state',flush=True)
@@ -413,7 +465,31 @@ def run(args):
             if args.verify_render:result['render_submission_acceptance']=check_render_probe(log,args.refresh)
             if args.audio_loss:result['audio_recovery']=check_audio_recovery(log)
             if full_controller_flow:result['controller_actions']=check_controller_probe(log,args.controller)
+            if args.options or args.controls or args.glyphs or full_controller_flow:result['pc_settings']=check_pc_settings_probe(log)
+            if args.options:result['live_filters']=check_live_filters(text())
             if args.instruction_glyphs:result['instruction_glyphs']=check_instruction_probe(log,args.controller)
+            if args.options or args.controls:
+                expected=json.loads((data/'settings.json').read_text())
+                reload_env=dict(env)
+                # A clean process reads the same private files, with no option overrides.
+                for variable in ('LD_PRELOAD','BC_QA_CONTROLLER','BC_QA_INPUT_FILE'):
+                    reload_env.pop(variable,None)
+                reload_log=directory/'settings-reload.log'
+                with reload_log.open('w') as reload_output:
+                    reload_process=subprocess.Popen([str(args.executable.resolve()),'--rom',str(args.rom.resolve()),'--seconds','12','--data-dir',str(data)],cwd=args.launch_dir.resolve(),env=reload_env,stdout=reload_output,stderr=subprocess.STDOUT)
+                    try:
+                        deadline=time.monotonic()+15
+                        while 'rt64_device_ready' not in reload_log.read_text(errors='replace'):
+                            if reload_process.poll() is not None or time.monotonic()>deadline:raise ValueError('Settings restart did not initialize graphics')
+                            time.sleep(.1)
+                        reload_window=subprocess.check_output(['xdotool','search','--pid',str(reload_process.pid),'--name','Blast Corps|Power Dozer'],env=reload_env,text=True).split()[-1]
+                        command('windowfocus',reload_window);time.sleep(2)
+                        if args.controls:key('t',.5)
+                        reload_process.wait(timeout=20)
+                        if reload_process.returncode:raise ValueError('Native settings restart failed')
+                    finally:
+                        if reload_process.poll() is None:reload_process.terminate();reload_process.wait(timeout=10)
+                result['pc_settings_reload']=check_reload(reload_log,expected,args.controls)
             result['seconds_requested']=args.seconds
             result['native_executable']=str(args.executable.resolve())
             result['native_launch_directory']=str(args.launch_dir.resolve())

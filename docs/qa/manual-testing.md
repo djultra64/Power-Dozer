@@ -1,6 +1,7 @@
 # Private beta manual testing
 
-Pending checklist agreed on October 10, 2026. Virtual GPU and virtual SDL
+Updated October 11, 2026. The [PC settings native record](pc-settings-2026-10-11.md)
+separates completed Linux automation from the physical checks below. Virtual GPU and virtual SDL
 controller results retain their value as automated evidence; they do not count
 as physical display, button or audio tests. Do not check boxes merely because
 120 Hz was requested or a mission opened.
@@ -89,6 +90,34 @@ for an ambiguous controller.
   Verify labels, glyphs and actual actions again.
 - [ ] Keyboard: help, Enter/Start, Z/X, camera and Alt+Enter; check the binding
   editor, cancellation without changes and shortcut without an additional action.
+
+## Complete PC settings screen
+
+- [ ] Open PC OPTIONS from a paused mission at 960×720 and 1280×720;
+  inspect Display (4 rows), Graphics (3), Audio (2), and Controls (14 actions,
+  two columns). Compare original uppercase lettering, colors and translucent
+  shadows over the paused game. No original map instructions overlap the menu.
+- [ ] Resize with a row focused, close/reopen, and inspect first presentation;
+  text, action glyphs, mouse targets and volume slider remain aligned and legible.
+- [ ] Change every field in both directions; verify live volume/mute and filters,
+  and the next-launch marker for resolution/aspect/frame rate/MSAA. Drag the
+  volume past both endpoints and verify 0/100 bounds.
+- [ ] Navigate with mouse, Tab/Shift+Tab, arrows, controller shoulders, stick
+  and D-pad. Match each displayed Confirm/Back glyph with its actual action,
+  including remaps that use navigation keys. Escape always recovers.
+- [ ] Capture a binding, cancel without changes, and commit a remap. Inspect the
+  capture and Restore Defaults modals at both aspect ratios: no underlying row
+  text shows through, and prompts follow the last device and current bindings.
+- [ ] Cancel Restore Defaults, then confirm for each selected device. Confirm
+  only that device's bindings reset; the other device's remaps remain intact.
+- [ ] Select each manual family and return to Auto; confirm actual button
+  positions, names and glyphs together, including Nintendo's swapped A/B and X/Y.
+- [ ] In a disposable data directory, force a write failure. SAVE FAILED stays
+  visible with the previous value/focus; restoring write access allows saving.
+- [ ] Close while Confirm is held: the original game remains paused and no held
+  action leaks. Reopen, choose GAME OPTIONS and use the original paused menu.
+- [ ] Exit and launch again without command-line settings overrides. Previously
+  saved fields load, and the remapped key/button still activates its action.
 
 ## Physical audio
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.83 — 2026-10-11 (release preparation)
+## v0.83 — 2026-10-11 (public beta; Linux and source)
 
 - Add complete Display, Graphics, Audio and Controls sections with all fourteen
   logical actions visible, optional remapping, device/family selection and
@@ -16,12 +16,17 @@
   both structural mechanisms; the native initiating event remains unconfirmed.
 - Include the required CMake hook and shader source in host source archives,
   while excluding compiled shaders and private generated guest functions.
-- Prepare runtime/source package identities and archive roots for v0.83.
+- Update Linux runtime/source package identities and archive roots to v0.83.
+- Validate the Linux production build with 55 CTest checks and 150 Python tests,
+  plus a ten-minute real GPU/PulseAudio attract-mode run with sustained
+  audio-task activity. This validates the recorded scenario only.
+- Release scope is Linux and source. Windows v0.83 awaits a fresh build and
+  native validation; Windows v0.82 remains part of the prior release.
 
 Full mission coverage, real physical controllers, native Windows validation of
 these new changes and sustained 4K/120 Hz remain pending. No general gameplay
 or audio stability claim is made. Source and license review flags remain false;
-this preparation does not publish a release.
+the beta release does not certify a complete source/license audit.
 
 ## v0.82 — 2026-10-10
 

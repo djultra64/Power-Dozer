@@ -6,7 +6,7 @@
 
 # Power Dozer
 
-**v0.83 — beta of a native Blast Corps port for Linux and Windows x86-64.**
+**v0.83 — public beta of a native Blast Corps port; Linux x86-64 and source release.**
 Static recompilation of Blast Corps USA Rev 1 with N64Recomp,
 N64ModernRuntime and RT64. The project is not affiliated with Rare or Nintendo.
 
@@ -16,18 +16,20 @@ N64ModernRuntime and RT64. The project is not affiliated with Rare or Nintendo.
 
 ## Download and play
 
-Download your platform archive from
-[Releases](https://github.com/djultra64/Power-Dozer/releases), check its
-SHA-256 and extract it into a writable folder:
+Check the available archives and their SHA-256 checksums in
+[Releases](https://github.com/djultra64/Power-Dozer/releases). Extract the runtime
+archive into a writable folder:
 
 - Linux: `power-dozer-v0.83-linux-x86_64.tar.gz`; run `Run Power Dozer.sh`.
-- Windows: `power-dozer-v0.83-windows-x86_64.zip`; run `Run Power Dozer.cmd`.
+- Source: v0.83 host code and pinned dependencies; see the build recipe below.
+- Windows v0.83 is pending a fresh build and native validation. The existing
+  v0.82 Windows archive belongs to the previous release; run `Run Power Dozer.cmd`.
 
 v0.83 adds a complete PC settings overlay with Display, Graphics, Audio and
 Controls sections, original game font/palette/shadows decoded from your ROM,
 and optional remapping by logical action. The earlier wheel interpolation fix
-remains included. Version 0.83 packages are being prepared; check Releases for
-available downloads.
+remains included. This release scope is Linux and source; check Releases for
+actual download availability.
 
 On first launch, select your own **Blast Corps USA Rev 1** ROM.
 z64/v64/n64 and ZIP files containing a single valid ROM are supported. The ROM is not included.
@@ -36,7 +38,7 @@ Requires Linux x86-64 with SSSE3/SSE4.1, Vulkan, X11 or XWayland,
 glibc 2.38 or later, a C++ runtime with GLIBCXX_3.4.31 and zlib.
 Windows requires x64, SSSE3/SSE4.1, Vulkan drivers and the
 [Microsoft Visual C++ 2015–2022 x64 Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe).
-SDL and DXC libraries are included in both runtime packages.
+SDL and DXC libraries are included in the Linux runtime and prior Windows runtime.
 [Installation, progress and requirements](docs/install.md).
 
 ## Options and controls
@@ -80,12 +82,16 @@ runs on both platforms; see
 v0.83 extends pending-audio recovery through the original graphics-yield path
 and protects the soundplayer heartbeat from queue saturation and stale payloads.
 Original guest protocol regressions verify dispatch, completion and reply;
-the heartbeat fixtures verify both structural failure mechanisms. These checks
-do not establish that every intermittent dropout or gameplay hang is resolved.
+the heartbeat fixtures verify both structural failure mechanisms. A ten-minute
+Linux attract-mode run with real GPU/PulseAudio completed with
+sustained audio-task activity. The native event that initiated the reported
+heartbeat failure remains unconfirmed. These checks do not establish that every
+intermittent dropout or gameplay hang is resolved.
 Full level coverage, physical controllers and sustained 120 fps
 remain for manual testing. End-of-level fades/sky and the
 visual stability of the HUD arrow need further checking.
-v0.83 remains a beta candidate for testing and reports.
+v0.83 is a public beta for testing and reports. Windows results above describe
+prior releases; a fresh v0.83 Windows build and native run remain pending.
 The reported thin black ground line is not currently reproducible; the reporter
 and recent local captures no longer show it. No speculative patch was applied.
 

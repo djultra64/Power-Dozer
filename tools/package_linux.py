@@ -123,10 +123,16 @@ Linux x86-64, SSSE3/SSE4.1, glibc >= 2.38, GLIBCXX_3.4.31, libz.so.1,
 Vulkan drivers, X11/XWayland and a desktop file chooser are required.
 Default keyboard: arrows move, Z primary/confirm, X secondary/back, Enter Start,
 Shift brake/exit, I/J/K/L camera, Q/E horn. Alt+Enter toggles fullscreen.
-PC options provide help, graphics/audio settings and remapping by action.
+PC options provide complete Display, Graphics, Audio and Controls sections,
+with keyboard/mouse/controller navigation and optional remapping by action.
 Prompts follow the last active device; Xbox/PlayStation/Switch family can be
 selected manually. Switch face positions south/east/west/north are B/A/Y/X.
-Intermittent loss of audio remains under investigation.
+Pending-audio recovery now follows the original graphics-yield protocol;
+soundplayer heartbeat protection covers queue saturation and stale event state.
+Original-protocol regressions and a ten-minute Linux real GPU/PulseAudio
+attract-mode run with sustained audio-task activity validate those bounded
+changes. The native initiating heartbeat event remains unconfirmed; this does
+not establish that all audio dropouts or gameplay hangs are resolved.
 Physical-controller checks, sustained 4K/120-Hz presentation and broad mission
 coverage remain manual. Complete license/source review remains unresolved;
 BUILD.json preserves ready_for_release=false and license_review_complete=false.

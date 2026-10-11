@@ -23,6 +23,15 @@ def report(label, expression):
 
 for name in ('running_queue_impl', 'rsp_scheduler', 'dp_status', 'pending_gfx', 'bc_dp_sync'):
     report(name, name)
+report('host_vi', 'events_context.vi')
+report('guest_current_rdp', '*(unsigned int*)(events_context.rdram+0x36bf1c)')
+report('guest_next_retrace', '*(unsigned int*)(events_context.rdram+0x36bf14)')
+report('sound_player', '*(unsigned int*)(events_context.rdram+0x2e8cec)')
+report('sound_free_head', '*(unsigned int*)(events_context.rdram+0x366be4)')
+report('sound_alloc_head', '*(unsigned int*)(events_context.rdram+0x366bec)')
+report('sound_next_type', '*(unsigned short*)(events_context.rdram+0x366bf8+2)')
+report('sound_next_delta', '*(unsigned int*)(events_context.rdram+0x366c20)')
+
 for name, offset in (('idle1', 0x310820), ('main3', 0x310BD0),
                      ('scheduler5', 0x3154F0), ('audio4', 0x368088),
                      ('frontend2', 0x218D30)):

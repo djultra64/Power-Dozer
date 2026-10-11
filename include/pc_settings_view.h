@@ -46,6 +46,7 @@ struct PcSettingsSnapshot {
  // Indexed by PcSettingsControl, matching layout.controls; present on Controls.
  std::vector<PcSettingsRow> controls;
  InputSource device=InputSource::Keyboard;
+ ControllerFamily controller_family=ControllerFamily::Unknown;
  std::string device_label,family_label;
  PcSettingsModal modal=PcSettingsModal::None;
  bool saving=false;

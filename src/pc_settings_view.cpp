@@ -25,6 +25,7 @@ std::optional<size_t> PcSettingsLayout::hit_action(float x,float y) const{
 PcSettingsSnapshot pc_settings_snapshot(const SettingsMenu& menu,const InputModel& input,const PcSettingsViewState& state){
  PcSettingsSnapshot out;
  out.section=menu.page();out.focus=state.focus;out.focus_target=state.focus_target;out.device=state.device;out.modal=state.modal;
+ out.controller_family=input.family();
  out.saving=menu.saving();out.status=menu.status();
  out.device_label=state.device==InputSource::Keyboard?"KEYBOARD":"CONTROLLER";
  out.family_label=menu.value(SettingsField::Family);

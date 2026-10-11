@@ -1,4 +1,6 @@
 #include "pc_settings_view.h"
+#include "pc_settings_renderer.h"
+#include <cmath>
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -10,6 +12,11 @@ static void check(bool value,const char* message){
 
 int main(){
  using namespace bc;
+ PcSettingsAssets assets;assets.glyph_advances.fill(.6f);
+ assets.palette[4]={255,0,0,255};assets.palette[7]={255,255,255,255};assets.palette[8]={128,128,128,255};
+ // Synthetic original-mesh-shaped fixture; no ROM pixels in tests.
+ for(size_t i=0;i<16;++i)assets.shadow_vertices[i]={int16_t((i%4)*100-150),int16_t((i/4)*100-150),uint8_t(i%3?160:0)};
+ for(auto& triangle:assets.shadow_triangles)triangle={0,5,15};
  Settings initial;initial.volume=75;
  SettingsMenu menu(initial);
  InputModel input;
@@ -25,6 +32,36 @@ int main(){
   check(snapshot.rows.size()==size_t(count),"all section rows visible");
   check(menu.rows().size()==size_t(count),"section has no pagination/back row");
   check(snapshot.title!="SAVING"&&snapshot.section==section,"title independent of status");
+  if(section!=SettingsMenu::Page::Controls){
+   const std::vector<SettingsField> expected=section==SettingsMenu::Page::Display?
+    std::vector{SettingsField::Scale,SettingsField::Aspect,SettingsField::Refresh,SettingsField::Fullscreen}:
+    section==SettingsMenu::Page::Graphics?std::vector{SettingsField::MSAA,SettingsField::Presentation,SettingsField::Texture}:
+    std::vector{SettingsField::Volume,SettingsField::Mute};
+   for(size_t i=0;i<expected.size();++i)check(snapshot.rows[i].field==expected[i],"section field order matches editable rows");
+  }
+  for(auto width:{960,1280}){
+   auto draw=pc_settings_draw_data(snapshot,assets,width,720);
+   check(!draw.vertices.empty(),"visible section emits triangle draw data");
+   check(draw.scissor.x==0&&draw.scissor.y==0&&draw.scissor.width==width&&draw.scissor.height==720,"full framebuffer scissor never clips Controls");
+   const auto layout=pc_settings_layout(width,720);
+   const int selected=section==SettingsMenu::Page::Display?0:section==SettingsMenu::Page::Graphics?1:section==SettingsMenu::Page::Audio?2:3;
+   bool active_tab_red=false;
+   for(const auto& v:draw.vertices)if(layout.tabs[selected].contains(v.x,v.y)&&v.r==1&&v.g==0&&v.b==0)active_tab_red=true;
+   check(active_tab_red,"active section tab is red independently of legacy page enum values");
+   size_t texts=0,shadows=0,boxes=0;
+   for(const auto& batch:draw.batches){
+    check(batch.count&&batch.first+batch.count<=draw.vertices.size(),"valid draw range");
+    if(batch.primitive==PcSettingsPrimitive::Text)++texts;
+    if(batch.primitive==PcSettingsPrimitive::TextShadow)++shadows;
+    if(batch.primitive==PcSettingsPrimitive::BoxShadow){++boxes;check(batch.count==42,"original fourteen shadow triangles");}
+   }
+   check(boxes==1&&texts==shadows,"original box plus shadow for every text run");
+   for(const auto& v:draw.vertices)check(std::isfinite(v.x)&&std::isfinite(v.y)&&v.x>=0&&v.y>=0&&v.x<=width&&v.y<=720,"geometry visible in framebuffer");
+   for(size_t i=0;i<snapshot.rows.size();++i){
+    auto hidden=snapshot;hidden.rows[i].label.clear();hidden.rows[i].value.clear();hidden.rows[i].binding.reset();
+    check(pc_settings_draw_data(hidden,assets,width,720).vertices.size()<draw.vertices.size(),"every visible row emits geometry");
+   }
+  }
   if(section==SettingsMenu::Page::Controls){
    check(snapshot.controls.size()==4,
     "device, family, defaults and game options available without paging");
@@ -117,4 +154,15 @@ int main(){
  auto controller=pc_settings_snapshot(menu,input,state);
  check(controller.prompts[0].label==input.prompt(InputAction::Confirm).label,
   "prompt follows logical actual binding");
+ for(auto family:{ControllerFamily::Xbox,ControllerFamily::PlayStation,ControllerFamily::Switch}){
+  input.controller_family(family);
+  auto snap=pc_settings_snapshot(menu,input,state);
+  auto draw=pc_settings_draw_data(snap,assets,960,720);
+  const char* want=family==ControllerFamily::Xbox?"xbox_a":family==ControllerFamily::PlayStation?"playstation_cross":"switch_b";
+  bool found=false;
+  for(const auto& batch:draw.batches)if(batch.glyph&&glyph_name(*batch.glyph)==want)found=true;
+  check(found,"actual confirm position uses active family atlas sprite including Switch B");
+  check(std::count_if(draw.batches.begin(),draw.batches.end(),[](const auto& b){return b.primitive==PcSettingsPrimitive::BoxShadow;})==2,"capture modal adds original shadow mesh over same rows");
+ }
+ check(pc_settings_draw_data(controller,assets,0,0).vertices.empty(),"minimized framebuffer emits nothing");
 }

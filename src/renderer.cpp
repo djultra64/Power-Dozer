@@ -3,6 +3,7 @@
 #include "l3d.h"
 #include "settings.h"
 #include "pc_options.h"
+#include "pc_settings_renderer.h"
 #include "render_observer.h"
 #ifdef _WIN32
 #include <objbase.h>
@@ -81,6 +82,11 @@ Context(uint8_t* rdram,ultramodern::renderer::WindowHandle window) {
         // newly drawn, VI-compatible image so RT64 presents its interpolation
         // batch rather than a single stale image per original frame.
         app_->enhancementConfig.presentation.mode = RT64::EnhancementConfiguration::Presentation::Mode::SkipBuffering;
+        // The boot image is already loaded, but no guest thread has started.
+        // Unswizzle once here; the presentation hook only sees its owned assets.
+        std::vector<uint8_t> code(0x802F9930-0x802447C0);
+        for(size_t i=0;i<code.size();++i)code[i]=rdram[(0x2447C0+i)^3];
+        bc::initialize_pc_settings_renderer(bc::load_pc_settings_assets(bc_rom,code));
         auto result=app_->setup(0);
         setup_result=static_cast<ultramodern::renderer::SetupResult>(result);
         chosen_api=ultramodern::renderer::GraphicsApi::Vulkan;

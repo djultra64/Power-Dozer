@@ -61,9 +61,30 @@ struct DrawBuilder {
   quad(r,float(sprite.index%16*32)/atlas_width,float(controls_y+sprite.index/16*32)/atlas_height,32.f/atlas_width,32.f/atlas_height,{1,1,1,1});
   batch(first,PcSettingsTexture::Controls,PcSettingsPrimitive::Glyph,sprite);
  }
+ void stick_arrow(const InputPrompt& prompt,PcSettingsRect r){
+  if(prompt.source!=InputSource::Controller||prompt.glyph!=InputGlyph::Stick)return;
+  // InputModel builds this label from the physical axis and its sign, so
+  // remapping an action never changes which direction the arrow represents.
+  if(!prompt.label.starts_with("LS ")&&!prompt.label.starts_with("RS "))return;
+  const auto direction=std::string_view(prompt.label).substr(3);
+  float dx=0,dy=0;
+  if(direction=="LEFT")dx=-1;else if(direction=="RIGHT")dx=1;
+  else if(direction=="UP")dy=-1;else if(direction=="DOWN")dy=1;else return;
+  const auto first=uint32_t(out.vertices.size());
+  // A sharp white triangle and short shaft sit above the original stick name.
+  auto point=[&](float along,float across){
+   vertex(r.x+(11+dx*along-dy*across)*scale,r.y+(6+dy*along+dx*across)*scale,
+    511.5f/atlas_width,1023.5f/atlas_height,{1,1,1,1});
+  };
+  point(3.5f,0);point(-.5f,-2.5f);point(-.5f,2.5f);
+  point(-3.5f,-.75f);point(-.5f,-.75f);point(-.5f,.75f);
+  point(-3.5f,-.75f);point(-.5f,.75f);point(-3.5f,.75f);
+  batch(first,PcSettingsTexture::White,PcSettingsPrimitive::Glyph);
+ }
  void binding(const InputPrompt& prompt,ControllerFamily family,PcSettingsRect r,Color tint){
   if(auto sprite=input_glyph(prompt,family)){
-   const float size=22*scale;glyph(*sprite,{r.x,r.y,size,size});r.x+=size+3*scale;r.width-=size+3*scale;
+   const float size=22*scale;const PcSettingsRect icon{r.x,r.y,size,size};
+   glyph(*sprite,icon);stick_arrow(prompt,icon);r.x+=size+3*scale;r.width-=size+3*scale;
   }
   text(prompt.label,r,16,tint,2);
  }

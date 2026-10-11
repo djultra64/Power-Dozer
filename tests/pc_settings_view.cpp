@@ -219,5 +219,39 @@ int main(){
  input.replace(InputAction::Confirm,InputSource::Keyboard,{{BindingKind::Key,SDL_SCANCODE_K}});
  input.replace(InputAction::Back,InputSource::Keyboard,{{BindingKind::Key,SDL_SCANCODE_H}});
  defaults_prompts("key_k","key_h","K","H");
+ // Direction belongs to the displayed physical binding, including remapped
+ // logical Confirm, rather than the action's label or the controller family.
+ state.modal=PcSettingsModal::None;state.focus_target=PcSettingsFocusTarget::Row;state.focus=0;
+ for(auto family:{ControllerFamily::Xbox,ControllerFamily::PlayStation,ControllerFamily::Switch}){
+  input.controller_family(family);input.activity(InputSource::Controller);
+  for(auto axis:{SDL_CONTROLLER_AXIS_LEFTX,SDL_CONTROLLER_AXIS_LEFTY,SDL_CONTROLLER_AXIS_RIGHTX,SDL_CONTROLLER_AXIS_RIGHTY})for(int sign:{-1,1}){
+   input.replace(InputAction::Confirm,InputSource::Controller,{{BindingKind::Axis,axis,sign}});
+   auto snap=pc_settings_snapshot(menu,input,state);snap.rows.resize(1);snap.rows[0].label="ACCEL/OK";snap.rows[0].binding=input.prompt(InputAction::Confirm);
+   for(auto [width,height]:{std::pair{960,720},{1280,720},{320,240}}){
+    const auto draw=pc_settings_draw_data(snap,assets,width,height);size_t arrows=0;
+    for(size_t i=0;i<draw.batches.size();++i){
+     const auto& arrow=draw.batches[i];if(arrow.texture!=PcSettingsTexture::White||arrow.primitive!=PcSettingsPrimitive::Glyph)continue;
+     ++arrows;check(i>0&&draw.batches[i-1].glyph.has_value(),"direction overlay follows original stick sprite");
+     const auto& sprite=draw.batches[i-1];check(glyph_name(*sprite.glyph).ends_with(axis<=SDL_CONTROLLER_AXIS_LEFTY?"l_stick":"r_stick"),"direction retains correct physical stick identity");
+     const auto& origin=draw.vertices[sprite.first];const auto& extent=draw.vertices[sprite.first+2];
+     const auto& tip=draw.vertices[arrow.first];bool direction_visible=false;
+     for(size_t j=arrow.first;j<arrow.first+arrow.count;++j){
+      const auto& v=draw.vertices[j];check(v.r==1&&v.g==1&&v.b==1&&v.a==1,"direction arrow is opaque white even on red focused row");
+      check(v.x>=origin.x&&v.x<=extent.x&&v.y>=origin.y&&v.y<=extent.y,"small arrow stays within existing stick icon at all aspect ratios");
+      const bool horizontal=axis==SDL_CONTROLLER_AXIS_LEFTX||axis==SDL_CONTROLLER_AXIS_RIGHTX;
+      const float offset=horizontal?(tip.x-v.x)*sign:(tip.y-v.y)*sign;
+      check(offset>=-.001f,"arrow tip points in displayed physical axis direction");if(offset>2*pc_settings_layout(width,height).safe_area.width/640)direction_visible=true;
+     }
+     check(direction_visible,"direction arrow has a visible shaft behind its tip");
+    }
+    check(arrows==2,"remapped Confirm has directional overlay on row and footer");
+   }
+  }
+ }
+ for(auto prompt:{input.physical_prompt({BindingKind::Button,SDL_CONTROLLER_BUTTON_A}),input.physical_prompt({BindingKind::Axis,SDL_CONTROLLER_AXIS_TRIGGERLEFT}),input.physical_prompt({BindingKind::Key,SDL_SCANCODE_LEFT}),InputPrompt{"LS ",InputGlyph::Stick,InputSource::Controller}}){
+  auto snap=pc_settings_snapshot(menu,input,state);snap.rows.resize(1);snap.rows[0].binding=prompt;snap.prompts[0]=prompt;
+  const auto draw=pc_settings_draw_data(snap,assets,960,720);
+  check(std::none_of(draw.batches.begin(),draw.batches.end(),[](const auto& b){return b.texture==PcSettingsTexture::White&&b.primitive==PcSettingsPrimitive::Glyph;}),"face, trigger, keyboard and neutral stick glyphs get no directional arrow");
+ }
  check(pc_settings_draw_data(controller,assets,0,0).vertices.empty(),"minimized framebuffer emits nothing");
 }

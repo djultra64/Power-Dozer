@@ -120,16 +120,18 @@ bool bc_input_event(const SDL_Event& event){
  log_device();
  const bool controller_event=event.type==SDL_CONTROLLERBUTTONDOWN||event.type==SDL_CONTROLLERBUTTONUP||event.type==SDL_CONTROLLERAXISMOTION;
  const bool ours=!controller_event||active_pad(event.type==SDL_CONTROLLERAXISMOTION?event.caxis.which:event.cbutton.which);
+ // Global shortcuts bypass settings activation and raw remap capture.
+ if(event.type==SDL_KEYDOWN&&event.key.keysym.scancode==SDL_SCANCODE_RETURN&&(event.key.keysym.mod&KMOD_ALT)){
+  model.consume({bc::BindingKind::Key,SDL_SCANCODE_RETURN});model.consume({bc::BindingKind::Key,SDL_SCANCODE_LALT});model.consume({bc::BindingKind::Key,SDL_SCANCODE_RALT});
+  frame={};return event.key.repeat==0;
+ }
  if(ours&&(input_focused||event.type==SDL_WINDOWEVENT||event.type==SDL_CONTROLLERDEVICEREMOVED)&&bc::pc_settings_event(event,model)){
   if(event.type==SDL_KEYDOWN&&event.key.keysym.scancode!=SDL_SCANCODE_UNKNOWN)model.consume({bc::BindingKind::Key,event.key.keysym.scancode});
   if(event.type==SDL_CONTROLLERBUTTONDOWN)model.consume({bc::BindingKind::Button,event.cbutton.button});
   if(event.type==SDL_CONTROLLERAXISMOTION)model.consume({bc::BindingKind::Axis,event.caxis.axis});
   frame={};return false;
  }
- if(event.type==SDL_KEYDOWN&&event.key.keysym.scancode==SDL_SCANCODE_RETURN&&(event.key.keysym.mod&KMOD_ALT)){
-  model.consume({bc::BindingKind::Key,SDL_SCANCODE_RETURN});model.consume({bc::BindingKind::Key,SDL_SCANCODE_LALT});model.consume({bc::BindingKind::Key,SDL_SCANCODE_RALT});
-  return event.key.repeat==0;
- }
+
  if(input_focused&&capture.active()){
   try{
    if(event.type==SDL_KEYDOWN&&event.key.repeat==0)capture.press({bc::BindingKind::Key,event.key.keysym.scancode});

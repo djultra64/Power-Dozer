@@ -115,7 +115,7 @@ PcSettingsDrawData pc_settings_draw_data(const PcSettingsSnapshot& snapshot,cons
  if(status.empty())status=snapshot.section==SettingsMenu::Page::Controls?"SELECT AN ACTION TO REMAP":snapshot.section==SettingsMenu::Page::Audio?"CHANGES APPLY IMMEDIATELY":"RESTART MARKED CHANGES APPLY NEXT LAUNCH";
  b.text(status,layout.status,16,snapshot.status=="SAVE FAILED"?red:grey,1);
  // Both names and glyphs come from the immutable active-device prompts.
- for(size_t i=0;i<2;++i){
+ for(size_t i=0;snapshot.modal!=PcSettingsModal::Capture&&i<2;++i){
   auto r=rect(i==0?360:32,444,248,24);b.binding(snapshot.prompts[i],snapshot.controller_family,{r.x,r.y,135*scale,r.height},white);
   r.x+=143*scale;r.width-=143*scale;b.text(i==0?"SELECT":"BACK",r,16,white);
  }

@@ -161,7 +161,21 @@ int main(){
   const char* want=family==ControllerFamily::Xbox?"xbox_a":family==ControllerFamily::PlayStation?"playstation_cross":"switch_b";
   bool found=false;
   for(const auto& batch:draw.batches)if(batch.glyph&&glyph_name(*batch.glyph)==want)found=true;
-  check(found,"actual confirm position uses active family atlas sprite including Switch B");
+  check(!found,"raw capture hides ordinary logical select/back glyphs");
+  std::vector<std::string> capture_labels;
+  constexpr std::string_view capture_tiles="0123456789ABCD\x7f" "EFGHIJKLMNOPQRSTUVWXYZ\x7f'):,$!.-(%?#/";
+  for(const auto& batch:draw.batches)if(batch.primitive==PcSettingsPrimitive::Text){
+   std::string label;
+   for(size_t i=batch.first;i<batch.first+batch.count;i+=6){const auto& v=draw.vertices[i];const size_t tile=size_t(std::lround(v.v*1024/32))*8+size_t(std::lround(v.u*512/32));check(tile<capture_tiles.size(),"capture uses original font tiles");label+=capture_tiles[tile];}
+   capture_labels.push_back(label);
+  }
+  for(const auto* expected:{"PRESSANINPUT","ESC:CANCEL"})check(std::find(capture_labels.begin(),capture_labels.end(),expected)!=capture_labels.end(),"capture retains accurate instruction and Escape cancellation");
+  for(const auto* misleading:{"SELECT","BACK"})check(std::find(capture_labels.begin(),capture_labels.end(),misleading)==capture_labels.end(),"capture omits ordinary action footer labels");
+  auto ordinary=snap;ordinary.modal=PcSettingsModal::None;
+  const auto ordinary_draw=pc_settings_draw_data(ordinary,assets,960,720);
+  check(std::any_of(ordinary_draw.batches.begin(),ordinary_draw.batches.end(),[&](const auto& batch){return batch.glyph&&glyph_name(*batch.glyph)==want;}),"ordinary settings keeps active family select glyph");
+  const auto prompt_area=pc_settings_layout(960,720).prompts;
+  for(const auto& vertex:draw.vertices)check(!prompt_area.contains(vertex.x,vertex.y),"capture hides misleading ordinary footer geometry");
   check(std::count_if(draw.batches.begin(),draw.batches.end(),[](const auto& b){return b.primitive==PcSettingsPrimitive::BoxShadow;})==2,"capture modal adds original shadow mesh over same rows");
  }
  // Inspect only geometry after the modal's shadow; the dynamic footer must

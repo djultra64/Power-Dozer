@@ -87,6 +87,32 @@ int main(){
  auto host=bc::pc_settings_current(bc_input_view());check(host->modal==bc::PcSettingsModal::None&&host->focus==0&&host->device==bc::InputSource::Controller,"disconnect restores same row and editing device");
  key.key.keysym.scancode=SDL_SCANCODE_ESCAPE;bc_input_event(key);sync();
 
+ // The global fullscreen chord must bypass ordinary selection, defaults
+ // confirmation and raw remap capture, including repeated keydowns.
+ for(int mode=0;mode<3;++mode){
+  bc::pc_settings_close();bc::initialize_pc_options({});bc::pc_settings_begin();
+  if(mode){
+   mouse.button.x=510;mouse.button.y=75;bc_input_event(mouse);
+   mouse.button.x=40;mouse.button.y=mode==1?390:160;bc_input_event(mouse);
+  }
+  if(mode==2){auto request=bc::take_pc_remap_request();check(request.has_value(),"keyboard capture requested");bc_input_begin_remap(*request);sync();}
+  const auto before=bc::pc_settings_current(bc_input_view());
+  SDL_Event chord{};chord.type=SDL_KEYDOWN;chord.key.keysym.scancode=SDL_SCANCODE_RETURN;chord.key.keysym.mod=KMOD_LALT;
+  check(bc_input_event(chord),"Alt+Enter requests global fullscreen while settings is open");
+  chord.key.repeat=1;check(!bc_input_event(chord),"held Alt+Enter never repeats fullscreen");
+  auto consumed=bc_input_view();bc::InputSnapshot held;held.keys[SDL_SCANCODE_RETURN]=true;held.keys[SDL_SCANCODE_LALT]=true;held.keys[SDL_SCANCODE_RALT]=true;
+  const auto blocked=consumed.sample(held);check(blocked.buttons==0&&blocked.x==0&&blocked.y==0,"fullscreen consumes held Return and both Alt keys");
+  consumed.sample({});held={};held.keys[SDL_SCANCODE_RETURN]=true;check(consumed.sample(held).buttons==0x1000,"Return action recovers after chord release");sync();
+  const auto after=bc::pc_settings_current(bc_input_view());
+  check(after&&after->modal==before->modal&&after->focus==before->focus&&after->rows[0].value==before->rows[0].value,"fullscreen chord retains setting and modal state");
+  check(!bc::take_pc_change()&&!bc::take_pc_remap_request(),"fullscreen chord queues no settings save or defaults reset");
+  check(!bc_input_take_remap_result(),"fullscreen chord never captures Enter");
+  check(frame().buttons==0&&frame().x==0&&frame().y==0,"fullscreen chord leaks no guest input");
+  chord.type=SDL_KEYUP;chord.key.repeat=0;chord.key.keysym.mod=KMOD_NONE;bc_input_event(chord);
+  if(mode==2){bc_input_cancel_remap();bc::acknowledge_pc_remap({false,true,"CANCELLED"});}
+  bc::pc_settings_close();sync();check(frame().buttons==0,"fullscreen chord stays suppressed after settings close");
+ }
+
  // Accept the remaps through the real capture/store path, then compare the
  // published instruction with both ordinary-page and confirmation behavior.
  auto assign_key=[&](bc::InputAction action,SDL_Scancode code){

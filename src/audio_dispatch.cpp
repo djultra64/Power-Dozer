@@ -14,7 +14,11 @@ bool request_pending_audio_after_vi(uint8_t* rdram,uint32_t queue,uint32_t messa
  uint32_t caller=uint32_t(ultramodern::this_thread());
  if(!valid(caller,sizeof(OSThread))||word(rdram,caller+offsetof(OSThread,id))!=5)return false;
  uint32_t head=word(rdram,0x803156a4);
- if(word(rdram,0x803156b4)!=0||!valid(head,96))return false;
+ if(!valid(head,96))return false;
+ // A running graphics task can yield through original __scExecAudioIfIdle.
+ // Reject audio, suspended graphics and malformed records before requesting it.
+ uint32_t active=word(rdram,0x803156b4);
+ if(active&&(!valid(active,96)||word(rdram,active+16)!=M_GFXTASK||word(rdram,active+4)!=1))return false;
  // Original __scAppendList makes an unstarted task state 2. amHandleFrameMessage
  // gives audio flags 1. Do not request graphics, active, or completed tasks.
  if(word(rdram,head+16)!=M_AUDTASK||word(rdram,head+4)!=2||word(rdram,head+8)!=1)return false;
@@ -34,8 +38,8 @@ bool request_pending_audio_after_vi(uint8_t* rdram,uint32_t queue,uint32_t messa
   if(pending==0x29e||pending==0x29b)return false;
  }
  // amMain can wait for a reply before a later VI appends its previous task.
- // Ask the original scheduler to dispatch that real ready task. Its normal SP
- // execution/completion path remains solely responsible for sending the reply.
+ // Ask the original scheduler to yield graphics if needed and dispatch audio.
+ // Its normal SP execution/completion path alone sends the reply.
  return osSendMesg(rdram,int32_t(interrupt_queue),int32_t(0x29e),OS_MESG_NOBLOCK)==0;
 }
 }

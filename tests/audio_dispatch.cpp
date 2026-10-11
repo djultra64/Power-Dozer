@@ -1,8 +1,9 @@
-// Oracle: original generated amMain branch/message ordering under controlled input.
-// Not a model of native timing, DSP synthesis, or complete thread scheduling.
+// Original amMain, yield/dispatch and ACK protocol under controlled input.
+// Synthetic submission and NOP RSP exercise scheduling, not DSP synthesis or native timing.
 #include "support.h"
 #include "funcs.h"
 #include "audio_dispatch.h"
+#include "rsp_scheduler.h"
 #include "librecomp/rsp.hpp"
 #include "ultramodern/ultramodern.hpp"
 #include <array>
@@ -15,11 +16,15 @@
 namespace {
 constexpr uint32_t frame=0x80368238,reply=0x80368270,interrupt=0x80315440,cmd=0x80315498,thread=0x80368088;
 static std::array<uint8_t,0x800000> memory{};
-static bool healthy;
+static bool healthy,active_graphics;
+static RspScheduler bridge;
+constexpr uint32_t gfx=0x80397000;
+static unsigned yielded,status_reads;
 static unsigned created,requests,checks,started,woken;
 static uint32_t self=thread,task_list;
 struct Blocked {uint32_t queue;};
-void require(bool condition){if(!condition)throw std::runtime_error("CPU fixture oracle failed");}
+void require_at(bool condition,int line){if(!condition)throw std::runtime_error("CPU fixture oracle failed line "+std::to_string(line));}
+#define require(c) require_at((c),__LINE__)
 uint32_t& word(uint32_t a){return *reinterpret_cast<uint32_t*>(memory.data()+a-0x80000000);}
 OSMesgQueue* mq(uint32_t q){auto* rdram=memory.data();return TO_PTR(OSMesgQueue,int32_t(q));}
 }
@@ -46,13 +51,13 @@ extern "C" void osRecvMesg_recomp(uint8_t* rdram,recomp_context* ctx){
  std::printf("recv_after q=%08x payload=%08x\n",q,word(dest));
 }
 extern "C" void osGetTime_recomp(uint8_t*,recomp_context* ctx){ctx->r2=0;ctx->r3=1;}
-// Real generated amMain calls these voice/client/synthesis-adjacent bodies;
-// they are neutral here, except the precisely bounded task submission stub.
-#define NEUTRAL(name) extern "C" void name(uint8_t*,recomp_context*){}
-NEUTRAL(func_80270E50) // osScAddClient; queues/client already initialized by fixture.
-NEUTRAL(func_80267F88) // amHandleDoneMessage; no reply is invented to reach this.
-NEUTRAL(func_802613C8) NEUTRAL(func_80261068) NEUTRAL(func_80261284)
-NEUTRAL(func_802611F0) NEUTRAL(func_80261528) NEUTRAL(func_802D6F04)
+#define UNUSED_GUEST(name) extern "C" void name(uint8_t*,recomp_context*){throw std::runtime_error("unused dependency " #name);}
+extern "C" void func_80270E50(uint8_t*,recomp_context*){} // osScAddClient; queues/client already initialized by fixture.
+extern "C" void func_80267F88(uint8_t*,recomp_context*){} // amHandleDoneMessage; no reply is invented to reach this.
+UNUSED_GUEST(func_802613C8) UNUSED_GUEST(func_80261068) UNUSED_GUEST(func_80261284)
+// Reached after synthetic task submission; voice maintenance is outside this oracle.
+extern "C" void func_802611F0(uint8_t*,recomp_context*){}
+UNUSED_GUEST(func_80261528) UNUSED_GUEST(func_802D6F04)
 extern "C" void bc_rmonPrintf(uint8_t*,recomp_context*){throw std::runtime_error("original __scAppendList assertion");}
 void append_one(uint8_t* rdram){
  auto received=osRecvMesg(rdram,int32_t(cmd),int32_t(0x80368300),OS_MESG_NOBLOCK);require(received==0);
@@ -80,10 +85,12 @@ extern "C" void func_80267CDC(uint8_t* rdram,recomp_context*){
 RspExitReason blastcorps_audio_rsp(uint8_t*,uint32_t);
 extern "C" void bc_osSpTaskLoad(uint8_t*,recomp_context*){} // Production also has no-op load.
 extern "C" void bc_osSpTaskStartGo(uint8_t*,recomp_context* c){require(!started);started++;task_list=c->r4;}
-extern "C" void bc_osSpTaskYield(uint8_t*,recomp_context*){throw std::runtime_error("unexpected graphics yield");}
+extern "C" void bc_osSpTaskYield(uint8_t*,recomp_context*){
+ require(bridge.yield_graphics());yielded++;require(bridge.status()==0x181);
+ ultramodern::enqueue_external_message_src(int32_t(interrupt),0x29b,false,ultramodern::EventMessageSource::Sp);
+}
+extern "C" void bc___osSpGetStatus(uint8_t*,recomp_context* c){status_reads++;c->r2=bridge.status();}
 extern "C" void bc_osSpTaskYielded(uint8_t*,recomp_context*){throw std::runtime_error("unexpected graphics yielded query");}
-extern "C" void func_80271E88(uint8_t*,recomp_context*){throw std::runtime_error("unexpected active-RSP dispatch");}
-extern "C" void func_802DAC80(uint8_t*,recomp_context*){throw std::runtime_error("unexpected graphics yielded branch");}
 extern "C" void do_break(uint32_t){throw std::runtime_error("original arithmetic break");}
 extern "C" void func_80271F48(uint8_t*,recomp_context*){throw std::runtime_error("unexpected swapbuffer completion");}
 static RspUcodeFunc* select_ucode(const OSTask* t){return t->t.type==M_AUDTASK?blastcorps_audio_rsp:nullptr;}
@@ -91,7 +98,12 @@ void check_guards(uint8_t* rdram){
  auto original=std::make_unique<decltype(memory)>(memory);
  auto rejected=[&](const char* label){auto before=std::make_unique<decltype(memory)>(memory);require(!bc::request_pending_audio_after_vi(rdram,interrupt,0x29a));require(memory==*before);memory=*original;std::printf("guard_%s=unchanged\n",label);};
  word(0x803156a4)=0;rejected("no_head");
- word(0x803156b4)=0x80397c18;rejected("active_rsp");
+ word(0x803156b4)=0x80397c18;rejected("active_audio");
+ word(0x803156b4)=gfx;word(gfx+16)=M_GFXTASK;word(gfx+4)=3;rejected("suspended_gfx");
+ word(0x803156b4)=gfx;word(gfx+16)=M_GFXTASK;word(gfx+4)=2;rejected("invalid_gfx_state");
+ word(0x803156b4)=0x80800000;rejected("invalid_active_pointer");
+ word(0x803156b4)=gfx;word(gfx+4)=1;word(gfx+16)=99;rejected("invalid_active_type");
+ word(0x803156b4)=gfx+1;rejected("unaligned_active_pointer");
  word(0x803156a4)=0x80800000;rejected("invalid_head");
  word(0x80397c18+16)=M_GFXTASK;rejected("graphics_head");
  word(0x80397c18+4)=1;rejected("active_head");
@@ -108,7 +120,7 @@ void check_guards(uint8_t* rdram){
  for(unsigned n=0;n<16;n++)require(osSendMesg(rdram,int32_t(interrupt),42,0)==0);rejected("full_interrupt_queue");
 }
 int main(int argc,char** argv){try{
- require(argc==2);healthy=std::string(argv[1])=="healthy";auto* rdram=memory.data();
+ require(argc==2);healthy=std::string(argv[1])=="healthy";active_graphics=std::string(argv[1])=="active-gfx";auto* rdram=memory.data();
  for(uint32_t q:{interrupt,cmd,frame,reply})osCreateMesgQueue(rdram,int32_t(q),int32_t(q+0x18),q==frame?8:16);
  auto* t=TO_PTR(OSThread,int32_t(thread));t->id=4;t->priority=50;
  word(0x803682fc)=frame;
@@ -132,15 +144,27 @@ int main(int argc,char** argv){try{
   dequeue_external_messages(rdram);require(mq(frame)->validCount==8);
  }
  if(!healthy){
+  if(active_graphics){
+   word(gfx+4)=1;word(gfx+8)=3;word(gfx+16)=M_GFXTASK;word(0x803156b4)=gfx;
+   require(bridge.start_graphics(gfx+16)==RspScheduler::Start::Submit);
+  }
   self=0x80004000;TO_PTR(OSThread,int32_t(self))->id=5;check_guards(rdram);
   bool baseline=std::string(argv[1])=="baseline";
-  if(!baseline)require(bc::request_pending_audio_after_vi(rdram,interrupt,0x29a));
+  bool requested=!baseline&&bc::request_pending_audio_after_vi(rdram,interrupt,0x29a);
+  if(!baseline)require(requested);
   // RED baseline fails the progress oracle without producing any fake reply.
-  if(baseline){require(mq(interrupt)->validCount==0&&started==0&&mq(reply)->validCount==0);std::puts("RED: ready audio task stays undispatched");return 1;}
+  if(baseline){require(!requested&&mq(interrupt)->validCount==0&&started==0&&mq(reply)->validCount==0&&yielded==0&&word(0x803156b4)==0);std::puts("RED: ready audio task stays undispatched");return 1;}
   require(!bc::request_pending_audio_after_vi(rdram,interrupt,0x29a)); // Same request not duplicated.
   require(osRecvMesg(rdram,int32_t(interrupt),int32_t(0x80368300),0)==0&&word(0x80368300)==0x29e);
   recomp_context sched{};sched.r4=int32_t(interrupt);sched.r29=int32_t(0x807fe000);
-  func_802712FC(rdram,&sched); // ORIGINAL ExecAudioIfIdle + Exec; task A really dispatched.
+  func_802712FC(rdram,&sched); // Original ExecAudioIfIdle dispatches audio or yields active graphics.
+  if(active_graphics){
+   require(yielded==1&&started==0&&word(gfx+4)==3&&mq(reply)->validCount==0);
+   require(osRecvMesg(rdram,int32_t(interrupt),int32_t(0x80368300),0)==0&&word(0x80368300)==0x29b);
+   sched={};sched.r4=int32_t(interrupt);sched.r29=int32_t(0x807fe000);func_802715DC(rdram,&sched);
+   require(status_reads==1&&word(gfx+4)==3&&word(gfx+8)==3&&word(gfx+20)==1);
+   std::puts("original_yield state1->3 retained_suspended status181 genuine_task_yielded=true");
+  }
   require(started==1&&task_list==0x80397c18+16&&word(0x803156b4)==0x80397c18);
   require(word(0x803156a4)==0x80397d18&&mq(reply)->validCount==0&&woken==0);
   // A single NOP Acmd is processed by the actual generated audio RSP. The
@@ -150,6 +174,7 @@ int main(int argc,char** argv){try{
   task->t.data_ptr=int32_t(0x80006000);task->t.data_size=8;word(0x80005010)=0x11180000;
   recomp::rsp::constants_init();recomp::rsp::set_callbacks({select_ucode});
   require(recomp::rsp::run_task(rdram,task)); // Only successful execution permits SP completion.
+  bridge.finish_audio();require(bridge.status()==0x201);
   ultramodern::enqueue_external_message_src(int32_t(interrupt),0x29b,false,ultramodern::EventMessageSource::Sp);
   require(osRecvMesg(rdram,int32_t(interrupt),int32_t(0x80368300),0)==0&&word(0x80368300)==0x29b);
   sched={};sched.r4=int32_t(interrupt);sched.r29=int32_t(0x807fe000);
@@ -159,6 +184,6 @@ int main(int argc,char** argv){try{
   require(osRecvMesg(rdram,int32_t(reply),int32_t(0x80368300),0)==0&&word(0x80368300)==0x80397c10);
   require(osRecvMesg(rdram,int32_t(reply),int32_t(0x80368300),0)==-1); // Exactly one authentic ACK.
  }
- std::printf("{\"scenario\":\"%s\",\"request29E_original\":%u,\"task_A_dispatched\":%u,\"real_RSP_completed\":%s,\"original_ACK_woke_thread4\":%u,\"native_cause_proven\":false}\n",healthy?"healthy_control":"late5_recovery",requests,started,healthy?"false":"true",woken);
+ std::printf("{\"scenario\":\"%s\",\"request29E_original\":%u,\"task_A_dispatched\":%u,\"real_RSP_completed\":%s,\"original_ACK_woke_thread4\":%u,\"native_cause_proven\":false}\n",healthy?"healthy_control":active_graphics?"active_graphics_recovery":"late5_recovery",requests,started,healthy?"false":"true",woken);
  return 0;
  }catch(const std::exception& e){std::fprintf(stderr,"%s\n",e.what());return 1;}}

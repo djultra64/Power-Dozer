@@ -377,7 +377,8 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
  "${CMAKE_SOURCE_DIR}/tools/prepare_audio_dispatch_fixture.py"
  "${CMAKE_SOURCE_DIR}/.local/generated/functions/funcs_3.c"
  "${CMAKE_SOURCE_DIR}/.local/generated/functions/funcs_4.c"
- "${CMAKE_SOURCE_DIR}/.local/generated/functions/funcs_22.c")
+ "${CMAKE_SOURCE_DIR}/.local/generated/functions/funcs_22.c"
+ "${CMAKE_SOURCE_DIR}/.local/generated/functions/funcs_24.c")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/prepare_audio_dispatch_fixture.py"
  "${CMAKE_SOURCE_DIR}/.local/generated/functions" "${CMAKE_BINARY_DIR}"
  RESULT_VARIABLE BC_AUDIO_DISPATCH_FIXTURE_RESULT)
@@ -399,8 +400,9 @@ target_link_libraries(audio_dispatch_test PRIVATE Threads::Threads)
 add_test(NAME original_audio_pending_dispatch_red_baseline COMMAND audio_dispatch_test baseline)
 set_tests_properties(original_audio_pending_dispatch_red_baseline PROPERTIES WILL_FAIL TRUE TIMEOUT 5)
 add_test(NAME original_audio_pending_dispatch_recovery COMMAND audio_dispatch_test late5)
+add_test(NAME original_audio_active_graphics_yield_recovery COMMAND audio_dispatch_test active-gfx)
 add_test(NAME original_audio_healthy_dispatch_protocol COMMAND audio_dispatch_test healthy)
-set_tests_properties(original_audio_pending_dispatch_recovery original_audio_healthy_dispatch_protocol PROPERTIES TIMEOUT 5)
+set_tests_properties(original_audio_pending_dispatch_recovery original_audio_active_graphics_yield_recovery original_audio_healthy_dispatch_protocol PROPERTIES TIMEOUT 5)
 endif()
 
 add_executable(pc_settings_assets_test tests/pc_settings_assets.cpp src/pc_settings_assets.cpp)

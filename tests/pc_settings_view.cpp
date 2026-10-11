@@ -235,6 +235,13 @@ int main(){
      const auto& sprite=draw.batches[i-1];check(glyph_name(*sprite.glyph).ends_with(axis<=SDL_CONTROLLER_AXIS_LEFTY?"l_stick":"r_stick"),"direction retains correct physical stick identity");
      const auto& origin=draw.vertices[sprite.first];const auto& extent=draw.vertices[sprite.first+2];
      const auto& tip=draw.vertices[arrow.first];bool direction_visible=false;
+     const auto& head_base_a=draw.vertices[arrow.first+1];const auto& head_base_b=draw.vertices[arrow.first+2];
+     const float scale=pc_settings_layout(width,height).safe_area.width/640;
+     const bool horizontal=axis==SDL_CONTROLLER_AXIS_LEFTX||axis==SDL_CONTROLLER_AXIS_RIGHTX;
+     const float arrow_center_x=tip.x-(horizontal?sign*3.5f*scale:0);
+     const float arrow_center_y=tip.y-(horizontal?0:sign*3.5f*scale);
+     check(std::abs(arrow_center_x-(origin.x+extent.x)/2)<.001f&&std::abs(arrow_center_y-(origin.y+extent.y)/2)<.001f,"direction arrow is centered inside original stick circle");
+     check(std::abs((horizontal?head_base_a.y-head_base_b.y:head_base_a.x-head_base_b.x))==5*scale,"centering preserves tiny five-unit arrowhead width");
      for(size_t j=arrow.first;j<arrow.first+arrow.count;++j){
       const auto& v=draw.vertices[j];check(v.r==1&&v.g==1&&v.b==1&&v.a==1,"direction arrow is opaque white even on red focused row");
       check(v.x>=origin.x&&v.x<=extent.x&&v.y>=origin.y&&v.y<=extent.y,"small arrow stays within existing stick icon at all aspect ratios");

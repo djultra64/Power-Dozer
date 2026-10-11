@@ -71,9 +71,9 @@ struct DrawBuilder {
   if(direction=="LEFT")dx=-1;else if(direction=="RIGHT")dx=1;
   else if(direction=="UP")dy=-1;else if(direction=="DOWN")dy=1;else return;
   const auto first=uint32_t(out.vertices.size());
-  // A sharp white triangle and short shaft sit above the original stick name.
+  // A sharp white triangle and short shaft sit at the stick circle center.
   auto point=[&](float along,float across){
-   vertex(r.x+(11+dx*along-dy*across)*scale,r.y+(6+dy*along+dx*across)*scale,
+   vertex(r.x+(11+dx*along-dy*across)*scale,r.y+(11+dy*along+dx*across)*scale,
     511.5f/atlas_width,1023.5f/atlas_height,{1,1,1,1});
   };
   point(3.5f,0);point(-.5f,-2.5f);point(-.5f,2.5f);

@@ -6,7 +6,7 @@
 
 # Power Dozer
 
-**v0.82 — beta of a native Blast Corps port for Linux and Windows x86-64.**
+**v0.83 — beta of a native Blast Corps port for Linux and Windows x86-64.**
 Static recompilation of Blast Corps USA Rev 1 with N64Recomp,
 N64ModernRuntime and RT64. The project is not affiliated with Rare or Nintendo.
 
@@ -20,11 +20,14 @@ Download your platform archive from
 [Releases](https://github.com/djultra64/Power-Dozer/releases), check its
 SHA-256 and extract it into a writable folder:
 
-- Linux: `power-dozer-v0.82-linux-x86_64.tar.gz`; run `Run Power Dozer.sh`.
-- Windows: `power-dozer-v0.82-windows-x86_64.zip`; run `Run Power Dozer.cmd`.
+- Linux: `power-dozer-v0.83-linux-x86_64.tar.gz`; run `Run Power Dozer.sh`.
+- Windows: `power-dozer-v0.83-windows-x86_64.zip`; run `Run Power Dozer.cmd`.
 
-v0.82 fixes wheel interpolation on Backlash and other wheeled vehicles.
-The fix is included in the Linux and Windows v0.82 packages.
+v0.83 adds a complete PC settings overlay with Display, Graphics, Audio and
+Controls sections, original game font/palette/shadows decoded from your ROM,
+and optional remapping by logical action. The earlier wheel interpolation fix
+remains included. Version 0.83 packages are being prepared; check Releases for
+available downloads.
 
 On first launch, select your own **Blast Corps USA Rev 1** ROM.
 z64/v64/n64 and ZIP files containing a single valid ROM are supported. The ROM is not included.
@@ -41,7 +44,8 @@ SDL and DXC libraries are included in both runtime packages.
 - Resolutions up to 4K, 16:9 presentation and an interpolation target of 120.
   Performance depends on the GPU and available refresh rate.
 - **Alt+Enter** toggles fullscreen.
-- Integrated PC menu with graphics, audio, help and per-action remapping.
+- Complete PC menu with Display, Graphics, Audio and Controls sections,
+  mouse/keyboard/controller navigation and per-action remapping.
 - Xbox, PlayStation, Switch and keyboard: names and glyphs follow the last
   active device. Switch retains B/A/Y/X according to their physical positions.
 - Full-width menu background and ticker; aligned map vehicle sprites
@@ -73,12 +77,15 @@ for the observed scope and limitations. The wheel fix passed 138 Python tests,
 runs on both platforms; see
 [v0.82 verification](docs/qa/release-v0.82.md).
 
-**There is an intermittent audio issue:** recovery for pending tasks was added,
-but it has not yet been shown to eliminate all dropouts.
+v0.83 extends pending-audio recovery through the original graphics-yield path
+and protects the soundplayer heartbeat from queue saturation and stale payloads.
+Original guest protocol regressions verify dispatch, completion and reply;
+the heartbeat fixtures verify both structural failure mechanisms. These checks
+do not establish that every intermittent dropout or gameplay hang is resolved.
 Full level coverage, physical controllers and sustained 120 fps
 remain for manual testing. End-of-level fades/sky and the
 visual stability of the HUD arrow need further checking.
-v0.82 is a public beta release for testing and reports.
+v0.83 remains a beta candidate for testing and reports.
 The reported thin black ground line is not currently reproducible; the reporter
 and recent local captures no longer show it. No speculative patch was applied.
 

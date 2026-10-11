@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.83 — 2026-10-11 (release preparation)
+
+- Add complete Display, Graphics, Audio and Controls sections with all fourteen
+  logical actions visible, optional remapping, device/family selection and
+  persistence feedback. Keyboard, mouse and controller navigate the host menu.
+- Render the PC overlay using the original font, palette and shadow geometry
+  decoded locally from the user's ROM; no extracted game pixels are packaged.
+  Return to the original pause menu and Game Options remains available.
+- Let the existing pending-audio recovery request yield a valid running graphics
+  task through the original scheduler. Regression coverage executes the actual
+  yield query, generated audio RSP and original reply waking the audio thread.
+- Protect the live soundplayer's periodic heartbeat from ordinary-event queue
+  saturation and stale event state. Original callback regressions demonstrate
+  both structural mechanisms; the native initiating event remains unconfirmed.
+- Include the required CMake hook and shader source in host source archives,
+  while excluding compiled shaders and private generated guest functions.
+- Prepare runtime/source package identities and archive roots for v0.83.
+
+Full mission coverage, real physical controllers, native Windows validation of
+these new changes and sustained 4K/120 Hz remain pending. No general gameplay
+or audio stability claim is made. Source and license review flags remain false;
+this preparation does not publish a release.
+
 ## v0.82 — 2026-10-10
 
 - Correct wheel interpolation for animated vehicle parts, including Backlash

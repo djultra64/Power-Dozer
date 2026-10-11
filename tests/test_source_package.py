@@ -23,14 +23,39 @@ class SourcePrivacy(unittest.TestCase):
             inventory=module.host_inventory(root)
             self.assertEqual(set(inventory),set(files)-{'docs/qa/private-checkpoint.md','docs/evidence/capture.md','.local/rom.z64','build/main.cpp'})
             output=root/'source.tar.gz'
-            module.write_archive(output,[(root,inventory,'host')],{'product':'Power Dozer','version':'0.82','ready_for_release':False})
+            module.write_archive(output,[(root,inventory,'host')],{'product':'Power Dozer','version':'0.83','ready_for_release':False})
             with tarfile.open(output) as archive:
-                self.assertTrue(all(name.startswith('power-dozer-v0.82-source/') for name in archive.getnames()))
-                manifest=json.load(archive.extractfile('power-dozer-v0.82-source/SOURCES.json'))
+                self.assertTrue(all(name.startswith('power-dozer-v0.83-source/') for name in archive.getnames()))
+                manifest=json.load(archive.extractfile('power-dozer-v0.83-source/SOURCES.json'))
                 self.assertFalse(manifest['ready_for_release'])
                 for name,entry in inventory.items():
-                    data=archive.extractfile('power-dozer-v0.82-source/host/'+name).read()
+                    data=archive.extractfile('power-dozer-v0.83-source/host/'+name).read()
                     self.assertEqual(hashlib.sha256(data).hexdigest(),entry['sha256'])
+    def test_host_export_keeps_required_cmake_and_shader_sources_without_private_outputs(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            public={'LICENSE':'license','NOTICE':'scope',
+                    'CMakeLists.txt':'include(cmake/sound_heartbeat.cmake)\n',
+                    'cmake/sound_heartbeat.cmake':'target_sources(game PRIVATE src/sound_heartbeat.cpp)\n',
+                    'shaders/pc_settings.hlsl':'float4 VSMain() { return 0; }\n'}
+            private={'.local/generated/functions/funcs_23.c':'ROM-derived guest source',
+                     'build/blastcorps-sound-heartbeat.cpp':'private extracted callback',
+                     'cmake/.local/generated/functions/funcs_23.c':'nested private source',
+                     'shaders/pc_settings.spv':'private compiled shader'}
+            for name,data in (public|private).items():
+                path=root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(data)
+            inventory=module.host_inventory(root)
+            self.assertEqual(set(inventory),set(public))
+            output=root/'source.tar.gz'
+            module.write_archive(output,[(root,inventory,'host')],{'ready_for_release':False})
+            with tarfile.open(output) as archive:
+                hook=module.PACKAGE_ROOT+'/host/cmake/sound_heartbeat.cmake'
+                self.assertEqual(archive.extractfile(hook).read(),public['cmake/sound_heartbeat.cmake'].encode())
+                shader=module.PACKAGE_ROOT+'/host/shaders/pc_settings.hlsl'
+                self.assertEqual(archive.extractfile(shader).read(),public['shaders/pc_settings.hlsl'].encode())
+                self.assertFalse(any(name.endswith('.spv') for name in archive.getnames()))
+                self.assertFalse(any('/generated/' in name for name in archive.getnames()))
+
     def test_host_export_requires_license_and_scope_notice(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);(root/'LICENSE').write_text('license')

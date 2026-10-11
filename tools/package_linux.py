@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create an audited Power Dozer v0.82 Linux archive without certifying release readiness."""
+"""Create an audited Power Dozer v0.83 Linux archive without certifying release readiness."""
 import argparse
 import gzip
 import hashlib
@@ -14,8 +14,8 @@ import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
 PRODUCT='Power Dozer'
-VERSION='0.82'
-PACKAGE_ROOT='power-dozer-v0.82-linux-x86_64'
+VERSION='0.83'
+PACKAGE_ROOT='power-dozer-v0.83-linux-x86_64'
 EXECUTABLE='power-dozer'
 LAUNCHER='Run Power Dozer.sh'
 
@@ -105,7 +105,7 @@ def launcher_text():
             'exec "$package_dir/power-dozer" "$@"\n')
 
 def runtime_readme():
-    return """Power Dozer v0.82 — experimental Linux beta.
+    return """Power Dozer v0.83 — experimental Linux beta.
 Extract the complete archive into a writable directory, then run:
   ./"Run Power Dozer.sh"
 Or select your own ROM explicitly:

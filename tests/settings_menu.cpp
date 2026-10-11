@@ -1,7 +1,10 @@
 #include "settings_menu.h"
 #include <cstdlib>
+#include <cstdio>
 static void check(bool valid){if(!valid)std::abort();}
 int main(){
+ bc::Settings endpoint;bc::SettingsMenu bounded(endpoint);bounded.select(1);bounded.select(0);
+ if(bounded.value(bc::SettingsField::Volume)!="100%") {std::fputs("FAIL: volume at 100 must stay bounded, not wrap to 0\n",stderr);return 1;}
  bc::Settings initial;initial.family="switch";initial.volume=75;
  bc::SettingsMenu menu(initial);
  check(menu.rows().size()==4);menu.select(0);check(menu.page()==bc::SettingsMenu::Page::Graphics1);

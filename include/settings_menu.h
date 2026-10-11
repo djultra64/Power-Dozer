@@ -8,7 +8,7 @@ struct SettingsChange {Settings settings;SettingsField field;};
 Settings merge_setting(const Settings&,const SettingsChange&);
 class SettingsMenu {
 public:
- enum class Page {Root,Graphics1,Graphics2,Graphics3,Audio,Controls,Closed};
+ enum class Page {Root,Graphics1,Graphics2,Graphics3,Audio,Controls,Closed,Display,Graphics};
  explicit SettingsMenu(Settings saved):settings_(std::move(saved)){}
  Page page() const{return page_;}
  bool closed() const{return page_==Page::Closed;}
@@ -17,6 +17,9 @@ public:
  std::vector<std::string> rows() const;
  std::string value(SettingsField) const;
  void select(int);
+ void section(Page);
+ void adjust(SettingsField field,int direction);
+ std::vector<SettingsField> fields() const;
  void back();
  void acknowledge(const Settings&,bool success);
  void refresh(const Settings& settings){if(!saving_)settings_=settings;}
@@ -27,10 +30,11 @@ public:
 private:
  Settings settings_;
  Page page_=Page::Root;
+ bool section_mode_=false;
  bool saving_=false,controls_=false,help_=false,game_options_=false;
  SettingsField last_field_=SettingsField::Scale;
  std::string status_;
  std::optional<SettingsChange> change_;
- void adjust(SettingsField);
+ void adjust(SettingsField field){adjust(field,1);}
 };
 }

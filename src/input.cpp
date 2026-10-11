@@ -1,6 +1,7 @@
 #include "prototype.h"
 #include "input.h"
 #include "controls_store.h"
+#include "pc_settings_input.h"
 #include <algorithm>
 #include <cmath>
 #include <mutex>
@@ -97,7 +98,8 @@ void bc_input_begin_remap(bc::RemapRequest request){
  std::lock_guard lock(input_mutex);capture.cancel();remap_result.reset();frame={};auto held=snapshot();
  if(!request.reset){capture.begin(request,held);return;}
  auto candidate=model;bc::InputModel defaults;
- for(size_t i=0;i<size_t(bc::InputAction::Count);i++)for(auto source:{bc::InputSource::Keyboard,bc::InputSource::Controller}){
+ for(size_t i=0;i<size_t(bc::InputAction::Count);i++){
+  auto source=request.source;
   std::vector<bc::InputBinding> bindings;for(auto binding:defaults.bindings(bc::InputAction(i)))if((binding.kind==bc::BindingKind::Key)==(source==bc::InputSource::Keyboard))bindings.push_back(binding);
   candidate.replace(bc::InputAction(i),source,bindings);
  }
@@ -114,7 +116,16 @@ bool bc_input_event(const SDL_Event& event){
  if(input_focused&&event.type==SDL_KEYDOWN&&event.key.repeat==0)model.activity(bc::InputSource::Keyboard);
  if(input_focused&&event.type==SDL_CONTROLLERBUTTONDOWN&&active_pad(event.cbutton.which))model.activity(bc::InputSource::Controller);
  if(input_focused&&event.type==SDL_CONTROLLERAXISMOTION&&active_pad(event.caxis.which)&&std::abs(event.caxis.value)>6500)model.activity(bc::InputSource::Controller);
+ if(input_focused&&(event.type==SDL_MOUSEMOTION||event.type==SDL_MOUSEBUTTONDOWN))model.activity(bc::InputSource::Keyboard);
  log_device();
+ const bool controller_event=event.type==SDL_CONTROLLERBUTTONDOWN||event.type==SDL_CONTROLLERBUTTONUP||event.type==SDL_CONTROLLERAXISMOTION;
+ const bool ours=!controller_event||active_pad(event.type==SDL_CONTROLLERAXISMOTION?event.caxis.which:event.cbutton.which);
+ if(ours&&(input_focused||event.type==SDL_WINDOWEVENT||event.type==SDL_CONTROLLERDEVICEREMOVED)&&bc::pc_settings_event(event,model)){
+  if(event.type==SDL_KEYDOWN&&event.key.keysym.scancode!=SDL_SCANCODE_UNKNOWN)model.consume({bc::BindingKind::Key,event.key.keysym.scancode});
+  if(event.type==SDL_CONTROLLERBUTTONDOWN)model.consume({bc::BindingKind::Button,event.cbutton.button});
+  if(event.type==SDL_CONTROLLERAXISMOTION)model.consume({bc::BindingKind::Axis,event.caxis.axis});
+  frame={};return false;
+ }
  if(event.type==SDL_KEYDOWN&&event.key.keysym.scancode==SDL_SCANCODE_RETURN&&(event.key.keysym.mod&KMOD_ALT)){
   model.consume({bc::BindingKind::Key,SDL_SCANCODE_RETURN});model.consume({bc::BindingKind::Key,SDL_SCANCODE_LALT});model.consume({bc::BindingKind::Key,SDL_SCANCODE_RALT});
   return event.key.repeat==0;
@@ -134,7 +145,8 @@ void bc_input_update(SDL_Window* window){
   std::lock_guard lock(input_mutex);connect();auto current=snapshot();
   capture.update(current);finish_capture(current);
   for(size_t i=1;i<focus_keys.size();i++)if(focus_keys[i]&&current.keys[i])model.consume({bc::BindingKind::Key,int(i)});
-  frame=model.sample(current);if(capture.active())frame={};previous=current;log_device();
+  const bool settings_gate=bc::pc_settings_gate_input(model,current);
+  frame=model.sample(current);if(capture.active()||settings_gate)frame={};previous=current;log_device();
   title="Power Dozer v0.82 | Confirm: "+model.prompt(bc::InputAction::Confirm).label+" | Back: "+model.prompt(bc::InputAction::Back).label+" | "+active_name()+" | Alt+Enter: Fullscreen";
   if(std::getenv("BC_TRACE_INPUT")){
    static bc::InputFrame before;
@@ -145,5 +157,5 @@ void bc_input_update(SDL_Window* window){
 }
 void bc_poll_input(){++bc_polls;}
 bool bc_get_input(int port,uint16_t* buttons,float* x,float* y){
- if(port!=0)return false;std::lock_guard lock(input_mutex);*buttons=frame.buttons;*x=frame.x;*y=frame.y;return true;
+ if(port!=0)return false;std::lock_guard lock(input_mutex);const auto value=bc::pc_settings_open()?bc::InputFrame{}:frame;*buttons=value.buttons;*x=value.x;*y=value.y;return true;
 }

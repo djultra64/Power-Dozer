@@ -19,6 +19,7 @@ public:
  void select(int);
  void section(Page);
  void adjust(SettingsField field,int direction);
+ void set_volume(int value);
  std::vector<SettingsField> fields() const;
  void back();
  void acknowledge(const Settings&,bool success);

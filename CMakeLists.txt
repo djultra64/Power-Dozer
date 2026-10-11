@@ -110,7 +110,7 @@ if(WIN32)
  set(BC_ULTRA_TRANSLATION "${CMAKE_BINARY_DIR}/blastcorps-windows-translation.cpp")
  file(WRITE "${BC_ULTRA_TRANSLATION}" "${BC_WINDOWS_TRANSLATION}")
 endif()
-add_executable(blastcorps-prototype src/main.cpp src/audio_sdl.cpp src/runtime.cpp src/renderer.cpp src/input.cpp src/input_model.cpp src/input_capture.cpp src/controls_store.cpp src/atomic_file.cpp src/l3d.cpp src/vehicle_pivots.cpp src/save_store.cpp src/pak_store.cpp src/pak_runtime.cpp src/pak_session.cpp src/save_migration.cpp src/settings.cpp src/settings_menu.cpp src/pc_settings_view.cpp src/pc_options.cpp src/controls_menu.cpp
+add_executable(blastcorps-prototype src/main.cpp src/audio_sdl.cpp src/runtime.cpp src/renderer.cpp src/input.cpp src/input_model.cpp src/input_capture.cpp src/controls_store.cpp src/atomic_file.cpp src/l3d.cpp src/vehicle_pivots.cpp src/save_store.cpp src/pak_store.cpp src/pak_runtime.cpp src/pak_session.cpp src/save_migration.cpp src/settings.cpp src/settings_menu.cpp src/pc_settings_view.cpp src/pc_settings_input.cpp src/pc_options.cpp src/controls_menu.cpp
  src/game_prompts.cpp src/game_prompt_runtime.cpp src/input_glyph.cpp
  "${CMAKE_SOURCE_DIR}/.local/generated/fallbacks.cpp"
  "${CMAKE_SOURCE_DIR}/.local/audio-rsp.cpp"
@@ -266,7 +266,7 @@ target_include_directories(pc_options_test PRIVATE include .local/generated/func
  "${RUNTIME}/N64Recomp/include" "${RUNTIME}/ultramodern/include"
  "${RUNTIME}/librecomp/include" "${RUNTIME}/librecomp/include/librecomp" "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/json")
 add_test(NAME pc_options_guest_bridge COMMAND pc_options_test)
-target_sources(pc_options_test PRIVATE src/controls_menu.cpp src/input_model.cpp src/input_glyph.cpp)
+target_sources(pc_options_test PRIVATE src/pc_settings_input.cpp src/pc_settings_view.cpp src/input_model.cpp)
 target_include_directories(pc_options_test PRIVATE ${BC_SDL_INCLUDE})
 target_link_libraries(pc_options_test PRIVATE ${BC_SDL_LIBRARY})
 add_executable(game_prompts_test tests/game_prompts.cpp src/game_prompts.cpp src/game_prompt_runtime.cpp src/input_model.cpp)
@@ -299,7 +299,7 @@ add_executable(input_model_test tests/input_model.cpp src/input_model.cpp)
 target_include_directories(input_model_test PRIVATE include ${BC_SDL_INCLUDE})
 target_link_libraries(input_model_test PRIVATE ${BC_SDL_LIBRARY})
 add_test(NAME input_actions_families_and_focus COMMAND input_model_test)
-add_executable(input_sdl_test tests/input_sdl.cpp src/input.cpp src/input_model.cpp src/input_capture.cpp src/controls_store.cpp src/atomic_file.cpp)
+add_executable(input_sdl_test tests/input_sdl.cpp src/pc_settings_input.cpp src/pc_settings_view.cpp src/settings_menu.cpp src/settings.cpp src/input.cpp src/input_model.cpp src/input_capture.cpp src/controls_store.cpp src/atomic_file.cpp)
 target_compile_definitions(input_sdl_test PRIVATE BC_ROOT="${CMAKE_SOURCE_DIR}")
 target_include_directories(input_sdl_test PRIVATE include ${BC_SDL_INCLUDE} "${RUNTIME}/ultramodern/include" "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/json")
 target_link_libraries(input_sdl_test PRIVATE ${BC_SDL_LIBRARY})
@@ -446,3 +446,8 @@ endforeach()
 target_sources(blastcorps-prototype PRIVATE src/pc_settings_renderer.cpp ${BC_SETTINGS_SHADER_HEADERS})
 target_include_directories(blastcorps-prototype PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 include(cmake/sound_heartbeat.cmake)
+
+add_executable(pc_settings_input_test tests/pc_settings_input.cpp src/pc_settings_input.cpp src/pc_settings_view.cpp src/settings_menu.cpp src/settings.cpp src/atomic_file.cpp src/input_model.cpp)
+target_include_directories(pc_settings_input_test PRIVATE include "${RUNTIME}/thirdparty/json" ${BC_SDL_INCLUDE})
+target_link_libraries(pc_settings_input_test PRIVATE ${BC_SDL_LIBRARY})
+add_test(NAME pc_settings_sdl_navigation_and_handoff COMMAND pc_settings_input_test)

@@ -22,6 +22,8 @@
 #include "wav_capture.h"
 #include "settings.h"
 #include "pc_options.h"
+#include "pc_settings_input.h"
+#include "pc_settings_renderer.h"
 #include "pak_runtime.h"
 #include "input.h"
 #include "rom_input.h"
@@ -197,6 +199,8 @@ int main(int argc,char** argv){
  std::thread guest([rdram]{ultramodern::set_entrypoint_thread();recomp_context ctx{};ctx.status_reg=0x2000FF01;ctx.r29=S32(0x801E6FF0);ctx.f_odd=&ctx.f0.u32h;recomp_entrypoint(rdram,&ctx);});guest.detach();
  auto start=std::chrono::steady_clock::now(),next=start;
  while(!exited){
+  int settings_width=0,settings_height=0;SDL_GetWindowSize(window,&settings_width,&settings_height);
+  bc::pc_settings_resize(settings_width,settings_height);
   SDL_Event event;while(SDL_PollEvent(&event)){
    if(event.type==SDL_AUDIODEVICEREMOVED&&!event.adevice.iscapture){
     std::lock_guard lock(audio_mutex);
@@ -231,6 +235,7 @@ int main(int argc,char** argv){
   if(auto request=bc::take_pc_remap_request())bc_input_begin_remap(*request);
   bc_input_update(window);
   if(auto result=bc_input_take_remap_result())bc::acknowledge_pc_remap(*result);
+  bc::publish_pc_settings_snapshot(bc::pc_settings_current(bc_input_view()));
   auto now=std::chrono::steady_clock::now();
   if(now>=next){fprintf(stderr,"{\"event\":\"progress\",\"vi\":%llu,\"gfx\":%llu,\"audio\":%llu,\"polls\":%llu}\n",(unsigned long long)bc_vis.load(),(unsigned long long)bc_gfx.load(),(unsigned long long)bc_audio.load(),(unsigned long long)bc_polls.load());fflush(stderr);next=now+std::chrono::seconds(5);}
   if(seconds>0&&std::chrono::duration<double>(now-start).count()>=seconds)break;

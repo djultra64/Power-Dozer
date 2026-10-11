@@ -1,6 +1,8 @@
 #include "input.h"
 #include "controls_store.h"
 #include "prototype.h"
+#include "pc_settings_input.h"
+#include "pc_options.h"
 #include <chrono>
 #include <stdexcept>
 #include <cstdio>
@@ -68,6 +70,23 @@ int main(){
  bc_input_begin_remap({bc::InputAction::Back,bc::InputSource::Keyboard});key.key.keysym.scancode=SDL_SCANCODE_ESCAPE;bc_input_event(key);sync();outcome=bc_input_take_remap_result();check(outcome&&outcome->cancelled,"Escape cancels live capture");
  bc_input_begin_remap({bc::InputAction::Confirm,bc::InputSource::Keyboard,true});outcome=bc_input_take_remap_result();check(outcome&&outcome->success&&bc_input_prompt(bc::InputAction::Confirm).label=="Z","explicit reset restores defaults and saves them");
  check(bc::ControlsStore(bc_data_directory/"controls.json").load().prompt(bc::InputAction::Back).label=="X","reset persists default reverse/back");
-  SDL_JoystickClose(joystick);SDL_JoystickDetachVirtual(index);sync();
+ auto reset_model=bc_input_view();reset_model.activity(bc::InputSource::Controller);check(reset_model.prompt(bc::InputAction::Confirm).label=="Y","keyboard reset preserves remapped controller action");
+ bc::initialize_pc_options({});bc::pc_settings_resize(640,480);bc::pc_settings_begin();
+ SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_A,0);sync();
+ SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_X,1);sync();check(frame().buttons==0,"host settings selection cannot reach guest");
+ key.key.keysym.scancode=SDL_SCANCODE_ESCAPE;bc_input_event(key);sync();check(!bc::pc_settings_open()&&frame().buttons==0,"fixed Escape closes settings while held confirm stays suppressed");
+ SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_X,0);sync();SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_X,1);sync();check(frame().buttons==0x8000,"held close latch releases only after physical release");
+ SDL_JoystickSetVirtualButton(joystick,SDL_CONTROLLER_BUTTON_X,0);sync();
+ bc::pc_settings_begin();
+ SDL_Event mouse{};mouse.type=SDL_MOUSEMOTION;mouse.motion.x=50;mouse.motion.y=100;bc_input_event(mouse);check(bc_input_view().source()==bc::InputSource::Keyboard,"mouse restores keyboard prompts as last active device");
+ mouse.type=SDL_MOUSEBUTTONDOWN;mouse.button.button=SDL_BUTTON_LEFT;mouse.button.x=510;mouse.button.y=75;bc_input_event(mouse);
+ mouse.button.x=40;mouse.button.y=120;bc_input_event(mouse); // Controller device.
+ mouse.button.x=40;mouse.button.y=160;bc_input_event(mouse);
+ auto capture_request=bc::take_pc_remap_request();check(capture_request&&capture_request->source==bc::InputSource::Controller,"host capture uses selected controller");bc_input_begin_remap(*capture_request);sync();
+ SDL_JoystickClose(joystick);check(SDL_JoystickDetachVirtual(index)==0,"detach while capturing");sync();outcome=bc_input_take_remap_result();check(outcome&&outcome->cancelled,"controller disconnect cancels capture");bc::acknowledge_pc_remap(*outcome);
+ auto host=bc::pc_settings_current(bc_input_view());check(host->modal==bc::PcSettingsModal::None&&host->focus==0&&host->device==bc::InputSource::Controller,"disconnect restores same row and editing device");
+ key.key.keysym.scancode=SDL_SCANCODE_ESCAPE;bc_input_event(key);sync();
  puts("Virtual SDL input families, focus, axes and reconnect passed");
+ return 0;
+
 }

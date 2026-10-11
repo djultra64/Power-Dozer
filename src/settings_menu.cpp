@@ -76,6 +76,12 @@ std::vector<SettingsField> SettingsMenu::fields() const{
  default:return {};
  }
 }
+void SettingsMenu::set_volume(int value){
+ value=std::clamp(value,0,100);
+ if(saving_||closed()||settings_.volume==value)return;
+ settings_.volume=value;last_field_=SettingsField::Volume;
+ change_=SettingsChange{settings_,last_field_};saving_=true;status_="SAVING";
+}
 void SettingsMenu::adjust(SettingsField field,int direction){
  if(saving_||!direction||closed())return;
  const auto before=value(field);
@@ -87,7 +93,7 @@ void SettingsMenu::adjust(SettingsField field,int direction){
  case SettingsField::MSAA:cycle(settings_.msaa,std::array<int,4>{0,2,4,8},direction);break;
  case SettingsField::Presentation:cycle(settings_.presentation,std::array<std::string,3>{"nearest","linear","pixel"},direction);break;
  case SettingsField::Texture:settings_.texture=settings_.texture=="linear"?"three_point":"linear";break;
- case SettingsField::Volume:settings_.volume=std::clamp(direction>0?(settings_.volume/10+1)*10:((settings_.volume+9)/10-1)*10,0,100);break;
+ case SettingsField::Volume:set_volume(direction>0?(settings_.volume/10+1)*10:((settings_.volume+9)/10-1)*10);return;
  case SettingsField::Mute:settings_.mute=!settings_.mute;break;
  case SettingsField::Family:cycle(settings_.family,std::array<std::string,4>{"auto","xbox","playstation","switch"},direction);break;
  }

@@ -111,7 +111,7 @@ if(WIN32)
  file(WRITE "${BC_ULTRA_TRANSLATION}" "${BC_WINDOWS_TRANSLATION}")
 endif()
 add_executable(blastcorps-prototype src/main.cpp src/audio_sdl.cpp src/runtime.cpp src/renderer.cpp src/input.cpp src/input_model.cpp src/input_capture.cpp src/controls_store.cpp src/atomic_file.cpp src/l3d.cpp src/vehicle_pivots.cpp src/save_store.cpp src/pak_store.cpp src/pak_runtime.cpp src/pak_session.cpp src/save_migration.cpp src/settings.cpp src/settings_menu.cpp src/pc_settings_view.cpp src/pc_settings_input.cpp src/pc_options.cpp src/controls_menu.cpp
- src/game_prompts.cpp src/game_prompt_runtime.cpp src/input_glyph.cpp
+ src/game_prompts.cpp src/game_prompt_runtime.cpp src/input_glyph.cpp src/main_menu.cpp
  "${CMAKE_SOURCE_DIR}/.local/generated/fallbacks.cpp"
  "${CMAKE_SOURCE_DIR}/.local/audio-rsp.cpp"
  "${BC_ULTRA_TRANSLATION}"
@@ -260,6 +260,10 @@ add_test(NAME durable_validated_settings COMMAND settings_test)
 add_executable(settings_menu_test tests/settings_menu.cpp src/settings_menu.cpp src/settings.cpp src/atomic_file.cpp)
 target_include_directories(settings_menu_test PRIVATE include "${RUNTIME}/thirdparty/json" ${BC_SDL_INCLUDE})
 add_test(NAME original_style_settings_navigation COMMAND settings_menu_test)
+add_executable(main_menu_test tests/main_menu.cpp src/main_menu.cpp src/input_model.cpp)
+target_include_directories(main_menu_test PRIVATE include ${BC_SDL_INCLUDE})
+target_link_libraries(main_menu_test PRIVATE ${BC_SDL_LIBRARY})
+add_test(NAME main_menu_state_requests_and_prompts COMMAND main_menu_test)
 add_executable(pc_settings_view_test src/pc_settings_renderer.cpp src/input_glyph.cpp tests/pc_settings_view.cpp src/pc_settings_view.cpp src/settings_menu.cpp src/settings.cpp src/atomic_file.cpp src/input_model.cpp)
 target_include_directories(pc_settings_view_test PRIVATE include "${RUNTIME}/thirdparty/json" ${BC_SDL_INCLUDE})
 target_link_libraries(pc_settings_view_test PRIVATE ${BC_SDL_LIBRARY})

@@ -10,6 +10,36 @@ static void key(SDL_Scancode code,SDL_Keymod mod=KMOD_NONE){SDL_Event e{};e.type
 static void mouse(int x,int y,bool click=false){SDL_Event e{};e.type=click?SDL_MOUSEBUTTONDOWN:SDL_MOUSEMOTION;if(click){e.button.button=SDL_BUTTON_LEFT;e.button.x=x;e.button.y=y;}else{e.motion.x=x;e.motion.y=y;}bc::pc_settings_event(e,model);}
 static auto view(){return bc::pc_settings_current(model);}
 int main(){
+ // The explicit entry origin controls both Back and the legacy footer slot.
+ bc::initialize_pc_options({});bc::pc_settings_resize(640,480);
+ bc::pc_settings_begin(bc::PcSettingsOrigin::MainMenu);key(SDL_SCANCODE_ESCAPE);
+ check(!bc::pc_settings_open()&&bc::take_pc_settings_exit()==bc::PcSettingsExit::MainMenu,"main-origin Escape requests main menu");
+ check(bc::take_pc_settings_exit()==bc::PcSettingsExit::None,"origin exit is consumed once");
+ bc::pc_settings_begin(bc::PcSettingsOrigin::MainMenu);mouse(510,75,true);mouse(360,390,true);
+ check(bc::take_pc_settings_exit()==bc::PcSettingsExit::MainMenu,"main-origin return control requests main menu");
+ bc::pc_settings_begin();mouse(510,75,true);mouse(360,390,true);
+ check(bc::take_pc_settings_exit()==bc::PcSettingsExit::GameOptions,"pause-origin return control preserves guest Game Options");
+ bc::pc_settings_begin();key(SDL_SCANCODE_ESCAPE);
+ check(bc::take_pc_settings_exit()==bc::PcSettingsExit::Pause,"default-origin Escape returns to pause");
+ bc::pc_settings_begin(bc::PcSettingsOrigin::MainMenu);bc::pc_settings_close();
+ check(bc::take_pc_settings_exit()==bc::PcSettingsExit::MainMenu,"explicit close uses entry origin");
+ bc::Settings main_saved;main_saved.volume=60;bc::initialize_pc_options(main_saved);
+ bc::pc_settings_begin(bc::PcSettingsOrigin::MainMenu);mouse(350,75,true);key(SDL_SCANCODE_LEFT);
+ auto main_change=bc::take_pc_change();check(main_change&&main_change->settings.volume==50,"main entry uses original settings persistence requests");
+ auto main_directory=std::filesystem::temp_directory_path()/("main-settings-failure-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));std::filesystem::create_directory(main_directory);
+ bool main_failed=false;try{bc::SettingsStore(main_directory).save(main_change->settings);}catch(const std::exception&){main_failed=true;}std::filesystem::remove_all(main_directory);
+ check(main_failed,"main entry exercises actual failed durable save");bc::acknowledge_pc_change({},false);
+ check(view()->status=="SAVE FAILED"&&view()->rows[0].value=="60%","main-origin failed save rolls back durable value");
+ mouse(510,75,true);mouse(45,160,true);
+ check(view()->modal==bc::PcSettingsModal::Capture&&bc::take_pc_remap_request().has_value(),"main origin supports original remapping capture");
+ key(SDL_SCANCODE_ESCAPE);
+ check(bc::pc_settings_open()&&view()->modal==bc::PcSettingsModal::None&&view()->focus==0&&bc::take_pc_controls_cancel(),"fixed Escape cancels capture while keeping main-origin settings open");
+ check(view()->controls[3].label=="MAIN MENU"&&bc::take_pc_settings_exit()==bc::PcSettingsExit::None,"save failure and capture cancel preserve origin and do not exit");
+ mouse(40,390,true);key(SDL_SCANCODE_RETURN);auto main_defaults=bc::take_pc_remap_request();
+ check(main_defaults&&main_defaults->reset,"main origin retains defaults request");bc::acknowledge_pc_remap({false,false,"SAVE FAILED"});
+ check(view()->controls[3].label=="MAIN MENU"&&view()->status=="SAVE FAILED","failed defaults save retains origin");
+ key(SDL_SCANCODE_X);
+ check(bc::take_pc_settings_exit()==bc::PcSettingsExit::MainMenu,"mapped logical Back retains origin after save failure and capture Escape");
  bc::initialize_pc_options({});bc::pc_settings_resize(640,480);bc::pc_settings_begin();
  check(bc::pc_settings_open(),"existing entry must open complete host menu");
  key(SDL_SCANCODE_DOWN);check(view()->focus==1,"Down focuses aspect");

@@ -29,6 +29,21 @@ int main(){
  }){
   menu.section(section);
   auto snapshot=pc_settings_snapshot(menu,input,state);
+  auto main_state=state;main_state.origin=PcSettingsOrigin::MainMenu;
+  const auto main_snapshot=pc_settings_snapshot(menu,input,main_state);
+  check(main_snapshot.rows.size()==snapshot.rows.size(),"main entry retains every settings row");
+  for(size_t i=0;i<snapshot.rows.size();++i){
+   const auto& a=snapshot.rows[i];const auto& b=main_snapshot.rows[i];
+   check(a.label==b.label&&a.value==b.value&&a.field==b.field&&a.action==b.action&&a.restart_required==b.restart_required,"main entry preserves original settings and actions");
+   check(a.binding.has_value()==b.binding.has_value()&&(!a.binding||(a.binding->label==b.binding->label&&a.binding->glyph==b.binding->glyph&&a.binding->source==b.binding->source)),"main entry preserves physical binding prompts");
+  }
+  for(size_t i=0;i<2;++i)check(main_snapshot.prompts[i].label==snapshot.prompts[i].label&&main_snapshot.prompts[i].glyph==snapshot.prompts[i].glyph&&main_snapshot.prompts[i].source==snapshot.prompts[i].source,"main entry retains Confirm and Back prompts");
+  if(section==SettingsMenu::Page::Controls){
+   check(snapshot.controls.size()==4&&main_snapshot.controls.size()==4,"both origins preserve all controls");
+   check(snapshot.controls[size_t(PcSettingsControl::GameOptions)].label=="GAME OPTIONS","default pause origin preserves Game Options");
+   check(main_snapshot.controls[size_t(PcSettingsControl::GameOptions)].label=="MAIN MENU","main origin names the same return-control position MAIN MENU");
+   for(size_t i=0;i<3;++i)check(snapshot.controls[i].label==main_snapshot.controls[i].label&&snapshot.controls[i].value==main_snapshot.controls[i].value&&snapshot.controls[i].field==main_snapshot.controls[i].field,"main origin preserves device family and defaults controls");
+  }
   check(snapshot.rows.size()==size_t(count),"all section rows visible");
   check(menu.rows().size()==size_t(count),"section has no pagination/back row");
   check(snapshot.title!="SAVING"&&snapshot.section==section,"title independent of status");

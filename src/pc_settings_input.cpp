@@ -21,6 +21,7 @@ std::array<int,SDL_CONTROLLER_AXIS_MAX> axis_directions{};
 constexpr std::array sections={SettingsMenu::Page::Display,SettingsMenu::Page::Graphics,SettingsMenu::Page::Audio,SettingsMenu::Page::Controls};
 bool controls(){return menu->page()==SettingsMenu::Page::Controls;}
 bool saving(){return menu->saving()||remap_saving;}
+PcSettingsExit return_destination(){return state.origin==PcSettingsOrigin::MainMenu?PcSettingsExit::MainMenu:PcSettingsExit::Pause;}
 void close(PcSettingsExit destination){
  menu.reset();remap.reset();remap_saving=false;cancel_capture=true;release_latch=true;dragging=false;drag_target.reset();exit_request=destination;
 }
@@ -58,12 +59,12 @@ void select(int direction,bool activate){
  case PcSettingsControl::Device:state.device=state.device==InputSource::Keyboard?InputSource::Controller:InputSource::Keyboard;break;
  case PcSettingsControl::Family:adjust(SettingsField::Family,direction);break;
  case PcSettingsControl::RestoreDefaults:if(activate)state.modal=PcSettingsModal::RestoreDefaults;break;
- case PcSettingsControl::GameOptions:if(activate)close(PcSettingsExit::GameOptions);break;
+ case PcSettingsControl::GameOptions:if(activate)close(state.origin==PcSettingsOrigin::MainMenu?PcSettingsExit::MainMenu:PcSettingsExit::GameOptions);break;
  }
 }
 void cancel(){
  if(state.modal!=PcSettingsModal::None){state.modal=PcSettingsModal::None;remap.reset();cancel_capture=true;return;}
- close(PcSettingsExit::Pause);
+ close(return_destination());
 }
 bool hit(float x,float y){
  for(size_t i=0;i<4;i++)if(layout.tabs[i].contains(x,y)){state.focus_target=PcSettingsFocusTarget::Tab;state.focus=i;return true;}
@@ -83,8 +84,8 @@ void initialize_pc_options(const Settings& settings){
  std::lock_guard lock(mutex);saved=settings;menu.reset();state={};pending.reset();filters.reset();remap.reset();exit_request=PcSettingsExit::None;
  cancel_capture=release_latch=dragging=remap_saving=false;drag_target.reset();remap_status.clear();axis_directions.fill(0);
 }
-void pc_settings_begin(){std::lock_guard lock(mutex);menu=std::make_unique<SettingsMenu>(saved);state={};section(0);exit_request=PcSettingsExit::None;release_latch=true;axis_directions.fill(0);}
-void pc_settings_close(){std::lock_guard lock(mutex);if(menu)close(PcSettingsExit::Pause);}
+void pc_settings_begin(PcSettingsOrigin origin){std::lock_guard lock(mutex);menu=std::make_unique<SettingsMenu>(saved);state={};state.origin=origin;section(0);exit_request=PcSettingsExit::None;release_latch=true;axis_directions.fill(0);}
+void pc_settings_close(){std::lock_guard lock(mutex);if(menu)close(return_destination());}
 bool pc_settings_open(){std::lock_guard lock(mutex);return bool(menu);}
 void pc_settings_resize(int width,int height){std::lock_guard lock(mutex);layout=pc_settings_layout(width,height);}
 PcSettingsExit take_pc_settings_exit(){std::lock_guard lock(mutex);auto out=exit_request;exit_request=PcSettingsExit::None;return out;}

@@ -42,7 +42,7 @@ PcSettingsSnapshot pc_settings_snapshot(const SettingsMenu& menu,const InputMode
    {"DEVICE",out.device_label,std::nullopt,std::nullopt,false,std::nullopt},
    {"CONTROLLER FAMILY",out.family_label,SettingsField::Family,std::nullopt,false,std::nullopt},
    {"RESTORE DEFAULTS","",std::nullopt,std::nullopt,false,std::nullopt},
-   {"GAME OPTIONS","",std::nullopt,std::nullopt,false,std::nullopt}
+   {state.origin==PcSettingsOrigin::MainMenu?"MAIN MENU":"GAME OPTIONS","",std::nullopt,std::nullopt,false,std::nullopt}
   };
   auto device_input=input;device_input.activity(state.device);
   for(size_t i=0;i<size_t(InputAction::Count);i++){

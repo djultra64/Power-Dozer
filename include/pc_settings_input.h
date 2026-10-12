@@ -3,8 +3,8 @@
 #include <memory>
 namespace bc {
 // Guest hooks request transitions; SDL owns events and publishes value snapshots.
-enum class PcSettingsExit {None,Pause,GameOptions};
-void pc_settings_begin();
+enum class PcSettingsExit {None,Pause,GameOptions,MainMenu};
+void pc_settings_begin(PcSettingsOrigin=PcSettingsOrigin::Pause);
 void pc_settings_close();
 bool pc_settings_open();
 bool pc_settings_event(const SDL_Event&,const InputModel&);

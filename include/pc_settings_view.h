@@ -22,11 +22,13 @@ PcSettingsLayout pc_settings_layout(int width,int height);
 enum class PcSettingsModal {None,Capture,RestoreDefaults};
 enum class PcSettingsFocusTarget {Row,Control,Tab};
 enum class PcSettingsControl {Device,Family,RestoreDefaults,GameOptions};
+enum class PcSettingsOrigin {Pause,MainMenu};
 struct PcSettingsViewState {
  size_t focus=0;
  PcSettingsFocusTarget focus_target=PcSettingsFocusTarget::Row;
  InputSource device=InputSource::Keyboard;
  PcSettingsModal modal=PcSettingsModal::None;
+ PcSettingsOrigin origin=PcSettingsOrigin::Pause;
 };
 struct PcSettingsRow {
  std::string label,value;

@@ -213,6 +213,35 @@ def normalize_map_vehicle_body(body):
     return body.replace(site,hook)
 
 
+def normalize_shadow_clear_body(body, rom):
+    """Define the shadow's sampled border without expanding silhouette clipping."""
+    if not body.startswith('RECOMP_FUNC void func_80258544('):
+        return body
+    # Original end-pointer/count setup, task arguments, call and delay slot.
+    # Check even already-normalized input so a changed image cannot reuse a hook.
+    at = 0x80258B34 - 0x802447C0
+    expected = bytes.fromhex('8fb9009c3c0e803625ce50b0032e2823000540c32409061fafa90010'
+                             '0100282501c0202524060001000038250c0a1395afa00014')
+    if rom[at:at + len(expected)] != expected:
+        raise ValueError('Original shadow submission instructions changed')
+    call = '    func_80284E54(rdram, ctx);'
+    site = ('    // 0x80258B60: jal         0x80284E54\n'
+            '    // 0x80258B64: sw          $zero, 0x14($sp)\n'
+            '    MEM_W(0X14, ctx->r29) = 0;\n' + call)
+    hook = ('    ctx->r5 = bc_shadow_clear_rewrite(rdram, 0x800000, '
+            'uint32_t(ctx->r4), uint32_t(ctx->r5));\n')
+    patched = site.replace(call, hook + call)
+    if body.count(call) != 1:
+        raise ValueError('Original shadow submission call is not unique')
+    if 'bc_shadow_clear_rewrite' in body:
+        if body.count('bc_shadow_clear_rewrite') != 1 or body.count(patched) != 1:
+            raise ValueError('Original shadow submission hook layout changed')
+        return body
+    if body.count(site) != 1:
+        raise ValueError('Original shadow submission layout changed')
+    return body.replace(site, patched)
+
+
 def normalize(folder):
     # These hooks depend on the original pause layout and callable entries.
     rom=(ROOT/'.local/hd_code.bin').read_bytes()
@@ -257,8 +286,9 @@ def normalize(folder):
             raise ValueError(f'Original widescreen hook layout changed at {address:08X}')
     pattern = re.compile(r'RECOMP_FUNC void [^(]+\([^)]*\) \{.*?^;\}', re.M | re.S)
     temporary = re.compile(r'^(?P<indent>\s*)gpr (?P<name>jr_addend_[0-9A-F]{8}) = (?P<value>[^;]+);$', re.M)
-    def fix(match):
-        body = normalize_vehicle_pivot_body(normalize_map_vehicle_body(normalize_widescreen_body(match.group(0))))
+    def fix(match, shadow_rom=rom):
+        body = normalize_shadow_clear_body(match.group(0), shadow_rom)
+        body = normalize_vehicle_pivot_body(normalize_map_vehicle_body(normalize_widescreen_body(body)))
         names = list(dict.fromkeys(m['name'] for m in temporary.finditer(body) if m['value'].strip()!='0'))
         body = temporary.sub(lambda m:m.group(0) if m['value'].strip()=='0' else f"{m['indent']}{m['name']} = {m['value']};", body)
         if names:

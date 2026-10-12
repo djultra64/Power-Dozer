@@ -21,3 +21,4 @@ extern "C" void bc_pc_options_glyphs(uint8_t*,recomp_context*,uint32_t);
 #include "widescreen_guest.h"
 
 #include "map_vehicle_sprite.h"
+#include "shadow_clear.h"

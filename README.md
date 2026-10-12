@@ -22,8 +22,7 @@ archive into a writable folder:
 
 - Linux: `power-dozer-v0.84-linux-x86_64.tar.gz`; run `Run Power Dozer.sh`.
 - Source: v0.84 host code and pinned dependencies; see the build recipe below.
-- Windows v0.84 is pending a fresh build and native validation. The existing
-  v0.82 Windows archive belongs to an earlier release; run `Run Power Dozer.cmd`.
+- Windows: `power-dozer-v0.84-windows-x86_64.zip`; run `Run Power Dozer.cmd`.
 
 v0.84 adds a main menu before the original file selector: **Start Game**,
 **PC Options** and **Close Game**, over the game's actual animated background
@@ -94,9 +93,9 @@ intermittent dropout or gameplay hang is resolved.
 Full level coverage, physical controllers and sustained 120 fps
 remain for manual testing. End-of-level fades/sky and the
 visual stability of the HUD arrow need further checking.
-v0.84 is prepared as a beta candidate for testing and reports. Windows results
-above describe prior releases; a fresh v0.84 Windows build and native run remain
-pending. The shadow repair preserves the original silhouette and is supported
+v0.84 is available for Linux and Windows. The Windows build passed eleven
+checks and opened Main, Files and all four PC Settings sections before
+returning to Main and exiting through Close Game. The shadow repair preserves the original silhouette and is supported
 by actual texture-border/GPU evidence. The exact reported live 4K baseline was
 not reproduced in the presented baseline, so this is not a claim that every
 black ground line or display-specific symptom is resolved.

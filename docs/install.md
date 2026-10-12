@@ -1,8 +1,7 @@
-# Install Power Dozer v0.84 candidate
+# Install Power Dozer v0.84
 
-These are the candidate package names. The October 11 QA record covers the
-Linux native build; it does not imply that release archives have been published.
-Windows v0.84 build and native validation remain pending.
+Download the Linux or Windows package and its SHA-256 file from
+[the v0.84 release](https://github.com/djultra64/Power-Dozer/releases/tag/v0.84).
 
 ## Linux
 
@@ -18,7 +17,7 @@ cd power-dozer-v0.84-linux-x86_64
 
 ## Windows
 
-When a Windows candidate is supplied, use `power-dozer-v0.84-windows-x86_64.zip`
+Use `power-dozer-v0.84-windows-x86_64.zip`
 and its SHA-256 file. Verify
 the hash with `Get-FileHash` in PowerShell, extract the archive into a writable
 folder, and run `Run Power Dozer.cmd` or `power-dozer.exe`. Keep all DLLs,

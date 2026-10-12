@@ -1,4 +1,5 @@
 #include "l3d.h"
+#include "ticker_medals_render.h"
 #include "line_quad.h"
 #include "carrier_arrow.h"
 #include "vehicle_pivots.h"
@@ -187,6 +188,7 @@ void bc_load_hud_annotations(RT64::Interpreter& interpreter,unsigned text) {
  hud_gbi.map[F3D_G_VTX]=hud_vertex;
  hud_gbi.map[0xD4]=menu_background_rectangle;
  hud_gbi.map[0xD5]=atlas_glyph;
+ hud_gbi.map[0xD6]=bc::ticker_medal_rectangle;
  interpreter.hleGBI=&hud_gbi;
  interpreter.state->rsp->setGBI(&hud_gbi);
 }

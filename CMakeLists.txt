@@ -464,3 +464,37 @@ add_executable(pc_settings_input_test tests/pc_settings_input.cpp src/pc_setting
 target_include_directories(pc_settings_input_test PRIVATE include "${RUNTIME}/thirdparty/json" ${BC_SDL_INCLUDE})
 target_link_libraries(pc_settings_input_test PRIVATE ${BC_SDL_LIBRARY})
 add_test(NAME pc_settings_sdl_navigation_and_handoff COMMAND pc_settings_input_test)
+
+# Compile the real application aspect initialization in the RT64 pipeline
+# fixture. Missing extended configuration must fail the runtime assertions.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/renderer.cpp")
+file(READ "${CMAKE_SOURCE_DIR}/src/renderer.cpp" BC_ASPECT_SOURCE)
+string(FIND "${BC_ASPECT_SOURCE}" "app_->userConfig.aspectRatio =" BC_ASPECT_BEGIN)
+string(FIND "${BC_ASPECT_SOURCE}" "app_->userConfig.refreshRate =" BC_ASPECT_END)
+if(BC_ASPECT_BEGIN LESS 0 OR BC_ASPECT_END LESS_EQUAL BC_ASPECT_BEGIN)
+ message(FATAL_ERROR "Cannot locate renderer aspect configuration fixture")
+endif()
+math(EXPR BC_ASPECT_LENGTH "${BC_ASPECT_END} - ${BC_ASPECT_BEGIN}")
+string(SUBSTRING "${BC_ASPECT_SOURCE}" ${BC_ASPECT_BEGIN} ${BC_ASPECT_LENGTH} BC_ASPECT_INIT)
+file(WRITE "${CMAKE_BINARY_DIR}/ticker-renderer-aspect.inc" "${BC_ASPECT_INIT}")
+
+# Exercise the actual RT64 RDP decoder with original ticker rectangle payloads.
+target_sources(blastcorps-prototype PRIVATE src/ticker_medals_render.cpp)
+add_executable(ticker_medals_render_test tests/ticker_medals_render.cpp src/ticker_medals_render.cpp)
+target_compile_definitions(ticker_medals_render_test PRIVATE BC_TICKER_HANDLER)
+get_target_property(BC_TICKER_INCLUDES blastcorps-prototype INCLUDE_DIRECTORIES)
+get_target_property(BC_TICKER_DEFINES blastcorps-prototype COMPILE_DEFINITIONS)
+target_include_directories(ticker_medals_render_test PRIVATE ${BC_TICKER_INCLUDES})
+target_compile_definitions(ticker_medals_render_test PRIVATE ${BC_TICKER_DEFINES})
+if(WIN32)
+ target_link_libraries(ticker_medals_render_test PRIVATE rt64 ${BC_SDL_LIBRARY})
+else()
+ target_link_libraries(ticker_medals_render_test PRIVATE
+ "${BC_RT64_BUILD_ROOT}/rt64.a"
+ "${BC_RT64_BUILD_ROOT}/src/contrib/re-spirv/libre-spirv.a"
+ "${BC_RT64_BUILD_ROOT}/src/contrib/nativefiledialog-extended/src/libnfd.a"
+ "${BC_RT64_BUILD_ROOT}/src/contrib/zstd/build/cmake/lib/libzstd.a"
+ "${BC_RT64_BUILD_ROOT}/src/contrib/plume/libplume.a"
+ ${BC_SDL_LIBRARY} ${BC_DBUS_LIBRARY} pthread dl)
+endif()
+add_test(NAME ticker_medals_rt64 COMMAND ticker_medals_render_test)

@@ -178,6 +178,75 @@ def normalize_widescreen_body(body):
     return body
 
 
+def normalize_ticker_medals_body(body, front):
+    """Pin USA Rev 1 lifecycle and its two sprite callers; no shared renderer edit."""
+    name=re.match(r'RECOMP_FUNC void func_([0-9A-F]+)\(',body)
+    if not name or name[1] not in ('801E8DCC','801E9528','801E9718'):return body
+    name=name[1]
+    pins={
+        '801E8DCC':((0x801E8DCC,'27bdffe0'),(0x801E8E68,'ac3954e8'),(0x801E8E88,'ac2854f0')),
+        '801E9528':((0x801E9528,'3c0e8021'),(0x801E9584,'ac2054e8'),(0x801E95F8,'ac2054f0')),
+        '801E9718':((0x801E9718,'27bdff28'),(0x801E9D40,'240a0136'),
+            (0x801E9D60,'014b682329a1ffe114200013afad008429a10140'),(0x801E9DAC,'0c09cbb6e7b00018'),
+            (0x801E9DE8,'24190136'),(0x801E9E14,'032f702329c1ffe114200014afae008429c10140'),(0x801E9E64,'0c09cbb601182821'))}
+    for address,expected in pins[name]:
+        at=address-0x801E7000
+        if front[at:at+len(expected)//2].hex()!=expected:raise ValueError(f'Original ticker instructions changed at {address:08X}')
+    replacements=[]
+    if name=='801E8DCC':
+        replacements.append(('    return;','    bc::ticker::reset(rdram);\n    return;'))
+    elif name=='801E9528':
+        site='    // 0x801E9528: lui         $t6, 0x8021'
+        replacements.append((site,'    bc::ticker::advance(rdram);\n'+site))
+        for address,offset,slot in [('801E9584','54E8','0'),('801E95F8','54F0','uint32_t(ctx->r15)/4')]:
+            site=f'    // 0x{address}: sw          $zero, 0x{offset}($at)\n    MEM_W(0X{offset}, ctx->r1) = 0;'
+            replacements.append((site,site+f'\n    bc::ticker::insert(rdram,{slot});'))
+    else:
+        for address,reg,slot in [('801E9D40','10','0'),('801E9DE8','25','unsigned(MEM_W(0X80,ctx->r29))')]:
+            site=f'    ctx->r{reg} = ADD32(0, 0X136);'
+            replacements.append((site,f'    ctx->r{reg} = bc::ticker::origin({slot});'))
+        for reg,slot in [('13','0'),('14','unsigned(MEM_W(0X80,ctx->r29))')]:
+            replacements.append((f'    ctx->r1 = SIGNED(ctx->r{reg}) < -0X1F ? 1 : 0;',f'    ctx->r1 = bc::ticker::reject_left({slot},SIGNED(ctx->r{reg})) ? 1 : 0;'))
+            replacements.append((f'    ctx->r1 = SIGNED(ctx->r{reg}) < 0X140 ? 1 : 0;',f'    ctx->r1 = bc::ticker::below_right({slot},SIGNED(ctx->r{reg})) ? 1 : 0;'))
+        for site,slot in [(
+            '    // 0x801E9DAC: jal         0x80272ED8\n    // 0x801E9DB0: swc1        $f16, 0x18($sp)\n    MEM_W(0X18, ctx->r29) = ctx->f16.u32l;\n    func_80272ED8(rdram, ctx);','0'),(
+            '    // 0x801E9E64: jal         0x80272ED8\n    // 0x801E9E68: addu        $a1, $t0, $t8\n    ctx->r5 = ADD32(ctx->r8, ctx->r24);\n    func_80272ED8(rdram, ctx);','unsigned(MEM_W(0X80,ctx->r29))')]:
+            call='    func_80272ED8(rdram, ctx);'
+            wrapper=('    {\n    const recomp_context bc_ticker_saved=*ctx;\n'
+                f'    const bool bc_ticker_marked=bc::ticker::prepare(rdram,ctx,{slot});\n'+call+'\n'
+                '    if(bc_ticker_marked&&!bc::ticker::mark(rdram,uint32_t(bc_ticker_saved.r4),uint32_t(ctx->r2))){\n'
+                '        *ctx=bc_ticker_saved;\n        func_80272ED8(rdram, ctx);\n    }\n    }')
+            replacements.append((site,site.replace(call,wrapper)))
+    # Canonicalize only exact complete hooks, then recheck every unique site.
+    # Missing, duplicated or partially edited hooks fail even on a rerun.
+    for before,after in replacements:
+        if after in body:
+            if body.count(after)!=1:raise ValueError('Duplicate ticker hook')
+            body=body.replace(after,before)
+    if 'bc::ticker::' in body:raise ValueError('Partial ticker hook layout changed')
+    if name=='801E9528':
+        for offset in ('54E8','54F0'):
+            if body.count(f'    MEM_W(0X{offset}, ctx->r1) = 0;')!=1:raise ValueError('Original ticker insertion store changed')
+    if name=='801E9718':
+        for site in (
+            '    // 0x801E9D40: addiu       $t2, $zero, 0x136',
+            '    // 0x801E9D60: subu        $t5, $t2, $t3\n    ctx->r13 = SUB32(ctx->r10, ctx->r11);',
+            '    // 0x801E9D64: slti        $at, $t5, -0x1F',
+            '    // 0x801E9D70: slti        $at, $t5, 0x140',
+            '    // 0x801E9DE8: addiu       $t9, $zero, 0x136',
+            '    // 0x801E9E14: subu        $t6, $t9, $t7\n    ctx->r14 = SUB32(ctx->r25, ctx->r15);',
+            '    // 0x801E9E18: slti        $at, $t6, -0x1F',
+            '    // 0x801E9E24: slti        $at, $t6, 0x140'):
+            if body.count(site)!=1:raise ValueError('Original ticker coordinate layout changed')
+        for site in ('    ctx->r13 = SUB32(ctx->r10, ctx->r11);','    ctx->r14 = SUB32(ctx->r25, ctx->r15);'):
+            if body.count(site)!=1:raise ValueError('Original ticker subtract changed')
+        if body.count('    func_80272ED8(rdram, ctx);')!=2:raise ValueError('Original ticker sprite callers changed')
+    for before,after in replacements:
+        if body.count(before)!=1:raise ValueError('Original ticker generated layout changed: '+before)
+        body=body.replace(before,after)
+    return body
+
+
 def normalize_vehicle_pivot_body(body):
     """Expose bind pivots from the shared vehicle skin animation producer."""
     if 'bc_register_vehicle_pivots' in body:
@@ -287,7 +356,8 @@ def normalize(folder):
     pattern = re.compile(r'RECOMP_FUNC void [^(]+\([^)]*\) \{.*?^;\}', re.M | re.S)
     temporary = re.compile(r'^(?P<indent>\s*)gpr (?P<name>jr_addend_[0-9A-F]{8}) = (?P<value>[^;]+);$', re.M)
     def fix(match, shadow_rom=rom):
-        body = normalize_shadow_clear_body(match.group(0), shadow_rom)
+        body = normalize_ticker_medals_body(match.group(0), front)
+        body = normalize_shadow_clear_body(body, shadow_rom)
         body = normalize_vehicle_pivot_body(normalize_map_vehicle_body(normalize_widescreen_body(body)))
         names = list(dict.fromkeys(m['name'] for m in temporary.finditer(body) if m['value'].strip()!='0'))
         body = temporary.sub(lambda m:m.group(0) if m['value'].strip()=='0' else f"{m['indent']}{m['name']} = {m['value']};", body)

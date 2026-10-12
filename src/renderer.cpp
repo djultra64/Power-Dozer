@@ -71,6 +71,10 @@ Context(uint8_t* rdram,ultramodern::renderer::WindowHandle window) {
         app_->userConfig.resolutionMultiplier = bc_scale;
         app_->userConfig.aspectRatio = bc_wide ? RT64::UserConfiguration::AspectRatio::Manual : RT64::UserConfiguration::AspectRatio::Original;
         app_->userConfig.aspectTarget = 16.0/9.0;
+        // Honor the ticker's explicit output-edge scissor origins. The target
+        // matches the fixed render aspect, including on ultrawide windows.
+        app_->userConfig.extAspectRatio = app_->userConfig.aspectRatio;
+        app_->userConfig.extAspectTarget = app_->userConfig.aspectTarget;
         app_->userConfig.refreshRate = bc_refresh ? RT64::UserConfiguration::RefreshRate::Manual : RT64::UserConfiguration::RefreshRate::Original;
         app_->userConfig.refreshRateTarget = bc_refresh;
         using UC=RT64::UserConfiguration;

@@ -30,12 +30,15 @@ struct DrawBuilder {
  void batch(uint32_t first,PcSettingsTexture t,PcSettingsPrimitive p,std::optional<GlyphSprite> glyph={}){
   if(out.vertices.size()>first)out.batches.push_back({t,p,first,uint32_t(out.vertices.size()-first),glyph});
  }
- void box(PcSettingsRect r){
+ void box(PcSettingsRect r,bool opaque=false){
   auto first=uint32_t(out.vertices.size());
   int minx=32767,miny=32767,maxx=-32768,maxy=-32768;
   for(auto v:assets.shadow_vertices){minx=std::min(minx,int(v.x));maxx=std::max(maxx,int(v.x));miny=std::min(miny,int(v.y));maxy=std::max(maxy,int(v.y));}
   for(auto t:assets.shadow_triangles)for(auto i:t){const auto v=assets.shadow_vertices.at(i);
-   vertex(r.x+(v.x-minx)*r.width/std::max(1,maxx-minx),r.y+(v.y-miny)*r.height/std::max(1,maxy-miny),511.5f/atlas_width,1023.5f/atlas_height,{0,0,0,v.alpha/255.f});
+   // Main-origin settings masks the baked logo. Keep the original mesh and
+   // faded outer edge; expand its opaque inner rectangle to a 12-unit inset.
+   auto coordinate=[&](float t,float extent){if(!opaque)return t*extent;const float edge=std::min(12*scale,extent/2);return t<=.2f?t/.2f*edge:t>=.8f?extent-(1-t)/.2f*edge:edge+(t-.2f)/.6f*(extent-2*edge);};
+   vertex(r.x+coordinate(float(v.x-minx)/std::max(1,maxx-minx),r.width),r.y+coordinate(float(v.y-miny)/std::max(1,maxy-miny),r.height),511.5f/atlas_width,1023.5f/atlas_height,{0,0,0,opaque&&v.alpha?1.f:v.alpha/255.f});
   }
   batch(first,PcSettingsTexture::White,PcSettingsPrimitive::BoxShadow);
  }
@@ -104,32 +107,33 @@ void publish_pc_settings_snapshot(std::shared_ptr<const PcSettingsSnapshot> snap
 void publish_main_menu_snapshot(std::shared_ptr<const MainMenuSnapshot> snapshot){publish_screen(std::move(snapshot));}
 PcSettingsDrawData main_menu_draw_data(const MainMenuSnapshot& snapshot,const PcSettingsAssets& assets,int width,int height){
  if(width<=0||height<=0)return {};
- const auto layout=pc_settings_layout(width,height);const float scale=layout.safe_area.width/640;
+ const auto safe_area=frontend_safe_area(width,height,snapshot.presentation_wide);const float scale=safe_area.width/640;
  DrawBuilder b{assets,{},scale};b.out.scissor={0,0,float(width),float(height)};
- auto rect=[&](float x,float y,float w,float h){return PcSettingsRect{layout.safe_area.x+x*scale,layout.safe_area.y+y*scale,w*scale,h*scale};};
+ auto rect=[&](float x,float y,float w,float h){return PcSettingsRect{safe_area.x+x*scale,safe_area.y+y*scale,w*scale,h*scale};};
  const auto white=color(assets.palette[7]),red=color(assets.palette[4]);
  // Reserve the bottom 80 reference units for the original live ticker.
- b.box(rect(96,118,448,230));
- b.text("POWER DOZER",rect(32,64,576,40),40,white,1);
+ b.box(rect(96,186,448,167));
+ b.text("POWER DOZER",rect(32,146,576,40),40,white,1);
  for(size_t i=0;i<snapshot.labels.size();++i)
-  b.text(snapshot.labels[i],rect(96,148+i*70,448,38),32,snapshot.selected==i?red:white,1);
+  b.text(snapshot.labels[i],rect(main_menu_row_x,main_menu_row_y[i],main_menu_row_width,main_menu_row_height),32,snapshot.selected==i?red:white,1);
  // Confirm is the only available footer action on Main. Its glyph, label and
  // family belong to the snapshot and follow physical remaps on every device.
  const float binding_width=(input_glyph(snapshot.confirm,snapshot.controller_family)?25*scale:0)+b.text_width(snapshot.confirm.label,16*scale);
  const float select_width=b.text_width("SELECT",16*scale);
  const float x=(width-binding_width-select_width-12*scale)/2;
- const float y=layout.safe_area.y+372*scale;
+ const float y=safe_area.y+357*scale;
  b.binding(snapshot.confirm,snapshot.controller_family,{x,y,binding_width,24*scale},white);
  b.text("SELECT",{x+binding_width+12*scale,y,select_width,24*scale},16,white);
  return std::move(b.out);
 }
 PcSettingsDrawData pc_settings_draw_data(const PcSettingsSnapshot& snapshot,const PcSettingsAssets& assets,int width,int height){
  if(width<=0||height<=0)return {};
- const auto layout=pc_settings_layout(width,height);const float scale=layout.safe_area.width/640;
+ const auto layout=pc_settings_layout(width,height,snapshot.origin,snapshot.presentation_wide);const float scale=layout.safe_area.width/640;
  DrawBuilder b{assets,{},scale};b.out.scissor={0,0,float(width),float(height)};
- auto rect=[&](float x,float y,float w,float h){return PcSettingsRect{layout.safe_area.x+x*scale,layout.safe_area.y+y*scale,w*scale,h*scale};};
+ auto rect=[&](float x,float y,float w,float h){return pc_settings_rect(layout,x,y,w,h);};
  const auto white=color(assets.palette[7]),red=color(assets.palette[4]),grey=color(assets.palette[8]);
- b.box(rect(16,100,608,308));
+ if(snapshot.origin==PcSettingsOrigin::MainMenu)b.box(rect(16,6,608,472),true);
+ else b.box(rect(16,100,608,308));
  b.text("PC SETTINGS",layout.title,32,white,1);
  constexpr std::array sections={SettingsMenu::Page::Display,SettingsMenu::Page::Graphics,SettingsMenu::Page::Audio,SettingsMenu::Page::Controls};
  constexpr std::array tabs={"DISPLAY","GRAPHICS","AUDIO","CONTROLS"};

@@ -111,7 +111,7 @@ if(WIN32)
  file(WRITE "${BC_ULTRA_TRANSLATION}" "${BC_WINDOWS_TRANSLATION}")
 endif()
 add_executable(blastcorps-prototype src/main.cpp src/audio_sdl.cpp src/runtime.cpp src/renderer.cpp src/input.cpp src/input_model.cpp src/input_capture.cpp src/controls_store.cpp src/atomic_file.cpp src/l3d.cpp src/vehicle_pivots.cpp src/save_store.cpp src/pak_store.cpp src/pak_runtime.cpp src/pak_session.cpp src/save_migration.cpp src/settings.cpp src/settings_menu.cpp src/pc_settings_view.cpp src/pc_settings_input.cpp src/pc_options.cpp src/controls_menu.cpp
- src/game_prompts.cpp src/game_prompt_runtime.cpp src/input_glyph.cpp src/main_menu.cpp
+ src/game_prompts.cpp src/game_prompt_runtime.cpp src/input_glyph.cpp src/main_menu.cpp src/frontend_menu.cpp
  "${CMAKE_SOURCE_DIR}/.local/generated/fallbacks.cpp"
  "${CMAKE_SOURCE_DIR}/.local/audio-rsp.cpp"
  "${BC_ULTRA_TRANSLATION}"
@@ -274,6 +274,10 @@ target_include_directories(main_menu_renderer_test PRIVATE include "${RUNTIME}/t
 target_link_libraries(main_menu_renderer_test PRIVATE ${BC_SDL_LIBRARY})
 target_compile_definitions(main_menu_renderer_test PRIVATE BC_PC_SETTINGS_DRAW_DATA_ONLY)
 add_test(NAME main_menu_original_drawing_and_physical_prompts COMMAND main_menu_renderer_test)
+add_executable(frontend_menu_test tests/frontend_menu.cpp src/frontend_menu.cpp src/main_menu.cpp src/pc_settings_input.cpp src/pc_settings_view.cpp src/input_model.cpp src/settings_menu.cpp src/settings.cpp src/atomic_file.cpp)
+target_include_directories(frontend_menu_test PRIVATE include "${DEPS}/N64Recomp/include" "${RUNTIME}/thirdparty/json" ${BC_SDL_INCLUDE})
+target_link_libraries(frontend_menu_test PRIVATE ${BC_SDL_LIBRARY})
+add_test(NAME frontend_guest_ownership_and_transitions COMMAND frontend_menu_test)
 add_executable(pc_options_test tests/pc_options.cpp src/pc_options.cpp src/settings_menu.cpp src/settings.cpp src/atomic_file.cpp)
 target_include_directories(pc_options_test PRIVATE include .local/generated/functions
  "${RUNTIME}/N64Recomp/include" "${RUNTIME}/ultramodern/include"
@@ -312,9 +316,9 @@ add_executable(input_model_test tests/input_model.cpp src/input_model.cpp)
 target_include_directories(input_model_test PRIVATE include ${BC_SDL_INCLUDE})
 target_link_libraries(input_model_test PRIVATE ${BC_SDL_LIBRARY})
 add_test(NAME input_actions_families_and_focus COMMAND input_model_test)
-add_executable(input_sdl_test tests/input_sdl.cpp src/pc_settings_input.cpp src/pc_settings_view.cpp src/settings_menu.cpp src/settings.cpp src/input.cpp src/input_model.cpp src/input_capture.cpp src/controls_store.cpp src/atomic_file.cpp)
+add_executable(input_sdl_test tests/input_sdl.cpp src/frontend_menu.cpp src/main_menu.cpp src/pc_settings_input.cpp src/pc_settings_view.cpp src/settings_menu.cpp src/settings.cpp src/input.cpp src/input_model.cpp src/input_capture.cpp src/controls_store.cpp src/atomic_file.cpp)
 target_compile_definitions(input_sdl_test PRIVATE BC_ROOT="${CMAKE_SOURCE_DIR}")
-target_include_directories(input_sdl_test PRIVATE include ${BC_SDL_INCLUDE} "${RUNTIME}/ultramodern/include" "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/json")
+target_include_directories(input_sdl_test PRIVATE include "${DEPS}/N64Recomp/include" ${BC_SDL_INCLUDE} "${RUNTIME}/ultramodern/include" "${RUNTIME}/thirdparty" "${RUNTIME}/thirdparty/json")
 target_link_libraries(input_sdl_test PRIVATE ${BC_SDL_LIBRARY})
 add_test(NAME virtual_sdl_actions_families_and_reconnect COMMAND input_sdl_test)
 set_tests_properties(virtual_sdl_actions_families_and_reconnect PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy")

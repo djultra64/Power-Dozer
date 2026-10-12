@@ -6,11 +6,13 @@ namespace bc {
 enum class PcSettingsExit {None,Pause,GameOptions,MainMenu};
 void pc_settings_begin(PcSettingsOrigin=PcSettingsOrigin::Pause);
 void pc_settings_close();
+void pc_settings_close(PcSettingsOrigin);
 bool pc_settings_open();
 bool pc_settings_event(const SDL_Event&,const InputModel&);
 void pc_settings_resize(int width,int height);
 std::shared_ptr<const PcSettingsSnapshot> pc_settings_current(const InputModel&);
 PcSettingsExit take_pc_settings_exit();
+PcSettingsExit take_pc_settings_exit(PcSettingsOrigin);
 // Consume held inputs on both opening and closing, until physical release.
 bool pc_settings_gate_input(InputModel&,const InputSnapshot&);
 }

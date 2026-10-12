@@ -70,6 +70,21 @@ render hook mutate guest RAM or access live mutable input state. Implement in
 normal project sources and verified generation hooks, not by committing private
 generated game functions or extracted ROM assets.
 
+Native integration adjustment (2026-10-11): the retained backdrop includes a
+baked Blast Corps logo. Main keeps it, with POWER DOZER below its lower edge;
+shared reference row tops are 195, 251 and 307, and the Select footer is at 357.
+The actual ticker starts around reference Y388, so all host content clears it.
+The user's subsequent explicit request removes the visible logo in pregame
+PC Settings: that origin uses the original shadow mesh with an opaque center
+and narrow faded edges covering the logo. Its canonical vertical layout is
+80% of the pause layout while font and icon sizes stay unchanged. All settings,
+fourteen action bindings, modal targets and footer remain available above the
+ticker, with shared mouse/render coordinates. Pause retains its existing layout
+and translucent shadow. All host screens fit the actual letterboxed startup
+aspect using immutable snapshot metadata and shared mouse/render safe areas;
+pending Aspect changes take effect only at next launch. The original backdrop
+and ticker continue running.
+
 The existing window-exit path ends the process without a complete coordinated
 join of every guest/render worker. Close Game shares that established path;
 this menu does not claim a new graceful-shutdown guarantee. A full lifecycle

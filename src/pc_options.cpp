@@ -19,7 +19,7 @@ extern "C" void bc_pc_options_draw(uint8_t* rdram){
  for(size_t i=0;i<sizeof(label);i++)MEM_B(i,address(more))=label[i];
  MEM_W(0xC,address(entries+28))=S32(more);
  if(guest_active&&!in_pause(rdram)){
-  bc::pc_settings_close();bc::take_pc_settings_exit();guest_active=false;returning=bc::PcSettingsExit::None;
+  bc::pc_settings_close(bc::PcSettingsOrigin::Pause);bc::take_pc_settings_exit(bc::PcSettingsOrigin::Pause);guest_active=false;returning=bc::PcSettingsExit::None;
  }
 }
 extern "C" void bc_pc_options_glyphs(uint8_t* rdram,recomp_context* ctx,uint32_t frame){
@@ -32,7 +32,7 @@ extern "C" void bc_pc_options_glyphs(uint8_t* rdram,recomp_context* ctx,uint32_t
   const auto begin=uint32_t(MEM_W(0,address(sp))),end=uint32_t(ctx->r2);
   if(begin>=frame+0x48B0&&begin<=end&&end<=frame+0xA3A0&&(begin&7)==0)ctx->r2=address(begin);
  }
- if(auto request=bc::take_pc_settings_exit();request!=bc::PcSettingsExit::None)returning=request;
+ if(auto request=bc::take_pc_settings_exit(bc::PcSettingsOrigin::Pause);request!=bc::PcSettingsExit::None)returning=request;
  // The original dispatcher is called only for a nonzero selection after this
  // draw. Queue an explicit handoff here, never a synthetic gameplay button.
  if(returning!=bc::PcSettingsExit::None)MEM_H(0,address(selection))=returning==bc::PcSettingsExit::GameOptions?1:0xFFFF;

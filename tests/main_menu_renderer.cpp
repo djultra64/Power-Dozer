@@ -76,6 +76,8 @@ int main(){
     if(run.label=="STARTGAME"||run.label=="PCOPTIONS"||run.label=="CLOSEGAME")entries.push_back(run);
    }
    check(runs[0].label=="POWERDOZER","main heading uses original POWER DOZER typography");
+   check(runs[0].top>=safe_y+146*scale,"main heading clears retained original logo");
+   for(const auto& v:draw.vertices)check(v.y<safe_y+388*scale,"all main geometry clears actual original ticker");
    check(entries.size()==3&&entries[0].label=="STARTGAME"&&entries[1].label=="PCOPTIONS"&&entries[2].label=="CLOSEGAME","exactly three ordered main entries");
    for(size_t i=0;i<3;++i){
     check(std::abs((entries[i].left+entries[i].right)/2-width/2.f)<10*scale,"each main entry centered horizontally");
@@ -84,6 +86,11 @@ int main(){
    }
   }
  }
+ auto wide_snapshot=main_menu_snapshot(state,input);wide_snapshot.presentation_wide=true;
+ const auto letterboxed=main_menu_draw_data(wide_snapshot,assets,960,720);
+ const auto letterbox_runs=text_runs(letterboxed);
+ check(letterbox_runs[0].top>=90+146*1.125f,"wide presentation letterbox keeps heading below original logo");
+ for(const auto& v:letterboxed.vertices)check(v.y>=90&&v.y<90+388*1.125f,"wide letterbox keeps all main content above actual ticker");
  const auto reference=main_menu_draw_data(main_menu_snapshot(state,input),assets,960,720);
  for(auto [width,height]:{std::pair{1280,720},{3840,2160}}){
   const auto draw=main_menu_draw_data(main_menu_snapshot(state,input),assets,width,height);

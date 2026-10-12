@@ -31,6 +31,14 @@ int main(){
   auto snapshot=pc_settings_snapshot(menu,input,state);
   auto main_state=state;main_state.origin=PcSettingsOrigin::MainMenu;
   const auto main_snapshot=pc_settings_snapshot(menu,input,main_state);
+  auto wide_snapshot=main_snapshot;wide_snapshot.presentation_wide=true;
+  for(const auto& v:pc_settings_draw_data(wide_snapshot,assets,960,720).vertices)
+   check(v.y>=90&&v.y<90+388*1.125f,"letterboxed pre-game options remain inside guest viewport above ticker");
+  const auto main_draw=pc_settings_draw_data(main_snapshot,assets,1280,720);
+  for(const auto& v:main_draw.vertices)check(v.y<388*1.5f,"pre-game settings leaves actual live ticker unobstructed");
+  bool opaque=false;for(const auto& b:main_draw.batches)if(b.primitive==PcSettingsPrimitive::BoxShadow)
+   for(size_t j=b.first;j<b.first+b.count;++j)if(main_draw.vertices[j].a==1)opaque=true;
+  check(opaque,"pre-game settings fully masks baked logo with opaque mesh center");
   check(main_snapshot.rows.size()==snapshot.rows.size(),"main entry retains every settings row");
   for(size_t i=0;i<snapshot.rows.size();++i){
    const auto& a=snapshot.rows[i];const auto& b=main_snapshot.rows[i];

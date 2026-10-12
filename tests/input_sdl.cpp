@@ -1,4 +1,6 @@
 #include "input.h"
+#include "frontend_menu.h"
+extern "C" void func_8026AF6C(uint8_t*,recomp_context*){}
 #include "controls_store.h"
 #include "prototype.h"
 #include "pc_settings_input.h"
@@ -144,6 +146,47 @@ int main(){
   else check(!reset&&host->focus==2,"remapped back cancels defaults without resetting bindings");
  }
  bc::pc_settings_close();
+
+ // Frontend owns the original file window until Start, including live remaps.
+ bc_input_begin_remap({bc::InputAction::Confirm,bc::InputSource::Keyboard,true});bc_input_take_remap_result();
+ bc::initialize_pc_options({});bc::frontend_menu_resize(640,480);bc::frontend_menu_begin();sync();
+ key.key.keysym.scancode=SDL_SCANCODE_DOWN;key.key.repeat=0;bc_input_event(key);sync();
+ check(bc::frontend_menu_current(bc_input_view())->selected==1,"SDL mapped navigation reaches main menu");
+ SDL_Event chord{};chord.type=SDL_KEYDOWN;chord.key.keysym.scancode=SDL_SCANCODE_RETURN;chord.key.keysym.mod=KMOD_LALT;
+ check(bc_input_event(chord),"main menu preserves global fullscreen priority");
+ check(!bc::pc_settings_open()&&bc::frontend_menu_current(bc_input_view())->selected==1,"fullscreen never activates selected PC Options");
+ key.key.keysym.scancode=SDL_SCANCODE_Z;bc_input_event(key);sync();
+ check(bc::pc_settings_open()&&!bc::frontend_menu_current(bc_input_view()),"SDL Confirm opens main-origin PC Options");
+ key.key.keysym.scancode=SDL_SCANCODE_ESCAPE;bc_input_event(key);sync();
+ check(!bc::pc_settings_open()&&bc::frontend_menu_current(bc_input_view())->selected==1,"fixed Escape returns to main with options focus");
+ for(auto family:{Family{"Main Xbox",0x045E,0x0B12,"X","",""},Family{"Main DualSense PS5",0x054C,0x0CE6,"SQUARE","",""},Family{"Main Nintendo Switch Pro",0x057E,0x2009,"Y","",""}}){
+  bc_input_set_family("auto");
+  SDL_VirtualJoystickDesc fd{};fd.version=SDL_VIRTUAL_JOYSTICK_DESC_VERSION;fd.type=SDL_JOYSTICK_TYPE_GAMECONTROLLER;fd.naxes=6;fd.nbuttons=SDL_CONTROLLER_BUTTON_MAX;fd.vendor_id=family.vendor;fd.product_id=family.product;fd.name=family.name;fd.button_mask=(1u<<SDL_CONTROLLER_BUTTON_MAX)-1;fd.axis_mask=63;
+  auto fi=SDL_JoystickAttachVirtualEx(&fd);auto* fj=SDL_JoystickOpen(fi);check(fj,"main controller attached");
+  SDL_JoystickSetVirtualAxis(fj,SDL_CONTROLLER_AXIS_TRIGGERLEFT,-32768);SDL_JoystickSetVirtualAxis(fj,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768);
+  bc::frontend_menu_begin();SDL_JoystickSetVirtualButton(fj,SDL_CONTROLLER_BUTTON_X,1);sync();
+  check(bc::frontend_menu_owns_window()&&frame().buttons==0,"held remapped Confirm on connect cannot open files");
+  SDL_JoystickSetVirtualButton(fj,SDL_CONTROLLER_BUTTON_X,0);sync();
+  SDL_JoystickSetVirtualButton(fj,SDL_CONTROLLER_BUTTON_X,1);sync();
+  check(!bc::frontend_menu_owns_window()&&frame().buttons==0,"Main to Files consumes held physical Confirm");
+  std::vector<uint8_t> guest_memory(8*1024*1024);auto* rdram=guest_memory.data();recomp_context guest_ctx{};
+  MEM_W(0,S32(0x80364A94))=0x10000;MEM_H(0,S32(0x8036BB18))=10;
+  bc_frontend_menu_selection(rdram,&guest_ctx);sync();check(frame().buttons==0,"guest handoff never leaks held Confirm");
+  SDL_JoystickSetVirtualButton(fj,SDL_CONTROLLER_BUTTON_X,0);sync();
+  SDL_JoystickSetVirtualButton(fj,SDL_CONTROLLER_BUTTON_B,1);sync();check(frame().buttons==0x4000,"mapped file Back reaches original controller logic");
+  MEM_H(0,S32(0x8036BB16))=0xFFFF;bc_frontend_menu_selection(rdram,&guest_ctx);sync();
+  check(bc::frontend_menu_current(bc_input_view())->selected==0&&frame().buttons==0,"Files to Main consumes held physical Back");
+  SDL_JoystickSetVirtualButton(fj,SDL_CONTROLLER_BUTTON_B,0);sync();
+  SDL_JoystickSetVirtualButton(fj,SDL_CONTROLLER_BUTTON_DPAD_DOWN,1);sync();
+  check(bc::frontend_menu_current(bc_input_view())->confirm.label==family.south,"main published physical remap matches real family");
+  SDL_JoystickSetVirtualButton(fj,SDL_CONTROLLER_BUTTON_DPAD_DOWN,0);sync();
+  SDL_JoystickSetVirtualButton(fj,SDL_CONTROLLER_BUTTON_X,1);sync();
+  check(bc::pc_settings_open()&&frame().buttons==0,"remapped physical west opens options without guest action");
+  key.key.keysym.scancode=SDL_SCANCODE_ESCAPE;bc_input_event(key);sync();
+  check(bc::frontend_menu_current(bc_input_view())->selected==1&&frame().buttons==0,"held controller stays consumed on options return");
+  SDL_JoystickClose(fj);check(SDL_JoystickDetachVirtual(fi)==0,"main disconnect");sync();
+  check(bc::frontend_menu_current(bc_input_view())->confirm.source==bc::InputSource::Keyboard,"disconnect restores keyboard menu prompt");
+ }
  puts("Virtual SDL input families, focus, axes and reconnect passed");
  return 0;
 

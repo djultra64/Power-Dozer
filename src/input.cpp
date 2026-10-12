@@ -2,6 +2,7 @@
 #include "input.h"
 #include "controls_store.h"
 #include "pc_settings_input.h"
+#include "frontend_menu.h"
 #include <algorithm>
 #include <cmath>
 #include <mutex>
@@ -125,7 +126,7 @@ bool bc_input_event(const SDL_Event& event){
   model.consume({bc::BindingKind::Key,SDL_SCANCODE_RETURN});model.consume({bc::BindingKind::Key,SDL_SCANCODE_LALT});model.consume({bc::BindingKind::Key,SDL_SCANCODE_RALT});
   frame={};return event.key.repeat==0;
  }
- if(ours&&(input_focused||event.type==SDL_WINDOWEVENT||event.type==SDL_CONTROLLERDEVICEREMOVED)&&bc::pc_settings_event(event,model)){
+ if(ours&&(input_focused||event.type==SDL_WINDOWEVENT||event.type==SDL_CONTROLLERDEVICEREMOVED)&&(bc::frontend_menu_event(event,model)||bc::pc_settings_event(event,model))){
   if(event.type==SDL_KEYDOWN&&event.key.keysym.scancode!=SDL_SCANCODE_UNKNOWN)model.consume({bc::BindingKind::Key,event.key.keysym.scancode});
   if(event.type==SDL_CONTROLLERBUTTONDOWN)model.consume({bc::BindingKind::Button,event.cbutton.button});
   if(event.type==SDL_CONTROLLERAXISMOTION)model.consume({bc::BindingKind::Axis,event.caxis.axis});
@@ -147,8 +148,9 @@ void bc_input_update(SDL_Window* window){
   std::lock_guard lock(input_mutex);connect();auto current=snapshot();
   capture.update(current);finish_capture(current);
   for(size_t i=1;i<focus_keys.size();i++)if(focus_keys[i]&&current.keys[i])model.consume({bc::BindingKind::Key,int(i)});
+  const bool frontend_gate=bc::frontend_menu_gate_input(model,current);
   const bool settings_gate=bc::pc_settings_gate_input(model,current);
-  frame=model.sample(current);if(capture.active()||settings_gate)frame={};previous=current;log_device();
+  frame=model.sample(current);if(capture.active()||settings_gate||frontend_gate)frame={};previous=current;log_device();
   title="Power Dozer v0.83 | Confirm: "+model.prompt(bc::InputAction::Confirm).label+" | Back: "+model.prompt(bc::InputAction::Back).label+" | "+active_name()+" | Alt+Enter: Fullscreen";
   if(std::getenv("BC_TRACE_INPUT")){
    static bc::InputFrame before;
@@ -159,5 +161,5 @@ void bc_input_update(SDL_Window* window){
 }
 void bc_poll_input(){++bc_polls;}
 bool bc_get_input(int port,uint16_t* buttons,float* x,float* y){
- if(port!=0)return false;std::lock_guard lock(input_mutex);const auto value=bc::pc_settings_open()?bc::InputFrame{}:frame;*buttons=value.buttons;*x=value.x;*y=value.y;return true;
+ if(port!=0)return false;std::lock_guard lock(input_mutex);const auto value=(bc::pc_settings_open()||bc::frontend_menu_owns_window())?bc::InputFrame{}:frame;*buttons=value.buttons;*x=value.x;*y=value.y;return true;
 }

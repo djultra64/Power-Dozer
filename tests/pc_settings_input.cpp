@@ -15,7 +15,7 @@ int main(){
  bc::pc_settings_begin(bc::PcSettingsOrigin::MainMenu);key(SDL_SCANCODE_ESCAPE);
  check(!bc::pc_settings_open()&&bc::take_pc_settings_exit()==bc::PcSettingsExit::MainMenu,"main-origin Escape requests main menu");
  check(bc::take_pc_settings_exit()==bc::PcSettingsExit::None,"origin exit is consumed once");
- bc::pc_settings_begin(bc::PcSettingsOrigin::MainMenu);mouse(510,75,true);mouse(360,390,true);
+ bc::pc_settings_begin(bc::PcSettingsOrigin::MainMenu);mouse(510,60,true);mouse(360,312,true);
  check(bc::take_pc_settings_exit()==bc::PcSettingsExit::MainMenu,"main-origin return control requests main menu");
  bc::pc_settings_begin();mouse(510,75,true);mouse(360,390,true);
  check(bc::take_pc_settings_exit()==bc::PcSettingsExit::GameOptions,"pause-origin return control preserves guest Game Options");
@@ -24,22 +24,38 @@ int main(){
  bc::pc_settings_begin(bc::PcSettingsOrigin::MainMenu);bc::pc_settings_close();
  check(bc::take_pc_settings_exit()==bc::PcSettingsExit::MainMenu,"explicit close uses entry origin");
  bc::Settings main_saved;main_saved.volume=60;bc::initialize_pc_options(main_saved);
- bc::pc_settings_begin(bc::PcSettingsOrigin::MainMenu);mouse(350,75,true);key(SDL_SCANCODE_LEFT);
+ bc::pc_settings_begin(bc::PcSettingsOrigin::MainMenu);mouse(350,60,true);key(SDL_SCANCODE_LEFT);
  auto main_change=bc::take_pc_change();check(main_change&&main_change->settings.volume==50,"main entry uses original settings persistence requests");
  auto main_directory=std::filesystem::temp_directory_path()/("main-settings-failure-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));std::filesystem::create_directory(main_directory);
  bool main_failed=false;try{bc::SettingsStore(main_directory).save(main_change->settings);}catch(const std::exception&){main_failed=true;}std::filesystem::remove_all(main_directory);
  check(main_failed,"main entry exercises actual failed durable save");bc::acknowledge_pc_change({},false);
  check(view()->status=="SAVE FAILED"&&view()->rows[0].value=="60%","main-origin failed save rolls back durable value");
- mouse(510,75,true);mouse(45,160,true);
+ mouse(510,60,true);mouse(45,128,true);
  check(view()->modal==bc::PcSettingsModal::Capture&&bc::take_pc_remap_request().has_value(),"main origin supports original remapping capture");
  key(SDL_SCANCODE_ESCAPE);
  check(bc::pc_settings_open()&&view()->modal==bc::PcSettingsModal::None&&view()->focus==0&&bc::take_pc_controls_cancel(),"fixed Escape cancels capture while keeping main-origin settings open");
  check(view()->controls[3].label=="MAIN MENU"&&bc::take_pc_settings_exit()==bc::PcSettingsExit::None,"save failure and capture cancel preserve origin and do not exit");
- mouse(40,390,true);key(SDL_SCANCODE_RETURN);auto main_defaults=bc::take_pc_remap_request();
+ mouse(40,312,true);key(SDL_SCANCODE_RETURN);auto main_defaults=bc::take_pc_remap_request();
  check(main_defaults&&main_defaults->reset,"main origin retains defaults request");bc::acknowledge_pc_remap({false,false,"SAVE FAILED"});
  check(view()->controls[3].label=="MAIN MENU"&&view()->status=="SAVE FAILED","failed defaults save retains origin");
  key(SDL_SCANCODE_X);
  check(bc::take_pc_settings_exit()==bc::PcSettingsExit::MainMenu,"mapped logical Back retains origin after save failure and capture Escape");
+ // Every compact binding remains clickable, including after a live resize;
+ // independently derived literal positions catch renderer/input drift.
+ for(auto extent:{std::pair{640,480},std::pair{1280,720}}){
+  bc::pc_settings_resize(extent.first,extent.second);bc::pc_settings_begin(bc::PcSettingsOrigin::MainMenu);
+  const float scale=extent.second/480.f,offset=(extent.first-640*scale)/2;
+  mouse(int(offset+510*scale),int(60*scale),true);
+  for(int i=0;i<14;++i){
+   mouse(int(offset+(40+(i/7)*296)*scale),int((128+(i%7)*25.6f)*scale),true);
+   auto request=bc::take_pc_remap_request();check(request&&int(request->action)==i,"compact pre-game action hit target matches its row");
+   key(SDL_SCANCODE_ESCAPE);bc::take_pc_controls_cancel();
+  }
+  mouse(int(offset+40*scale),int(312*scale),true);
+  mouse(int(offset+120*scale),int(190*scale),true);
+  auto request=bc::take_pc_remap_request();check(request&&request->reset,"compact defaults modal Confirm is reachable after resize");
+  bc::acknowledge_pc_remap({true,false,"SAVED"});bc::pc_settings_close();bc::take_pc_settings_exit();
+ }
  bc::initialize_pc_options({});bc::pc_settings_resize(640,480);bc::pc_settings_begin();
  check(bc::pc_settings_open(),"existing entry must open complete host menu");
  key(SDL_SCANCODE_DOWN);check(view()->focus==1,"Down focuses aspect");
@@ -94,5 +110,16 @@ int main(){
  SDL_Event axis{};axis.type=SDL_CONTROLLERAXISMOTION;axis.caxis.axis=SDL_CONTROLLER_AXIS_LEFTY;axis.caxis.value=32767;bc::pc_settings_event(axis,model);check(view()->focus==2,"stick down navigates one row");bc::pc_settings_event(axis,model);check(view()->focus==2,"held stick does not repeatedly navigate on noise events");axis.caxis.value=0;bc::pc_settings_event(axis,model);axis.caxis.value=32767;bc::pc_settings_event(axis,model);check(view()->focus==3,"stick navigates again after neutral");
 
  bc::pc_settings_resize(640,480);mouse(510,75,true);mouse(40,390,true);key(SDL_SCANCODE_RETURN);key(SDL_SCANCODE_ESCAPE);bc::pc_settings_begin();key(SDL_SCANCODE_RIGHT);check(bc::take_pc_change().has_value(),"closing before defaults request is handled cannot leave next menu stuck saving");
+ bc::pc_settings_close();bc::initialize_pc_options({},true);bc::pc_settings_resize(960,720);bc::pc_settings_begin(bc::PcSettingsOrigin::MainMenu);
+ check(view()->presentation_wide,"settings snapshot owns active startup aspect");
+ mouse(700,153,true);mouse(600,409,true);
+ auto last_action=bc::take_pc_remap_request();check(last_action&&last_action->action==bc::InputAction::MoveDown,"wide letterbox mouse reaches last compact binding");
+ key(SDL_SCANCODE_ESCAPE);bc::take_pc_controls_cancel();bc::Settings pending_aspect;pending_aspect.wide=false;bc::refresh_pc_settings(pending_aspect);
+ check(view()->presentation_wide,"saving next-launch Aspect does not change active presentation geometry");
+ mouse(600,409,true);last_action=bc::take_pc_remap_request();check(last_action&&last_action->action==bc::InputAction::MoveDown,"pending Aspect edit retains current mouse coordinates");
+ key(SDL_SCANCODE_ESCAPE);bc::pc_settings_close();bc::pc_settings_begin();
+ // Pause retains its full layout but fits the same actual letterboxed image.
+ mouse(700,174,true);mouse(600,489,true);last_action=bc::take_pc_remap_request();
+ check(last_action&&last_action->action==bc::InputAction::MoveDown,"pause mouse follows active aspect without compacting original rows");
  puts("PC settings input navigation and handoff passed");
 }

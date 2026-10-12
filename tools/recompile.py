@@ -311,6 +311,48 @@ def normalize_shadow_clear_body(body, rom):
     return body.replace(site, patched)
 
 
+def normalize_frontend_menu_body(body, code, front):
+    """USA Rev 1 file boundary only; retain setup, child dialogs and ticker."""
+    name=re.match(r'RECOMP_FUNC void func_([0-9A-F]+)\(',body)
+    if not name or name[1] not in ('80244930','801FE990','8026BCE0'):return body
+    name=name[1]
+    pins={
+        '80244930':((code,0x802447C0,0x80244D9C,'0c07a92e000000003c0480360c07a37390844ae80c09abdb3404800a'),
+            (front,0x801E7000,0x801EA4B8,'27bdffe0afbf00140c07a89e00000000')),
+        '801FE990':((front,0x801E7000,0x801FE990,'3c0e80368dce4a903c0f80368def4a9427bdff20'),
+            (front,0x801E7000,0x801FEC34,'3c0e803795cebb163401ffff15c1000c000000003c1880003c018036ac384a983c01803624190000ac394a9c240400040c07a3ae2405000110000141'),
+            (front,0x801E7000,0x801FF884,'3c09803691294ae83c18803027188bdca3a9007f'),
+            (code,0x802447C0,0x802F8CF4,'0140009d00000055b0000a2800000002000500000000001d00000000')),
+        '8026BCE0':((code,0x802447C0,0x8026BCE0,'3c0f80313c1880378f18bb408def56c427bdfeb03c09803701f8c82300194100'),
+            (code,0x802447C0,0x8026EF68,'03e0000827bd0150'))}
+    for data,base,address,expected in pins[name]:
+        if data[address-base:address-base+len(expected)//2].hex()!=expected:
+            raise ValueError(f'Original frontend instructions changed at {address:08X}')
+    replacements=[]
+    if name=='80244930':
+        site='    // 0x80244D9C: jal         0x801EA4B8\n    // 0x80244DA0: nop\n\n    func_801EA4B8(rdram, ctx);'
+        replacements.append((site,site+'\n    bc_frontend_menu_entry(rdram);'))
+    elif name=='801FE990':
+        site='    // 0x801FE990: lui         $t6, 0x8036'
+        replacements.append((site,'    bc_frontend_menu_selection(rdram,ctx);\n'+site))
+        site='L_801FF884:\n    // 0x801FF884: lui         $t1, 0x8036'
+        replacements.append((site,site.replace('\n','\n    if(bc_frontend_menu_freeze_focus(rdram))goto L_801FF8E4;\n',1)))
+    else:
+        site='    bc_pc_options_glyphs(rdram,ctx,bc_glyph_frame);'
+        replacements.append((site,'    bc_frontend_menu_draw(rdram,ctx,bc_glyph_frame);\n'+site))
+    for before,after in replacements:
+        if after in body:
+            if body.count(after)!=1:raise ValueError('Duplicate frontend hook')
+            body=body.replace(after,before)
+    if 'bc_frontend_menu_' in body:raise ValueError('Partial frontend hook layout changed')
+    if name=='801FE990' and body.count('L_801FEC34:\n    // 0x801FEC34: lui         $t6, 0x8037')!=1:
+        raise ValueError('Original frontend file dispatch changed')
+    for before,after in replacements:
+        if body.count(before)!=1:raise ValueError('Original frontend generated layout changed: '+before)
+        body=body.replace(before,after)
+    return body
+
+
 def normalize(folder):
     # These hooks depend on the original pause layout and callable entries.
     rom=(ROOT/'.local/hd_code.bin').read_bytes()
@@ -427,6 +469,7 @@ def normalize(folder):
             assert rom[a:a+20] == rom[b:b+20], 'Shared epilogue changed'
             if 'L_8029CF40:' not in body:
                 body = body.replace('L_8029CB40:', 'L_8029CF40:\nL_8029CB40:')
+        body = normalize_frontend_menu_body(body, shadow_rom, front)
         return re.sub(r'(DDIV|DMULT)\(([^,]+), ([^,]+), &(\w+), &(\w+)\);', r'\1(\2, \3, reinterpret_cast<int64_t*>(&\4), reinterpret_cast<int64_t*>(&\5));',body)
     for path in folder.glob('funcs_*.c'):
         source = path.read_text()

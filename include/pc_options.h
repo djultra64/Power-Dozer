@@ -2,7 +2,8 @@
 #include "settings_menu.h"
 #include "input_capture.h"
 namespace bc {
-void initialize_pc_options(const Settings&);
+// Presentation aspect is fixed at startup; persisted Aspect edits require restart.
+void initialize_pc_options(const Settings&,bool presentation_wide=false);
 void refresh_pc_settings(const Settings&);
 std::optional<SettingsChange> take_pc_change();
 void acknowledge_pc_change(const Settings&,bool);

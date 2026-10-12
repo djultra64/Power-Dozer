@@ -1,12 +1,21 @@
 #include "pc_settings_view.h"
 #include <algorithm>
 namespace bc {
-PcSettingsLayout pc_settings_layout(int width,int height){
+PcSettingsRect pc_settings_rect(const PcSettingsLayout& layout,float x,float y,float width,float height){
+ const auto scale=layout.safe_area.width/640;
+ return {layout.safe_area.x+x*scale,layout.safe_area.y+y*scale*layout.vertical_scale,width*scale,height*scale*layout.vertical_scale};
+}
+PcSettingsRect frontend_safe_area(int width,int height,bool presentation_wide){
+ // RT64 letterboxes the startup aspect. Fit UI to that same visible image,
+ // then center its 640x480 reference region inside the widescreen margins.
+ const float reference_width=presentation_wide?480.f*16/9:640.f;
+ const float scale=std::min(std::max(width,0)/reference_width,std::max(height,0)/480.f);
+ return {(std::max(width,0)-640*scale)/2,(std::max(height,0)-480*scale)/2,640*scale,480*scale};
+}
+PcSettingsLayout pc_settings_layout(int width,int height,PcSettingsOrigin origin,bool presentation_wide){
  PcSettingsLayout out;
- const float scale=std::min(std::max(width,0)/640.0f,std::max(height,0)/480.0f);
- const float x=(std::max(width,0)-640*scale)/2,y=(std::max(height,0)-480*scale)/2;
- auto rect=[&](float rx,float ry,float rw,float rh){return PcSettingsRect{x+rx*scale,y+ry*scale,rw*scale,rh*scale};};
- out.safe_area=rect(0,0,640,480);
+ out.safe_area=frontend_safe_area(width,height,presentation_wide);out.vertical_scale=origin==PcSettingsOrigin::MainMenu?.8f:1.f;
+ auto rect=[&](float rx,float ry,float rw,float rh){return pc_settings_rect(out,rx,ry,rw,rh);};
  out.title=rect(32,20,576,32);out.status=rect(32,410,576,24);
  out.prompts=rect(32,444,576,24);out.modal=rect(80,136,480,208);
  for(size_t i=0;i<4;i++){
@@ -24,7 +33,7 @@ std::optional<size_t> PcSettingsLayout::hit_action(float x,float y) const{
 }
 PcSettingsSnapshot pc_settings_snapshot(const SettingsMenu& menu,const InputModel& input,const PcSettingsViewState& state){
  PcSettingsSnapshot out;
- out.section=menu.page();out.focus=state.focus;out.focus_target=state.focus_target;out.device=state.device;out.modal=state.modal;
+ out.origin=state.origin;out.section=menu.page();out.focus=state.focus;out.focus_target=state.focus_target;out.device=state.device;out.modal=state.modal;
  out.controller_family=input.family();
  out.saving=menu.saving();out.status=menu.status();
  out.device_label=state.device==InputSource::Keyboard?"KEYBOARD":"CONTROLLER";

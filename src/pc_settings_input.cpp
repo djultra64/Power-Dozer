@@ -9,6 +9,8 @@ std::mutex mutex;
 Settings saved;
 std::unique_ptr<SettingsMenu> menu;
 PcSettingsViewState state;
+int viewport_width=640,viewport_height=480;
+bool presentation_wide=false;
 PcSettingsLayout layout=pc_settings_layout(640,480);
 std::optional<SettingsChange> pending;
 std::optional<Settings> filters;
@@ -80,18 +82,23 @@ void confirm(){
  else select(1,true);
 }
 }
-void initialize_pc_options(const Settings& settings){
- std::lock_guard lock(mutex);saved=settings;menu.reset();state={};pending.reset();filters.reset();remap.reset();exit_request=PcSettingsExit::None;
+void initialize_pc_options(const Settings& settings,bool active_wide){
+ std::lock_guard lock(mutex);presentation_wide=active_wide;saved=settings;menu.reset();state={};pending.reset();filters.reset();remap.reset();exit_request=PcSettingsExit::None;
  cancel_capture=release_latch=dragging=remap_saving=false;drag_target.reset();remap_status.clear();axis_directions.fill(0);
 }
-void pc_settings_begin(PcSettingsOrigin origin){std::lock_guard lock(mutex);menu=std::make_unique<SettingsMenu>(saved);state={};state.origin=origin;section(0);exit_request=PcSettingsExit::None;release_latch=true;axis_directions.fill(0);}
+void pc_settings_begin(PcSettingsOrigin origin){std::lock_guard lock(mutex);menu=std::make_unique<SettingsMenu>(saved);state={};state.origin=origin;layout=pc_settings_layout(viewport_width,viewport_height,origin,presentation_wide);section(0);exit_request=PcSettingsExit::None;release_latch=true;axis_directions.fill(0);}
 void pc_settings_close(){std::lock_guard lock(mutex);if(menu)close(return_destination());}
+void pc_settings_close(PcSettingsOrigin origin){std::lock_guard lock(mutex);if(menu&&state.origin==origin)close(return_destination());}
 bool pc_settings_open(){std::lock_guard lock(mutex);return bool(menu);}
-void pc_settings_resize(int width,int height){std::lock_guard lock(mutex);layout=pc_settings_layout(width,height);}
+void pc_settings_resize(int width,int height){std::lock_guard lock(mutex);viewport_width=width;viewport_height=height;layout=pc_settings_layout(width,height,state.origin,presentation_wide);}
+PcSettingsExit take_pc_settings_exit(PcSettingsOrigin origin){
+ std::lock_guard lock(mutex);if(state.origin!=origin)return PcSettingsExit::None;
+ auto out=exit_request;exit_request=PcSettingsExit::None;return out;
+}
 PcSettingsExit take_pc_settings_exit(){std::lock_guard lock(mutex);auto out=exit_request;exit_request=PcSettingsExit::None;return out;}
 std::shared_ptr<const PcSettingsSnapshot> pc_settings_current(const InputModel& input){
  std::lock_guard lock(mutex);if(!menu)return {};
- auto view=pc_settings_snapshot(*menu,input,state);
+ auto view=pc_settings_snapshot(*menu,input,state);view.presentation_wide=presentation_wide;
  if(!remap_status.empty())view.status=remap_status;
  view.saving|=remap_saving;
  if(remap_saving)view.status="SAVING";
@@ -117,7 +124,7 @@ bool pc_settings_gate_input(InputModel& model,const InputSnapshot& held){
 }
 bool pc_settings_event(const SDL_Event& event,const InputModel& input){
  std::lock_guard lock(mutex);if(!menu)return false;
- if(event.type==SDL_WINDOWEVENT&&event.window.event==SDL_WINDOWEVENT_SIZE_CHANGED){layout=pc_settings_layout(event.window.data1,event.window.data2);return false;}
+ if(event.type==SDL_WINDOWEVENT&&event.window.event==SDL_WINDOWEVENT_SIZE_CHANGED){viewport_width=event.window.data1;viewport_height=event.window.data2;layout=pc_settings_layout(viewport_width,viewport_height,state.origin,presentation_wide);return false;}
  if(event.type==SDL_WINDOWEVENT&&event.window.event==SDL_WINDOWEVENT_FOCUS_LOST){dragging=false;if(state.modal==PcSettingsModal::Capture)cancel();return false;}
  if(event.type==SDL_CONTROLLERDEVICEREMOVED){axis_directions.fill(0);return false;}
  if(event.type==SDL_KEYDOWN&&event.key.keysym.scancode==SDL_SCANCODE_ESCAPE){if(!event.key.repeat)cancel();return true;}
@@ -128,9 +135,8 @@ bool pc_settings_event(const SDL_Event& event,const InputModel& input){
  if(event.type==SDL_MOUSEBUTTONDOWN){
   if(event.button.button!=SDL_BUTTON_LEFT)return true;
   if(state.modal==PcSettingsModal::RestoreDefaults){
-   const auto& r=layout.safe_area;const float scale=r.width/640;
-   if(PcSettingsRect{r.x+104*scale,r.y+230*scale,208*scale,26*scale}.contains(event.button.x,event.button.y))confirm();
-   else if(PcSettingsRect{r.x+328*scale,r.y+230*scale,208*scale,26*scale}.contains(event.button.x,event.button.y))cancel();
+   if(pc_settings_rect(layout,104,230,208,26).contains(event.button.x,event.button.y))confirm();
+   else if(pc_settings_rect(layout,328,230,208,26).contains(event.button.x,event.button.y))cancel();
   }else if(hit(event.button.x,event.button.y)){
    if(menu->page()==SettingsMenu::Page::Audio&&state.focus_target==PcSettingsFocusTarget::Row&&state.focus==0){dragging=true;drag(event.button.x);}else select(1,true);
   }

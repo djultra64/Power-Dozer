@@ -47,6 +47,13 @@ class WidescreenGenerated(unittest.TestCase):
         self.assertIn('(bc_wide ? 0X24 : 0X1B)',changed)
         self.assertEqual(recompile.normalize_widescreen_body(changed),changed)
 
+    def test_frontend_ownership_hooks_leave_live_background_and_ticker_producers_intact(self):
+        for name,sites in [('80200BE0','    ctx->r1 = S32(0XE400 << 16);\n'*2),
+                           ('801E9718','    func_80259CCC(rdram, ctx);\n    func_80259DC8(rdram, ctx);\n')]:
+            body=f'RECOMP_FUNC void func_{name}(uint8_t* rdram, recomp_context* ctx) {{\n'+sites+'    return;\n;}'
+            wide=recompile.normalize_widescreen_body(body)
+            self.assertEqual(recompile.normalize_frontend_menu_body(wide,b'',b''),wide)
+
     def test_menu_background_marks_only_its_two_rectangle_paths(self):
         body=('RECOMP_FUNC void func_80200BE0(uint8_t* rdram, recomp_context* ctx) {\n'
               '    ctx->r1 = S32(0XE400 << 16);\n    ctx->r1 = S32(0XE400 << 16);\n    return;\n;}')

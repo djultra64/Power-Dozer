@@ -24,6 +24,7 @@
 #include "settings.h"
 #include "pc_options.h"
 #include "pc_settings_input.h"
+#include "frontend_menu.h"
 #include "pc_settings_renderer.h"
 #include "pak_runtime.h"
 #include "input.h"
@@ -182,7 +183,8 @@ int main(int argc,char** argv){
  }
  if(!std::isfinite(seconds)||seconds<0)throw std::invalid_argument("Seconds must be finite and nonnegative");
  bc::validate(bc::settings);
- bc::initialize_pc_options(save_settings?bc::settings:persisted);
+ bc::initialize_pc_options(save_settings?bc::settings:persisted,bc::settings.wide);
+ bc::frontend_menu_configure(bc::settings.wide);
  }catch(const std::exception& error){fprintf(stderr,"Options: %s\n",error.what());return 64;}
  bc_scale=bc::settings.scale;bc_wide=bc::settings.wide;bc_refresh=bc::settings.refresh;family=bc::settings.family;
  bc_set_audio_output(bc::settings.volume,bc::settings.mute);
@@ -232,6 +234,7 @@ int main(int argc,char** argv){
  while(!exited){
   int settings_width=0,settings_height=0;SDL_GetWindowSize(window,&settings_width,&settings_height);
   bc::pc_settings_resize(settings_width,settings_height);
+  bc::frontend_menu_resize(settings_width,settings_height);
   SDL_Event event;while(SDL_PollEvent(&event)){
    if(event.type==SDL_AUDIODEVICEREMOVED&&!event.adevice.iscapture){
     std::lock_guard lock(audio_mutex);
@@ -266,9 +269,13 @@ int main(int argc,char** argv){
   if(auto request=bc::take_pc_remap_request())bc_input_begin_remap(*request);
   bc_input_update(window);
   if(auto result=bc_input_take_remap_result())bc::acknowledge_pc_remap(*result);
-  auto settings_view=bc::pc_settings_current(bc_input_view());
+  auto input_view=bc_input_view();
+  auto main_view=bc::frontend_menu_current(input_view);
+  auto settings_view=bc::pc_settings_current(input_view);
   trace_pc_settings(settings_view,settings_width,settings_height);
-  bc::publish_pc_settings_snapshot(std::move(settings_view));
+  if(main_view)bc::publish_main_menu_snapshot(std::move(main_view));
+  else bc::publish_pc_settings_snapshot(std::move(settings_view));
+  if(bc::take_frontend_menu_action()==bc::FrontendMenuAction::CloseGame)exited=true;
   auto now=std::chrono::steady_clock::now();
   if(now>=next){fprintf(stderr,"{\"event\":\"progress\",\"vi\":%llu,\"gfx\":%llu,\"audio\":%llu,\"polls\":%llu}\n",(unsigned long long)bc_vis.load(),(unsigned long long)bc_gfx.load(),(unsigned long long)bc_audio.load(),(unsigned long long)bc_polls.load());fflush(stderr);next=now+std::chrono::seconds(5);}
   if(seconds>0&&std::chrono::duration<double>(now-start).count()>=seconds)break;

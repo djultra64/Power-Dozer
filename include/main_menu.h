@@ -2,6 +2,9 @@
 #include "input_model.h"
 
 namespace bc {
+// Reference coordinates shared by draw data and SDL hit testing.
+inline constexpr std::array<int,3> main_menu_row_y={195,251,307};
+inline constexpr int main_menu_row_x=96,main_menu_row_width=448,main_menu_row_height=38;
 enum class FrontendMenuScreen {Main,Files,Options};
 enum class FrontendMenuAction {None,StartGame,PCOptions,CloseGame,BackToMain};
 // Value-owned data: safe to publish as an immutable render snapshot.
@@ -10,6 +13,7 @@ struct MainMenuSnapshot {
  std::array<std::string,3> labels;
  InputPrompt confirm;
  ControllerFamily controller_family=ControllerFamily::Unknown;
+ bool presentation_wide=false;
 };
 // Ownership transitions are applied by the host, never by a render snapshot.
 class MainMenuState {

@@ -269,6 +269,11 @@ target_include_directories(pc_settings_view_test PRIVATE include "${RUNTIME}/thi
 target_link_libraries(pc_settings_view_test PRIVATE ${BC_SDL_LIBRARY})
 target_compile_definitions(pc_settings_view_test PRIVATE BC_PC_SETTINGS_DRAW_DATA_ONLY)
 add_test(NAME complete_pc_settings_sections_and_layout COMMAND pc_settings_view_test)
+add_executable(main_menu_renderer_test tests/main_menu_renderer.cpp src/pc_settings_renderer.cpp src/pc_settings_view.cpp src/input_glyph.cpp src/main_menu.cpp src/input_model.cpp src/settings_menu.cpp src/settings.cpp src/atomic_file.cpp)
+target_include_directories(main_menu_renderer_test PRIVATE include "${RUNTIME}/thirdparty/json" ${BC_SDL_INCLUDE})
+target_link_libraries(main_menu_renderer_test PRIVATE ${BC_SDL_LIBRARY})
+target_compile_definitions(main_menu_renderer_test PRIVATE BC_PC_SETTINGS_DRAW_DATA_ONLY)
+add_test(NAME main_menu_original_drawing_and_physical_prompts COMMAND main_menu_renderer_test)
 add_executable(pc_options_test tests/pc_options.cpp src/pc_options.cpp src/settings_menu.cpp src/settings.cpp src/atomic_file.cpp)
 target_include_directories(pc_options_test PRIVATE include .local/generated/functions
  "${RUNTIME}/N64Recomp/include" "${RUNTIME}/ultramodern/include"

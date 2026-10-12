@@ -5,6 +5,7 @@
 #include <cctype>
 #include <cstring>
 #include <stdexcept>
+#include <variant>
 
 namespace bc {
 namespace {
@@ -89,9 +90,39 @@ struct DrawBuilder {
   text(prompt.label,r,16,tint,2);
  }
 };
-std::atomic<std::shared_ptr<const PcSettingsSnapshot>> published_snapshot;
+// One tagged publication is replaced as a whole. A draw retains this value,
+// and therefore its immutable screen, through vertex generation/submission.
+using PublishedScreen=std::variant<std::shared_ptr<const MainMenuSnapshot>,std::shared_ptr<const PcSettingsSnapshot>>;
+std::atomic<std::shared_ptr<const PublishedScreen>> published_screen;
+template<class Snapshot> void publish_screen(std::shared_ptr<const Snapshot> snapshot){
+ std::shared_ptr<const PublishedScreen> screen;
+ if(snapshot)screen=std::make_shared<const PublishedScreen>(std::move(snapshot));
+ published_screen.store(std::move(screen),std::memory_order_release);
 }
-void publish_pc_settings_snapshot(std::shared_ptr<const PcSettingsSnapshot> snapshot){published_snapshot.store(std::move(snapshot),std::memory_order_release);}
+}
+void publish_pc_settings_snapshot(std::shared_ptr<const PcSettingsSnapshot> snapshot){publish_screen(std::move(snapshot));}
+void publish_main_menu_snapshot(std::shared_ptr<const MainMenuSnapshot> snapshot){publish_screen(std::move(snapshot));}
+PcSettingsDrawData main_menu_draw_data(const MainMenuSnapshot& snapshot,const PcSettingsAssets& assets,int width,int height){
+ if(width<=0||height<=0)return {};
+ const auto layout=pc_settings_layout(width,height);const float scale=layout.safe_area.width/640;
+ DrawBuilder b{assets,{},scale};b.out.scissor={0,0,float(width),float(height)};
+ auto rect=[&](float x,float y,float w,float h){return PcSettingsRect{layout.safe_area.x+x*scale,layout.safe_area.y+y*scale,w*scale,h*scale};};
+ const auto white=color(assets.palette[7]),red=color(assets.palette[4]);
+ // Reserve the bottom 80 reference units for the original live ticker.
+ b.box(rect(96,118,448,230));
+ b.text("POWER DOZER",rect(32,64,576,40),40,white,1);
+ for(size_t i=0;i<snapshot.labels.size();++i)
+  b.text(snapshot.labels[i],rect(96,148+i*70,448,38),32,snapshot.selected==i?red:white,1);
+ // Confirm is the only available footer action on Main. Its glyph, label and
+ // family belong to the snapshot and follow physical remaps on every device.
+ const float binding_width=(input_glyph(snapshot.confirm,snapshot.controller_family)?25*scale:0)+b.text_width(snapshot.confirm.label,16*scale);
+ const float select_width=b.text_width("SELECT",16*scale);
+ const float x=(width-binding_width-select_width-12*scale)/2;
+ const float y=layout.safe_area.y+372*scale;
+ b.binding(snapshot.confirm,snapshot.controller_family,{x,y,binding_width,24*scale},white);
+ b.text("SELECT",{x+binding_width+12*scale,y,select_width,24*scale},16,white);
+ return std::move(b.out);
+}
 PcSettingsDrawData pc_settings_draw_data(const PcSettingsSnapshot& snapshot,const PcSettingsAssets& assets,int width,int height){
  if(width<=0||height<=0)return {};
  const auto layout=pc_settings_layout(width,height);const float scale=layout.safe_area.width/640;
@@ -242,11 +273,15 @@ void init(RenderInterface* rhi,RenderDevice* device){
  r.pipeline=device->createGraphicsPipeline(pipeline);
 }
 void draw(RenderCommandList* list,RenderFramebuffer* framebuffer){
- const auto snapshot=published_snapshot.load(std::memory_order_acquire);
- if(!snapshot||!renderer||!renderer->device)return;
+ const auto screen=published_screen.load(std::memory_order_acquire);
+ if(!screen||!renderer||!renderer->device)return;
  auto& r=*renderer;
  const auto width=framebuffer->getWidth(),height=framebuffer->getHeight();
- auto data=pc_settings_draw_data(*snapshot,r.assets,int(width),int(height));
+ auto data=std::visit([&](const auto& snapshot){
+  using Snapshot=typename std::decay_t<decltype(snapshot)>::element_type;
+  if constexpr(std::is_same_v<Snapshot,const MainMenuSnapshot>)return main_menu_draw_data(*snapshot,r.assets,int(width),int(height));
+  else return pc_settings_draw_data(*snapshot,r.assets,int(width),int(height));
+ },*screen);
  if(data.vertices.empty())return;
  const auto bytes=data.vertices.size()*sizeof(PcSettingsVertex);
  // RT64 waits its presentGraphicsWorker fence immediately after every draw

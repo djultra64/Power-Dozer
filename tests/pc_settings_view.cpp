@@ -43,6 +43,15 @@ int main(){
    check(snapshot.controls[size_t(PcSettingsControl::GameOptions)].label=="GAME OPTIONS","default pause origin preserves Game Options");
    check(main_snapshot.controls[size_t(PcSettingsControl::GameOptions)].label=="MAIN MENU","main origin names the same return-control position MAIN MENU");
    for(size_t i=0;i<3;++i)check(snapshot.controls[i].label==main_snapshot.controls[i].label&&snapshot.controls[i].value==main_snapshot.controls[i].value&&snapshot.controls[i].field==main_snapshot.controls[i].field,"main origin preserves device family and defaults controls");
+   const auto draw=pc_settings_draw_data(main_snapshot,assets,1280,720);
+   constexpr std::string_view tiles="0123456789ABCD\x7f" "EFGHIJKLMNOPQRSTUVWXYZ\x7f'):,$!.-(%?#/";
+   bool main_label=false;
+   for(const auto& batch:draw.batches)if(batch.primitive==PcSettingsPrimitive::Text){
+    std::string label;
+    for(size_t i=batch.first;i<batch.first+batch.count;i+=6){const auto& v=draw.vertices[i];const size_t tile=size_t(std::lround(v.v*1024/32))*8+size_t(std::lround(v.u*512/32));check(tile<tiles.size(),"main origin control uses original font");label+=tiles[tile];}
+    check(label!="GAMEOPTIONS","pre-game settings never renders pause-only Game Options");if(label=="MAINMENU")main_label=true;
+   }
+   check(main_label,"pre-game settings renders MAIN MENU return control");
   }
   check(snapshot.rows.size()==size_t(count),"all section rows visible");
   check(menu.rows().size()==size_t(count),"section has no pagination/back row");

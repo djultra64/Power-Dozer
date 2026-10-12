@@ -17,6 +17,6 @@ void MainMenuState::open_options(){screen_=FrontendMenuScreen::Options;action_=F
 void MainMenuState::return_main(){screen_=FrontendMenuScreen::Main;action_=FrontendMenuAction::None;}
 FrontendMenuAction MainMenuState::take_action(){auto out=action_;action_=FrontendMenuAction::None;return out;}
 MainMenuSnapshot main_menu_snapshot(const MainMenuState& state,const InputModel& input){
- return {state.selected_,{"Start Game","PC Options","Close Game"},input.prompt(InputAction::Confirm)};
+ return {state.selected_,{"Start Game","PC Options","Close Game"},input.prompt(InputAction::Confirm),input.family()};
 }
 }

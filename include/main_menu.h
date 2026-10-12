@@ -9,6 +9,7 @@ struct MainMenuSnapshot {
  size_t selected=0;
  std::array<std::string,3> labels;
  InputPrompt confirm;
+ ControllerFamily controller_family=ControllerFamily::Unknown;
 };
 // Ownership transitions are applied by the host, never by a render snapshot.
 class MainMenuState {

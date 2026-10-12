@@ -59,10 +59,16 @@ std::shared_ptr<const MainMenuSnapshot> frontend_menu_current(const InputModel& 
 }
 FrontendMenuAction take_frontend_menu_action(){std::lock_guard lock(mutex);auto out=action;action=FrontendMenuAction::None;return out;}
 bool frontend_menu_gate_input(InputModel& input,const InputSnapshot& held){
- std::lock_guard lock(mutex);settings_return();const bool gate=owns()||release_latch;release_latch=false;
+ std::lock_guard lock(mutex);settings_return();const bool transition=release_latch,gate=owns()||transition;release_latch=false;
  for(size_t i=1;i<held.keys.size();++i){blocked.keys[i]=held.keys[i]&&(gate||blocked.keys[i]);if(gate&&held.keys[i])input.consume({BindingKind::Key,int(i)});}
  for(size_t i=0;i<held.buttons.size();++i){blocked.buttons[i]=held.buttons[i]&&(gate||blocked.buttons[i]);if(gate&&held.buttons[i])input.consume({BindingKind::Button,int(i)});}
- for(size_t i=0;i<held.axes.size();++i){if(std::abs(held.axes[i])<=.2f)blocked.axes[i]=0;else if(gate){blocked.axes[i]=held.axes[i];input.consume({BindingKind::Axis,int(i)});}}
+ // Owned frames suppress guest input continuously. Host axes are latched only
+ // at transitions; otherwise a fresh slow ramp would be blocked before the
+ // event adapter's activation threshold. Activated Main axes latch in event().
+ for(size_t i=0;i<held.axes.size();++i){
+  if(std::abs(held.axes[i])<=.2f)blocked.axes[i]=0;
+  else{if(transition)blocked.axes[i]=held.axes[i];if(gate)input.consume({BindingKind::Axis,int(i)});}
+ }
  return gate;
 }
 bool frontend_menu_event(const SDL_Event& event,const InputModel& input){

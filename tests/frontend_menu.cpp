@@ -60,5 +60,17 @@ int main(){
  check(bc::frontend_menu_current(input)->presentation_wide,"main snapshot owns startup presentation aspect");
  mouse.button.x=480;mouse.button.y=450;bc::frontend_menu_event(mouse,input);
  check(bc::take_frontend_menu_action()==bc::FrontendMenuAction::CloseGame,"letterboxed main mouse target follows guest viewport");
+ // A fresh subthreshold motion must survive intervening owned-frame gates.
+ bc::initialize_pc_options({});bc::frontend_menu_begin();gate();
+ auto axis=[&](int value){SDL_Event e{};e.type=SDL_CONTROLLERAXISMOTION;e.caxis.axis=SDL_CONTROLLER_AXIS_LEFTY;e.caxis.value=value;if(!bc::frontend_menu_event(e,input))bc::pc_settings_event(e,input);bc::InputSnapshot held;held.axes[SDL_CONTROLLER_AXIS_LEFTY]=value/32768.f;gate(held);};
+ axis(11000);check(bc::frontend_menu_current(input)->selected==0,"subthreshold tilt does not navigate early");
+ axis(28000);check(bc::frontend_menu_current(input)->selected==1,"gradual Main tilt crosses threshold after update");
+ axis(0);event(SDL_SCANCODE_T);gate();
+ axis(11000);axis(28000);check(bc::pc_settings_current(input)->focus==1,"gradual pregame Settings tilt crosses threshold after update");
+ axis(0);axis(11000);axis(28000);check(bc::pc_settings_current(input)->focus==2,"Settings gradual tilt reactivates after neutral");
+ bc::pc_settings_close();gate();bc::frontend_menu_begin();
+ bc::InputSnapshot opening;opening.axes[SDL_CONTROLLER_AXIS_LEFTY]=11000/32768.f;gate(opening);
+ axis(28000);check(bc::frontend_menu_current(input)->selected==0,"axis already held while opening waits for neutral");
+ axis(0);axis(11000);axis(28000);check(bc::frontend_menu_current(input)->selected==1,"opening axis reactivates only after neutral");
  puts("Frontend guest ownership, settings origin, remaps and release transitions passed");
 }

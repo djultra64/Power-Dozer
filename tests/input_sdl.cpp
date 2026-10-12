@@ -187,6 +187,43 @@ int main(){
   SDL_JoystickClose(fj);check(SDL_JoystickDetachVirtual(fi)==0,"main disconnect");sync();
   check(bc::frontend_menu_current(bc_input_view())->confirm.source==bc::InputSource::Keyboard,"disconnect restores keyboard menu prompt");
  }
+ // Real SDL motion events interleaved with production frame sampling reproduce
+ // gradual input, unlike a neutral-to-full synthetic event in a single frame.
+ bc::InputModel analog;analog.replace(bc::InputAction::Confirm,bc::InputSource::Controller,{{bc::BindingKind::Axis,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,1}});
+ bc::ControlsStore(bc_data_directory/"controls.json").save(analog);bc_input_init("switch");
+ auto ai=SDL_JoystickAttachVirtualEx(&desc);auto* aj=SDL_JoystickOpen(ai);check(aj,"analog regression pad attached");
+ SDL_JoystickSetVirtualAxis(aj,SDL_CONTROLLER_AXIS_TRIGGERLEFT,-32768);SDL_JoystickSetVirtualAxis(aj,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768);sync();
+ auto axis_frame=[&](int axis,int value){check(SDL_JoystickSetVirtualAxis(aj,axis,value)==0,"set virtual axis");sync();check(frame().buttons==0&&frame().x==0&&frame().y==0,"owned analog frame cannot reach hidden Files");};
+ auto ramp=[&](int axis){for(int value:{11000,18000,28000})axis_frame(axis,value);};
+ bc::initialize_pc_options({});bc::frontend_menu_begin();sync();
+ mouse.button.x=320;mouse.button.y=270;bc_input_event(mouse);sync();
+ // Controls capture also needs the first actionable event of a gradual ramp.
+ mouse.button.x=510;mouse.button.y=60;bc_input_event(mouse);mouse.button.x=40;mouse.button.y=100;bc_input_event(mouse);mouse.button.x=40;mouse.button.y=130;bc_input_event(mouse);
+ auto analog_request=bc::take_pc_remap_request();check(analog_request&&analog_request->source==bc::InputSource::Controller,"analog capture selects controller Confirm");bc_input_begin_remap(*analog_request);sync();
+ for(int value:{-10000,0,10000,25000})axis_frame(SDL_CONTROLLER_AXIS_TRIGGERRIGHT,value);
+ outcome=bc_input_take_remap_result();check(outcome&&outcome->success,"gradual trigger reaches raw remap capture");bc::acknowledge_pc_remap(*outcome);
+ axis_frame(SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768);key.key.keysym.scancode=SDL_SCANCODE_ESCAPE;bc_input_event(key);sync();
+ bc::initialize_pc_options({});bc::frontend_menu_begin();sync();
+ axis_frame(SDL_CONTROLLER_AXIS_LEFTY,11000);check(bc::frontend_menu_current(bc_input_view())->selected==0,"virtual subthreshold motion must not activate early");
+ axis_frame(SDL_CONTROLLER_AXIS_LEFTY,28000);check(bc::frontend_menu_current(bc_input_view())->selected==1,"virtual gradual Main stick crosses threshold");
+ axis_frame(SDL_CONTROLLER_AXIS_LEFTY,0);
+ // Raw virtual trigger -32768..32767 maps to controller 0..32767.
+ for(int value:{-10000,0,10000,25000})axis_frame(SDL_CONTROLLER_AXIS_TRIGGERRIGHT,value);
+ check(bc::pc_settings_open(),"slow remapped trigger Confirm opens pregame Settings");
+ check(bc_input_prompt(bc::InputAction::Confirm).label=="ZR","remapped trigger prompt matches Switch physical trigger");
+ check(!bc::take_pc_change(),"held opening trigger cannot change Settings");
+ axis_frame(SDL_CONTROLLER_AXIS_TRIGGERRIGHT,30000);check(!bc::take_pc_change(),"opening trigger remains blocked while held");
+ axis_frame(SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768);ramp(SDL_CONTROLLER_AXIS_LEFTY);
+ check(bc::pc_settings_current(bc_input_view())->focus==1,"virtual gradual pregame Settings stick navigates");
+ axis_frame(SDL_CONTROLLER_AXIS_LEFTY,0);
+ for(int value:{-10000,0,10000,25000})axis_frame(SDL_CONTROLLER_AXIS_TRIGGERRIGHT,value);
+ auto analog_change=bc::take_pc_change();check(analog_change.has_value(),"slow remapped trigger reactivates in Settings after neutral");bc::acknowledge_pc_change(analog_change->settings,true);
+ key.key.keysym.scancode=SDL_SCANCODE_ESCAPE;bc_input_event(key);sync();
+ axis_frame(SDL_CONTROLLER_AXIS_TRIGGERRIGHT,30000);check(bc::frontend_menu_current(bc_input_view())->selected==1,"Settings to Main held trigger cannot reopen Options");
+ axis_frame(SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768);axis_frame(SDL_CONTROLLER_AXIS_LEFTY,11000);bc::frontend_menu_begin();sync();
+ axis_frame(SDL_CONTROLLER_AXIS_LEFTY,28000);check(bc::frontend_menu_current(bc_input_view())->selected==0,"subthreshold stick held on Main entry stays blocked");
+ axis_frame(SDL_CONTROLLER_AXIS_LEFTY,0);ramp(SDL_CONTROLLER_AXIS_LEFTY);check(bc::frontend_menu_current(bc_input_view())->selected==1,"held-opening stick works after neutral and gradual repress");
+ SDL_JoystickClose(aj);check(SDL_JoystickDetachVirtual(ai)==0,"analog pad detach");sync();
  puts("Virtual SDL input families, focus, axes and reconnect passed");
  return 0;
 

@@ -151,7 +151,7 @@ void bc_input_update(SDL_Window* window){
   const bool frontend_gate=bc::frontend_menu_gate_input(model,current);
   const bool settings_gate=bc::pc_settings_gate_input(model,current);
   frame=model.sample(current);if(capture.active()||settings_gate||frontend_gate)frame={};previous=current;log_device();
-  title="Power Dozer v0.83 | Confirm: "+model.prompt(bc::InputAction::Confirm).label+" | Back: "+model.prompt(bc::InputAction::Back).label+" | "+active_name()+" | Alt+Enter: Fullscreen";
+  title="Power Dozer v0.84 | Confirm: "+model.prompt(bc::InputAction::Confirm).label+" | Back: "+model.prompt(bc::InputAction::Back).label+" | "+active_name()+" | Alt+Enter: Fullscreen";
   if(std::getenv("BC_TRACE_INPUT")){
    static bc::InputFrame before;
    if(frame.buttons!=before.buttons||frame.x!=before.x||frame.y!=before.y){fprintf(stderr,"{\"event\":\"input\",\"buttons\":%u,\"stick_x\":%.3f,\"stick_y\":%.3f}\n",frame.buttons,frame.x,frame.y);before=frame;}

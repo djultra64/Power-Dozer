@@ -27,7 +27,7 @@ $ctest = Join-Path (Split-Path $cmake) 'ctest.exe'
 if ($LASTEXITCODE) { throw 'Windows CPU/startup tests failed.' }
 $binary = Join-Path $BuildRoot 'Release\blastcorps-prototype.exe'
 $receipt = [ordered]@{
-    schema=1; product='Power Dozer'; version='0.83'; platform='windows-x86_64';
+    schema=1; product='Power Dozer'; version='0.84'; platform='windows-x86_64';
     binary='Release/blastcorps-prototype.exe';
     binary_sha256=(Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant();
     native_compile_verified=$true; gpu_runtime_verified=$false;

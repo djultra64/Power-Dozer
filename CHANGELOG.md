@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.84 — 2026-10-11 (candidate; Linux and source preparation)
+
+- Add Main before original file selection, with Start Game, PC Options and
+  Close Game over the actual animated backdrop and live ticker. Retain the
+  original title/attract flow and file, name and erase logic behind Start.
+- Use the original font, palette and shadows. Keep the logo on Main with
+  POWER DOZER below it; conceal the logo in pregame Settings while preserving
+  all four sections, fourteen bindings and the ticker. Paused Game Options
+  remains available, and pending Aspect preferences apply at next launch.
+- Fit drawing and mouse targets to the active startup image after resize,
+  including letterboxing. Consume held input across ownership transitions;
+  route Close Game through the existing main loop.
+- Preserve logical actions and physical Xbox/PlayStation/Switch prompts,
+  including south/east B/A and west Y on Switch and optional action remaps.
+- Clear the entire sampled vehicle-shadow texture while retaining the original
+  silhouette clip. Native GPU evidence isolates the formerly undefined final
+  border row; it does not reproduce every reported live display symptom.
+- Extend original ticker medal/rank sprites across the same full-width 16:9
+  region as text, preserving their UV span, edge clipping and 4:3 behavior.
+- Update the isolated gameplay probe for explicit Main→Files ownership and
+  active-aspect mouse geometry; retain settings, remap, filter and reload checks.
+- Validate the final Linux build with 60 CTest checks and 172 Python tests.
+- Prepare v0.84 runtime/build/package identities and source inventory including
+  all new menu and graphics modules. No Windows executable is relabeled.
+
+Linux native acceptance includes original erase-confirm cancellation, name
+entry/deletion/cancellation, existing-file load, all three virtual controller
+families with actual actions and matching glyphs, failed-save rollback, remaps,
+live filters, reload, resizing/fullscreen and clean timer/Close exits. Integrated
+shadow and medal captures cover 1080p/4K fullscreen transitions. See
+[main menu acceptance](docs/qa/main-menu-2026-10-11.md).
+
+Windows v0.84 awaits a fresh build/native run; the build host refused SSH.
+Physical controllers, broad mission coverage and sustained physical 4K/120 Hz
+remain manual. Shared GPU acceptance makes no performance claim. Source and
+license review flags remain false. Final archive audits and merged validation
+precede publication; check Releases for actual availability.
+
 ## v0.83 — 2026-10-11 (public beta; Linux and source)
 
 - Add complete Display, Graphics, Audio and Controls sections with all fourteen

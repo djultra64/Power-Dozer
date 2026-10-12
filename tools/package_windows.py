@@ -33,7 +33,7 @@ def audit(stage):
 def launcher_text():
     return '@echo off\r\n"%~dp0power-dozer.exe" %*\r\n'
 
-def write_archive(stage,output,*,version='0.83',commit):
+def write_archive(stage,output,*,version='0.84',commit):
     if not re.fullmatch(r'[0-9]+\.[0-9]+',version):raise ValueError('Unsafe version')
     if not re.fullmatch(r'[0-9a-f]{40}',commit):raise ValueError('Invalid source commit')
     stage=Path(stage);output=Path(output);files=audit(stage)
@@ -57,7 +57,7 @@ def main():
     parser.add_argument('--deps',type=Path,required=True,help='Pinned original dependency sources')
     parser.add_argument('--controllers',type=Path,required=True)
     parser.add_argument('--controller-notices',type=Path,required=True)
-    parser.add_argument('--version',default='0.83');parser.add_argument('--commit',required=True);parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--version',default='0.84');parser.add_argument('--commit',required=True);parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='power-dozer-windows-') as temporary:
         stage=Path(temporary)

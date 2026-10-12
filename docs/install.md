@@ -1,24 +1,24 @@
-# Install Power Dozer v0.83 candidate
+# Install Power Dozer v0.84 candidate
 
 These are the candidate package names. The October 11 QA record covers the
 Linux native build; it does not imply that release archives have been published.
-Windows v0.83 build and native validation remain pending.
+Windows v0.84 build and native validation remain pending.
 
 ## Linux
 
-Extract `power-dozer-v0.83-linux-x86_64.tar.gz` into a writable folder,
+Extract `power-dozer-v0.84-linux-x86_64.tar.gz` into a writable folder,
 keeping the `lib` and `licenses` folders:
 
 ```bash
-sha256sum -c power-dozer-v0.83-linux-x86_64.tar.gz.sha256
-tar -xzf power-dozer-v0.83-linux-x86_64.tar.gz
-cd power-dozer-v0.83-linux-x86_64
+sha256sum -c power-dozer-v0.84-linux-x86_64.tar.gz.sha256
+tar -xzf power-dozer-v0.84-linux-x86_64.tar.gz
+cd power-dozer-v0.84-linux-x86_64
 ./'Run Power Dozer.sh'
 ```
 
 ## Windows
 
-When a Windows candidate is supplied, use `power-dozer-v0.83-windows-x86_64.zip`
+When a Windows candidate is supplied, use `power-dozer-v0.84-windows-x86_64.zip`
 and its SHA-256 file. Verify
 the hash with `Get-FileHash` in PowerShell, extract the archive into a writable
 folder, and run `Run Power Dozer.cmd` or `power-dozer.exe`. Keep all DLLs,
@@ -29,9 +29,9 @@ Requires Windows x64, SSSE3/SSE4.1, Vulkan drivers and the
 The Windows packaging recipe includes SDL2 2.26.3 and its pinned Windows DXC libraries.
 
 ```powershell
-Get-FileHash .\power-dozer-v0.83-windows-x86_64.zip -Algorithm SHA256
-Expand-Archive .\power-dozer-v0.83-windows-x86_64.zip -DestinationPath .
-Set-Location .\power-dozer-v0.83-windows-x86_64
+Get-FileHash .\power-dozer-v0.84-windows-x86_64.zip -Algorithm SHA256
+Expand-Archive .\power-dozer-v0.84-windows-x86_64.zip -DestinationPath .
+Set-Location .\power-dozer-v0.84-windows-x86_64
 .\power-dozer.exe
 ```
 
@@ -74,7 +74,11 @@ requires checking the package on them.
 Default keyboard controls: arrow keys to move, Z for primary action/confirm,
 X for secondary action/back, Enter for Start, Shift to brake/exit,
 I/J/K/L for camera and Q/E for horn. Alt+Enter toggles fullscreen.
-Open **PC OPTIONS** from the original pause menu. The PC settings screen has
+The original title/start flow opens Main. **START GAME** opens the original
+four-file selector and Erase Game; Files Back returns Main, while Back inside
+name/erase dialogs retains its local behavior. **CLOSE GAME** uses the existing
+window-exit path. Main Back leaves the screen open.
+Open **PC OPTIONS** from Main or the original pause menu. The PC settings screen has
 Display, Graphics, Audio and Controls tabs; Controls shows all fourteen actions
 in two columns. Use the mouse, Tab/Shift+Tab and arrows, or controller shoulders
 and stick/D-pad. Confirm/back follow the advertised logical bindings; Escape
@@ -85,7 +89,10 @@ Changes save immediately. Internal resolution, aspect, frame-rate target and
 MSAA are marked for the next launch; volume/mute and filters apply live. Failed
 saves restore the previous value and keep focus. Drag master volume to set
 0–100. Restore Defaults asks for confirmation and affects only the selected
-input device. Game Options returns to the original game menu while paused.
+input device. Pregame Settings conceals the logo and returns through MAIN MENU
+with Options focused; paused Game Options returns to the original game menu.
+All drawing and mouse targets fit the startup aspect after resize, including
+letterboxing; a pending Aspect preference does not alter the current image.
 
 Prompts follow
 the last active device, with Xbox, PlayStation or Switch family selectable
@@ -94,7 +101,8 @@ manually. On Switch, south/east/west/north positions are B/A/Y/X.
 This is a beta. Two bounded audio recovery/protection changes have original-code
 regressions and limited native evidence; the initiating event in the observed
 soundplayer hang remains untraced. See [audio.md](audio.md) for exact scope and
-[PC settings acceptance](qa/pc-settings-2026-10-11.md) for the UI checks.
+[main menu/graphics acceptance](qa/main-menu-2026-10-11.md) and
+[prior PC settings acceptance](qa/pc-settings-2026-10-11.md) for the UI checks.
 Physical controller checks, sustained 4K/120 Hz and broad mission
 coverage still require manual testing. `BUILD.json` identifies the commit and
 each file's hashes; it keeps `ready_for_release` and

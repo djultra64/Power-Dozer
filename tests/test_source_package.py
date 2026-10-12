@@ -23,13 +23,13 @@ class SourcePrivacy(unittest.TestCase):
             inventory=module.host_inventory(root)
             self.assertEqual(set(inventory),set(files)-{'docs/qa/private-checkpoint.md','docs/evidence/capture.md','.local/rom.z64','build/main.cpp'})
             output=root/'source.tar.gz'
-            module.write_archive(output,[(root,inventory,'host')],{'product':'Power Dozer','version':'0.83','ready_for_release':False})
+            module.write_archive(output,[(root,inventory,'host')],{'product':'Power Dozer','version':'0.84','ready_for_release':False})
             with tarfile.open(output) as archive:
-                self.assertTrue(all(name.startswith('power-dozer-v0.83-source/') for name in archive.getnames()))
-                manifest=json.load(archive.extractfile('power-dozer-v0.83-source/SOURCES.json'))
+                self.assertTrue(all(name.startswith('power-dozer-v0.84-source/') for name in archive.getnames()))
+                manifest=json.load(archive.extractfile('power-dozer-v0.84-source/SOURCES.json'))
                 self.assertFalse(manifest['ready_for_release'])
                 for name,entry in inventory.items():
-                    data=archive.extractfile('power-dozer-v0.83-source/host/'+name).read()
+                    data=archive.extractfile('power-dozer-v0.84-source/host/'+name).read()
                     self.assertEqual(hashlib.sha256(data).hexdigest(),entry['sha256'])
     def test_host_export_keeps_required_cmake_and_shader_sources_without_private_outputs(self):
         with tempfile.TemporaryDirectory() as d:
@@ -97,3 +97,22 @@ class SourcePrivacy(unittest.TestCase):
             f.write_bytes(b'modified source')
             with self.assertRaisesRegex(ValueError,'changed'):module.write_archive(root/'bad.tar.gz',[(root,inventory,'host')],{'verified':False})
             self.assertFalse((root/'bad.tar.gz').exists())
+
+    def test_main_menu_and_graphics_modules_survive_real_host_export(self):
+        root=Path(__file__).resolve().parents[1]
+        inventory=module.host_inventory(root)
+        required={
+            'src/main_menu.cpp','include/main_menu.h',
+            'src/frontend_menu.cpp','include/frontend_menu.h',
+            'src/pc_settings_renderer.cpp','include/pc_settings_renderer.h',
+            'src/pc_settings_assets.cpp','include/pc_settings_assets.h',
+            'src/pc_settings_input.cpp','include/pc_settings_input.h',
+            'src/pc_settings_view.cpp','include/pc_settings_view.h',
+            'src/shadow_clear.cpp','include/shadow_clear.h',
+            'src/ticker_medals_render.cpp','include/ticker_medals_render.h',
+            'shaders/pc_settings.hlsl','tools/recompile.py','CMakeLists.txt',
+            'tests/frontend_menu.cpp','tests/main_menu.cpp',
+            'tests/main_menu_renderer.cpp','tests/test_frontend_menu_hooks.py',
+            'tests/test_shadow_clear.py','tests/test_ticker_medals.py',
+            'tests/test_native_navigation.py'}
+        self.assertFalse(required-set(inventory))

@@ -6,7 +6,7 @@
 
 # Power Dozer
 
-**v0.83 — public beta of a native Blast Corps port; Linux x86-64 and source release.**
+**v0.84 — native Blast Corps beta candidate; Linux x86-64 and source preparation.**
 Static recompilation of Blast Corps USA Rev 1 with N64Recomp,
 N64ModernRuntime and RT64. The project is not affiliated with Rare or Nintendo.
 
@@ -20,16 +20,20 @@ Check the available archives and their SHA-256 checksums in
 [Releases](https://github.com/djultra64/Power-Dozer/releases). Extract the runtime
 archive into a writable folder:
 
-- Linux: `power-dozer-v0.83-linux-x86_64.tar.gz`; run `Run Power Dozer.sh`.
-- Source: v0.83 host code and pinned dependencies; see the build recipe below.
-- Windows v0.83 is pending a fresh build and native validation. The existing
-  v0.82 Windows archive belongs to the previous release; run `Run Power Dozer.cmd`.
+- Linux: `power-dozer-v0.84-linux-x86_64.tar.gz`; run `Run Power Dozer.sh`.
+- Source: v0.84 host code and pinned dependencies; see the build recipe below.
+- Windows v0.84 is pending a fresh build and native validation. The existing
+  v0.82 Windows archive belongs to an earlier release; run `Run Power Dozer.cmd`.
 
-v0.83 adds a complete PC settings overlay with Display, Graphics, Audio and
-Controls sections, original game font/palette/shadows decoded from your ROM,
-and optional remapping by logical action. The earlier wheel interpolation fix
-remains included. This release scope is Linux and source; check Releases for
-actual download availability.
+v0.84 adds a main menu before the original file selector: **Start Game**,
+**PC Options** and **Close Game**, over the game's actual animated background
+and scrolling ticker. Main keeps the original logo; pregame Settings conceals
+it and retains Display, Graphics, Audio and all fourteen Controls actions above
+the ticker. Resizing follows the active startup aspect, including letterboxing.
+This candidate also repairs the initialized vehicle-shadow border and full-width
+ticker medal sprites. The earlier settings, audio and wheel fixes remain included.
+See [native scope and limits](docs/qa/main-menu-2026-10-11.md). Final archive audits
+and merged checks precede publication; check Releases for actual availability.
 
 On first launch, select your own **Blast Corps USA Rev 1** ROM.
 z64/v64/n64 and ZIP files containing a single valid ROM are supported. The ROM is not included.
@@ -90,10 +94,12 @@ intermittent dropout or gameplay hang is resolved.
 Full level coverage, physical controllers and sustained 120 fps
 remain for manual testing. End-of-level fades/sky and the
 visual stability of the HUD arrow need further checking.
-v0.83 is a public beta for testing and reports. Windows results above describe
-prior releases; a fresh v0.83 Windows build and native run remain pending.
-The reported thin black ground line is not currently reproducible; the reporter
-and recent local captures no longer show it. No speculative patch was applied.
+v0.84 is prepared as a beta candidate for testing and reports. Windows results
+above describe prior releases; a fresh v0.84 Windows build and native run remain
+pending. The shadow repair preserves the original silhouette and is supported
+by actual texture-border/GPU evidence. The exact reported live 4K baseline was
+not reproduced in the presented baseline, so this is not a claim that every
+black ground line or display-specific symptom is resolved.
 
 ## Build and contribute
 

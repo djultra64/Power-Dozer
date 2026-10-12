@@ -1,7 +1,7 @@
 # Private beta manual testing
 
-Updated October 11, 2026. The [PC settings native record](pc-settings-2026-10-11.md)
-separates completed Linux automation from the physical checks below. Virtual GPU and virtual SDL
+Updated October 11, 2026. The [main menu and graphics native record](main-menu-2026-10-11.md) and [PC settings native record](pc-settings-2026-10-11.md)
+separate completed Linux automation from the physical checks below. Virtual GPU and virtual SDL
 controller results retain their value as automated evidence; they do not count
 as physical display, button or audio tests. Do not check boxes merely because
 120 Hz was requested or a mission opened.
@@ -90,6 +90,37 @@ for an ambiguous controller.
   Verify labels, glyphs and actual actions again.
 - [ ] Keyboard: help, Enter/Start, Z/X, camera and Alt+Enter; check the binding
   editor, cancellation without changes and shortcut without an additional action.
+
+## Main menu before files
+
+- [ ] Original title and attract mode remain available. Confirm title startup:
+  Main has exactly Start Game, PC Options and Close Game, with POWER DOZER below
+  the retained logo and the actual animated background/ticker still running.
+- [ ] Start opens all four original files and Erase Game. Hold Confirm while
+  opening: it must not load a file. Files Back returns Main; Main Back leaves
+  Main open. Reopen after the original file window closes.
+- [ ] Use only copied progress: open an existing file's actual NO/YES erase
+  confirmation, cancel to erase-choice and then Files, and verify its data.
+  New-file name entry supports local deletion and empty-name cancellation to
+  Files without unexpectedly reopening Main. Submit a name and load progress.
+- [ ] Pregame PC Options covers the original logo and shows Display, Graphics,
+  Audio and all fourteen Controls actions above the live ticker. Back/MAIN MENU
+  returns with Options focused. Paused gameplay still offers Game Options.
+- [ ] Test mouse targets and capture/cancel of the last action after wide startup
+  resized to 960×720 (90-pixel top letterbox) and 4:3 startup resized to 1280×720.
+  Pending Aspect preference changes must leave current geometry unchanged.
+- [ ] Repeat Main/Files/Options actions and their actual physical prompts on
+  Xbox, PlayStation and Switch. Remap Confirm to west: X/Square/Y must both
+  appear and activate it. Check held inputs, manual fallback and disconnect.
+- [ ] Close Game exits through the existing window-exit path from both keyboard
+  and controller; the fullscreen shortcut must not trigger Start or Close.
+- [ ] On copied progress containing medals, verify bronze/silver/gold/rank across
+  both 16:9 ticker wings at 1080p/4K and after fullscreen transitions. Record
+  partial clipping only at the actual full-width edges, and preserve 4:3.
+- [ ] Recheck vehicle shadow borders in an unobscured gameplay view at 1080p/4K
+  through window/fullscreen/window/fullscreen. Retain the actual silhouette.
+  This is symptom testing on the user's hardware; prior causal GPU texture
+  evidence does not claim reproduction of every live display symptom.
 
 ## Complete PC settings screen
 

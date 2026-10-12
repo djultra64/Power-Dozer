@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create an audited Power Dozer v0.83 Linux archive without certifying release readiness."""
+"""Create an audited Power Dozer v0.84 Linux archive without certifying release readiness."""
 import argparse
 import gzip
 import hashlib
@@ -14,8 +14,8 @@ import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
 PRODUCT='Power Dozer'
-VERSION='0.83'
-PACKAGE_ROOT='power-dozer-v0.83-linux-x86_64'
+VERSION='0.84'
+PACKAGE_ROOT='power-dozer-v0.84-linux-x86_64'
 EXECUTABLE='power-dozer'
 LAUNCHER='Run Power Dozer.sh'
 
@@ -105,7 +105,7 @@ def launcher_text():
             'exec "$package_dir/power-dozer" "$@"\n')
 
 def runtime_readme():
-    return """Power Dozer v0.83 — experimental Linux beta.
+    return """Power Dozer v0.84 — experimental Linux beta.
 Extract the complete archive into a writable directory, then run:
   ./"Run Power Dozer.sh"
 Or select your own ROM explicitly:
@@ -123,10 +123,18 @@ Linux x86-64, SSSE3/SSE4.1, glibc >= 2.38, GLIBCXX_3.4.31, libz.so.1,
 Vulkan drivers, X11/XWayland and a desktop file chooser are required.
 Default keyboard: arrows move, Z primary/confirm, X secondary/back, Enter Start,
 Shift brake/exit, I/J/K/L camera, Q/E horn. Alt+Enter toggles fullscreen.
+Main offers Start Game, PC Options and Close Game before original file selection.
+Back from Files returns Main; erase/name dialogs retain original local Back.
+Pregame Settings conceals the logo, retains fourteen actions above the live ticker,
+and follows the active startup aspect after resize. Paused Game Options remains.
 PC options provide complete Display, Graphics, Audio and Controls sections,
 with keyboard/mouse/controller navigation and optional remapping by action.
 Prompts follow the last active device; Xbox/PlayStation/Switch family can be
 selected manually. Switch face positions south/east/west/north are B/A/Y/X.
+The vehicle shadow now clears its entire sampled border while retaining its
+original silhouette. Ticker medal/rank sprites share the full-width 16:9 region
+with text. Native 1080p/4K fullscreen transitions were checked; exact live-user
+baseline reproduction and all hardware/filter combinations remain unverified.
 Pending-audio recovery now follows the original graphics-yield protocol;
 soundplayer heartbeat protection covers queue saturation and stale event state.
 Original-protocol regressions and a ten-minute Linux real GPU/PulseAudio

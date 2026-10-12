@@ -25,6 +25,21 @@ from native_hang_capture import capture as capture_native_hang
 
 ROOT=Path(__file__).resolve().parents[1]
 
+def reference_point(width,height,presentation_wide,x,y):
+    """Match the startup game image, including letterboxing after resize."""
+    scale=min(width/(480*16/9 if presentation_wide else 640),height/480)
+    return round((width-640*scale)/2+x*scale),round((height-480*scale)/2+y*scale)
+
+def frontend_screen(content):
+    """Latest explicit frontend owner; guest state alone cannot prove Main."""
+    screen=None
+    for line in content.splitlines():
+        try:event=json.loads(line)
+        except json.JSONDecodeError:continue
+        if isinstance(event,dict) and event.get('event')=='frontend':
+            screen=event.get('screen')
+    return 'main' if screen=='main-options-return' else screen
+
 def run(args):
     if os.environ.get('DISPLAY') in (None,':0',':0.0'):
         raise ValueError('Use xvfb-run -a; this probe must not send input to your desktop')
@@ -48,7 +63,7 @@ def run(args):
         pak_hash=hashlib.sha256(args.seed_pak.read_bytes()).hexdigest()
         shutil.copyfile(args.seed_pak,data/'controller-pak.bin')
     driver={'software':'/usr/share/vulkan/icd.d/lvp_icd.x86_64.json','radv':'/usr/share/vulkan/icd.d/radeon_icd.x86_64.json'}[args.gpu]
-    env=dict(os.environ,BC_TRACE_INPUT='1',BC_TRACE_GAMEPLAY='1',BC_TRACE_RENDER='1',BC_TRACE_PC_SETTINGS='1',SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',VK_DRIVER_FILES=driver)
+    env=dict(os.environ,BC_TRACE_INPUT='1',BC_TRACE_GAMEPLAY='1',BC_TRACE_RENDER='1',BC_TRACE_PC_SETTINGS='1',BC_TRACE_FRONTEND_MENU='1',SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',VK_DRIVER_FILES=driver)
     preload_aliases=tempfile.TemporaryDirectory(prefix='blastcorps-qa-preload-',dir='/tmp') if args.audio_loss or args.controller else None
     def preload_path(path):
         # ld.so splits on spaces. A private alias also works when the tested
@@ -130,8 +145,8 @@ def run(args):
                 except (OSError,ValueError):return False
             wait(matches)
         def mouse(x,y,click=False):
-            view=settings_view();width,height=view['width'],view['height'];scale=min(width/640,height/480)
-            command('mousemove','--window',window,str(round((width-640*scale)/2+x*scale)),str(round((height-480*scale)/2+y*scale)))
+            view=settings_view();px,py=reference_point(view['width'],view['height'],not args.original_aspect,x,y)
+            command('mousemove','--window',window,str(px),str(py))
             if click:command('click','1')
             time.sleep(.15)
         def tab(index):
@@ -173,8 +188,15 @@ def run(args):
             wait(lambda value:'game mode switch from 58 to 1' in value)
             time.sleep(4)
             for attempt in range(12):
-                if 'game mode switch from 1 to 53' in text():break
-                key('Return' if attempt%2==0 else 'z',.6);time.sleep(1.5)
+                if frontend_screen(text())=='main':break
+                # Return advances original startup only; Z could activate Main
+                # before a delayed guest-state trace reaches the probe.
+                key('Return',.3);time.sleep(.4)
+            wait(lambda value:frontend_screen(value)=='main')
+            time.sleep(.5);screenshot('main-before-files')
+            key(confirm,.7)
+            wait(lambda value:frontend_screen(value)=='files')
+            time.sleep(.5);screenshot('files-after-main')
             wait(lambda value:' to 18\n' in value or 'l3d_adapter_ready' in value or '"state_lo":65536,"paused":0' in value)
             if 'l3d_adapter_ready' not in text() and states()[-1]['state_lo']==65536:
                 time.sleep(2);screenshot('pak-player-selection');key(confirm)

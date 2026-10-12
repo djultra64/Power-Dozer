@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage deterministic Power Dozer v0.83 sources; never certify licensing."""
+"""Stage deterministic Power Dozer v0.84 sources; never certify licensing."""
 import argparse
 import gzip
 import hashlib
@@ -11,8 +11,8 @@ import tarfile
 
 ROOT=Path(__file__).resolve().parents[1]
 PRODUCT='Power Dozer'
-VERSION='0.83'
-PACKAGE_ROOT='power-dozer-v0.83-source'
+VERSION='0.84'
+PACKAGE_ROOT='power-dozer-v0.84-source'
 SUFFIXES={'.h','.hpp','.hh','.c','.cpp','.cc','.cxx','.s','.asm','.hlsl','.hlsli','.glsl','.vert','.frag','.comp','.py','.sh','.bat','.ps1','.toml','.json','.txt','.md','.yml','.yaml','.natvis','.rc','.manifest','.def','.inc','.map','.csv','.xml','.html','.rst','.fbs','.mk','.cfg','.sln','.vcxproj','.props','.filters','.in','.cmake'}
 NAMES={'LICENSE','COPYING','COPYRIGHT','NOTICE','Makefile','meson.build','.gitignore','.gitmodules','.gitattributes'}
 SUFFIXES.update({'.inl','.ipp','.tpp'})

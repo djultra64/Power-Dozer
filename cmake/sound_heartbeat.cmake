@@ -25,6 +25,10 @@ foreach(BC_HEARTBEAT_MODE protected baseline)
  add_executable(sound_heartbeat_${BC_HEARTBEAT_MODE}_test tests/sound_heartbeat.cpp)
  target_include_directories(sound_heartbeat_${BC_HEARTBEAT_MODE}_test PRIVATE
   include "${CMAKE_BINARY_DIR}" "${RUNTIME}/N64Recomp/include")
+ if(MSVC)
+  # The bounded guest-spin fixture throws through generated C-linkage calls.
+  target_compile_options(sound_heartbeat_${BC_HEARTBEAT_MODE}_test PRIVATE /EHs /EHc-)
+ endif()
  if(BC_HEARTBEAT_MODE STREQUAL "protected")
   target_sources(sound_heartbeat_protected_test PRIVATE src/sound_heartbeat.cpp)
  else()

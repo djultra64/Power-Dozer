@@ -20,7 +20,7 @@ foreach ($generatedInput in @('.local\audio-rsp.cpp','.local\generated\fallbacks
 }
 & $cmake -S $source -B $BuildRoot -G 'Visual Studio 17 2022' -A x64 "-DBC_SDK_ROOT=$sdk" "-DPython3_EXECUTABLE=$python"
 if ($LASTEXITCODE) { throw 'Windows configure failed.' }
-& $cmake --build $BuildRoot --config Release --target blastcorps-prototype windows_files_test --parallel $Jobs
+& $cmake --build $BuildRoot --config Release --parallel $Jobs
 if ($LASTEXITCODE) { throw 'Windows build failed.' }
 $ctest = Join-Path (Split-Path $cmake) 'ctest.exe'
 & $ctest --test-dir $BuildRoot -C Release --output-on-failure

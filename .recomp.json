@@ -1,0 +1,22 @@
+{
+  "$schema": "https://recomp.fyi/schema/v1.json",
+  "game": "Blast Corps",
+  "system": "N64",
+  "type": "recomp",
+  "original": {
+    "region": "USA",
+    "revision": "Rev 1"
+  },
+  "project": "Power Dozer",
+  "status": "released",
+  "targets": ["Windows", "Linux"],
+  "toolchain": "N64recomp",
+  "approach": "Static recompilation with N64Recomp, N64ModernRuntime and RT64.",
+  "maintainers": [
+    {
+      "name": "djultra64",
+      "link": "https://github.com/djultra64"
+    }
+  ],
+  "notes": "Public beta with native Windows and Linux builds, PC settings, per-action control remapping, device-aware controller prompts and persistent saves. Full level coverage and physical controller testing remain pending. Created with OpenAI Codex assistance."
+}

@@ -34,6 +34,43 @@ Set-Location .\power-dozer-v0.84-windows-x86_64
 .\power-dozer.exe
 ```
 
+## Optional generic N64 USB pad profile (Windows)
+
+The [measured profile](controller-profiles/generic-n64-windows.txt) is for one
+transparent-red, three-prong Chinese N64 USB pad. It is not an automatic rule:
+`0079:0006` is shared by controllers with incompatible layouts. Confirm these
+raw SDL inputs, counting from zero, before importing it:
+
+| Physical control | Input |
+| --- | --- |
+| A / B / Start | buttons 5 / 4 / 9 |
+| Z / L / R | buttons 8 / 6 / 7 |
+| C up / right / down / left | buttons 0 / 1 / 2 / 3 |
+| Stick X / Y | axes 0 / 1 |
+| D-pad | hat 0 |
+
+Close the game, back up `gamecontrollerdb.txt` beside `power-dozer.exe`, and
+append the three lines from the optional profile. Keep the rest of the database.
+Restart and check Controls: A/B map to Confirm/Back, L/R to shoulders, Z to the
+left trigger, and C buttons to signed right-stick directions. Existing remaps
+in `data/controls.json` still apply. Restore the database backup if another pad
+starts behaving differently.
+
+SDL reports 4 axes, 12 buttons and 1 hat. The same unit was observed as
+`USB Joystick` on SDL2 2.32.10 (CRC `8630`) and SDL2 2.26.3 (`8e4f`), and as
+`Microntek USB Joystick` on SDL3 3.4.18 (`79be`). These are Windows variants;
+no Linux identity is inferred. CRC is not a serial number, and older SDL can
+fall back across CRCs. No Select button was identified: SDL Back/Select is unassigned,
+and Z remains a gameplay input. Open PC OPTIONS from Main or the pause menu.
+
+The owner's real capture contains 18 assignments and 206 frames over 10 seconds.
+Native SDL import and SDL2 2.32.10 virtual mapping checks covered the physical
+buttons, C directions, hat diagonals, intermediate stick values and release.
+There has been no physical Power Dozer playtest. The capture suggests a 2% radial
+inner deadzone as a starting point for this unit, but mapping text cannot apply
+it: Power Dozer currently uses a fixed 20% per-axis deadzone in its input model.
+This profile does not change that behavior or promise a radial calibration.
+
 ## ROM and progress
 
 The selector asks for your own Blast Corps **USA Rev 1** ROM, in
